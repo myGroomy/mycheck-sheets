@@ -13,6 +13,8 @@ import {
   updateRow,
 } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
+import { entryId as deterministicEntryId } from '../../../../../lib/ids';
+import { isCanonicalEntry, resetDuplicateEntryRows } from '../../../../../lib/concurrency';
 import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
 
 type EntryAction = 'selesai' | 'batal' | 'skip' | 'ubah_nilai';
@@ -240,7 +242,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
       ? computeTiming(now, branchTimezone, point.target_time, point.tolerance_minutes, toleranceDefault)
       : { timingLabel: null, timingDeltaMinutes: null };
 
-  const entryId = entry ? String(entry['id']) : ulid();
+  const entryId = entry ? String(entry['id']) : deterministicEntryId(shiftInstanceId, pointRef);
   const entryPatch = {
     state: newState,
     value: newState === 'belum' ? '' : value,
@@ -268,6 +270,53 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
       version: 1,
       ...entryPatch,
     });
+  }
+
+  // Rekonsiliasi BR-12: dua request paralel bisa sama-sama lolos pengecekan
+  // "belum" di atas. Karena ID entry deterministik, keduanya menulis ID yang
+  // sama; baris paling awal yang kanonik. Penulis yang barisnya bukan kanonik
+  // membatalkan efeknya sendiri lalu mengembalikan 409.
+  if (!entry && newState !== 'belum') {
+    const { winner, canonical, rows } = await isCanonicalEntry(
+      spreadsheetId,
+      entriesTab,
+      shiftInstanceId,
+      pointRef,
+      now.toISOString()
+    );
+    if (canonical && !winner) {
+      await resetDuplicateEntryRows(
+        spreadsheetId,
+        entriesTab,
+        rows,
+        canonical.rowNumber,
+        now.toISOString()
+      );
+      await insertRow(spreadsheetId, logsTab, {
+        id: ulid(),
+        shift_instance_id: shiftInstanceId,
+        entry_id: entryId,
+        point_ref: pointRef,
+        action,
+        outcome: 'ditolak_kalah',
+        user_id: ctx.user.id,
+        prev_state: prevState,
+        new_state: newState,
+        value,
+        client_action_id: clientActionId,
+        client_at: body.client_at ?? '',
+        at: now.toISOString(),
+        created_at: now.toISOString(),
+      });
+      return NextResponse.json(
+        {
+          error: 'Item sedang diselesaikan petugas lain',
+          code: 'BR12_CONFLICT',
+          state: newState,
+        },
+        { status: 409 }
+      );
+    }
   }
 
   await insertRow(spreadsheetId, logsTab, {

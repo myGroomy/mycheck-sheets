@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readSheetData, sheetToObjects } from '@/lib/google/sheets';
+import { readSheetDataFresh, sheetToObjects } from '@/lib/google/sheets';
 import { createSessionToken, setSessionCookieHeader } from '@/lib/session';
 
 export async function POST(req: NextRequest) {
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { headers, rows } = await readSheetData(registryId, 'Users');
+    const { headers, rows } = await readSheetDataFresh(registryId, 'Users');
     const users = sheetToObjects(headers, rows) as Record<string, string>[];
 
     const user = users.find(

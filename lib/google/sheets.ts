@@ -10,6 +10,65 @@ export interface SheetData {
 }
 
 /**
+ * Cache baca per (spreadsheet, range) dengan TTL pendek.
+ *
+ * Setiap `values.get` adalah 1 panggilan API, dan kuota Sheets per menit untuk
+ * service account itu kecil. Dua sumber pemborosan yang paling nyata:
+ *   - request paralel untuk data yang sama (5 petugas menekan item bersamaan)
+ *   - satu request yang membaca sheet sama beberapa kali beruntun
+ * Keduanya hilang kalau baca yang identik berbagi satu promise (single-flight)
+ * dan hasilnya disimpan sebentar.
+ *
+ * TTL sengaja pendek (lihat SHEET_READ_TTL_MS) supaya data shift yang baru
+ * ditulis tidak tampil basi terlalu lama. Setiap operasi tulis di bawah
+ * memanggil invalidateSheetCache() supaya request berikutnya baca data segar.
+ */
+const SHEET_READ_TTL_MS = 15_000;
+
+interface CacheSlot {
+  promise: Promise<SheetData>;
+  expiresAt: number;
+}
+
+const readCache = new Map<string, CacheSlot>();
+
+function cacheKey(spreadsheetId: string, range: string): string {
+  return `${spreadsheetId}!${range}`;
+}
+
+/** Buang cache baca untuk satu spreadsheet (panggil setelah setiap tulis). */
+export function invalidateSheetCache(spreadsheetId?: string): void {
+  if (!spreadsheetId) {
+    readCache.clear();
+    return;
+  }
+  const prefix = `${spreadsheetId}!`;
+  for (const key of [...readCache.keys()]) {
+    if (key.startsWith(prefix)) readCache.delete(key);
+  }
+}
+
+/** Baca dengan single-flight + TTL. Lihat catatan di atas. */
+async function readSheetDataCached(
+  spreadsheetId: string,
+  range: string
+): Promise<SheetData> {
+  const key = cacheKey(spreadsheetId, range);
+  const hit = readCache.get(key);
+  if (hit && Date.now() < hit.expiresAt) return hit.promise;
+
+  const promise = readSheetDataUncached(spreadsheetId, range);
+  readCache.set(key, { promise, expiresAt: Date.now() + SHEET_READ_TTL_MS });
+  try {
+    return await promise;
+  } catch (error) {
+    // Jangan tahan hasil gagal — request berikutnya harus mencoba lagi.
+    if (readCache.get(key)?.promise === promise) readCache.delete(key);
+    throw error;
+  }
+}
+
+/**
  * Baca seluruh data sebuah sheet TANPA membuang baris kosong. Nomor baris
  * fisik (1-based, baris header = 1) dapat dihitung dari index di rows:
  * `rowNumber = i + 2`. Dipakai ketika posisi baris harus dipertahankan
@@ -36,6 +95,27 @@ export async function readSheetDataRaw(
  * sheetToObjects_ yang mengabaikan baris kosong.
  */
 export async function readSheetData(
+  spreadsheetId: string,
+  range: string
+): Promise<SheetData> {
+  return readSheetDataCached(spreadsheetId, range);
+}
+
+/**
+ * Baca DARI LUAR cache — selalu memanggil API.
+ *
+ * Wajib dipakai untuk operasi sensitif yang tidak boleh melihat data basi,
+ * terutama verifikasi PIN admin: kalau PIN baru saja di-reset, verifikasi
+ * harus langsung memakai nilai baru (lihat lib/admin/sensitive-action.ts).
+ */
+export async function readSheetDataFresh(
+  spreadsheetId: string,
+  range: string
+): Promise<SheetData> {
+  return readSheetDataUncached(spreadsheetId, range);
+}
+
+async function readSheetDataUncached(
   spreadsheetId: string,
   range: string
 ): Promise<SheetData> {
@@ -138,6 +218,7 @@ export async function writeRow(
   range: string,
   row: unknown[]
 ): Promise<void> {
+  invalidateSheetCache(spreadsheetId);
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.update({
     spreadsheetId,
@@ -179,6 +260,7 @@ export async function writeCells(
   cells: { range: string; value: unknown }[]
 ): Promise<void> {
   if (cells.length === 0) return;
+  invalidateSheetCache(spreadsheetId);
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId,
@@ -201,6 +283,7 @@ export async function deleteRow(
   sheetName: string,
   rowNumber1Based: number
 ): Promise<void> {
+  invalidateSheetCache(spreadsheetId);
   const sheets = getSheetsClient();
   const meta = await sheets.spreadsheets.get({
     spreadsheetId,
@@ -241,6 +324,7 @@ export async function appendRows(
   rows: unknown[][]
 ): Promise<void> {
   if (rows.length === 0) return;
+  invalidateSheetCache(spreadsheetId);
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.append({
     spreadsheetId,
@@ -262,6 +346,7 @@ export async function ensureSheet(
   sheetTitle: string,
   headers: string[]
 ): Promise<void> {
+  invalidateSheetCache(spreadsheetId);
   const sheets = getSheetsClient();
   const meta = await sheets.spreadsheets.get({
     spreadsheetId,

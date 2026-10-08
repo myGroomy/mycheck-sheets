@@ -6,6 +6,8 @@ import { appendAuditLogFor } from '../../../../lib/db/audit';
 import { getServerTime } from '../../../../lib/db/server-time';
 import { getShiftDate, isWithinShiftHours } from '../../../../lib/shift/time';
 import { requireBranchAccess, withAuth } from '../../../../lib/api-auth';
+import { shiftInstanceId as deterministicShiftInstanceId } from '../../../../lib/ids';
+import { voidDuplicateShiftInstances } from '../../../../lib/concurrency';
 import { filterRows, insertRow, asStr } from '../../../../lib/store';
 import { resolveCabang } from '../../../../lib/google/registry';
 
@@ -81,21 +83,27 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     asStr(definition['end_time'])
   );
 
+  // BR-01: ID diturunkan dari (cabang, definisi, tanggal, is_test) sehingga
+  // dua request paralel tidak mungkin membuat dua shift berbeda — keduanya
+  // menulis ID yang sama, lalu direkonsiliasi di bawah.
+  const shiftInstanceId = deterministicShiftInstanceId(
+    branchId,
+    shiftDefinitionId,
+    shiftDate,
+    isTest
+  );
+
   // Cek existing (BR-01)
   const existing = await filterRows(spreadsheetId, 'ShiftInstances', (r) =>
-    asStr(r['shift_definition_id']) === shiftDefinitionId &&
-    asStr(r['shift_date']) === shiftDate &&
-    (asStr(r['is_test']).toLowerCase() === 'true' || r['is_test'] === true) === isTest &&
-    asStr(r['status']) !== 'void'
+    asStr(r['id']) === shiftInstanceId && asStr(r['status']) !== 'void'
   );
   if (existing[0]) {
     return NextResponse.json({
       status: 'bergabung',
-      shift_instance_id: existing[0]['id'],
+      shift_instance_id: shiftInstanceId,
     });
   }
 
-  const shiftInstanceId = ulid();
   await insertRow(spreadsheetId, 'ShiftInstances', {
     id: shiftInstanceId,
     shift_definition_id: shiftDefinitionId,
@@ -113,6 +121,11 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
   });
+
+  // Rekonsiliasi BR-01: bila request paralel sempat sama-sama lolos pengecekan
+  // di atas, baris duplikat akan di-void — baris pertama yang jadi shift kanonik.
+  // Baris TIDAK dihapus (BR-40), hanya di-void.
+  await voidDuplicateShiftInstances(spreadsheetId, shiftInstanceId);
 
   await insertRow(spreadsheetId, 'Participants', {
     id: ulid(),

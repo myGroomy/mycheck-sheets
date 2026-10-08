@@ -2,11 +2,13 @@
 // Verifikasi PIN admin untuk aksi sensitif (ubah peran / nonaktifkan akun /
 // hapus config). Versi Google Sheets: PIN plaintext pada sheet Registry.Users.
 //
-// Sengaja membaca sheet langsung (tidak lewat cache Users) supaya PIN yang
-// baru saja di-reset tidak ikut kedaluwarsa bersama cache.
+// Sengaja membaca sheet langsung lewat readSheetDataFresh — bukan readSheetData
+// yang ber-cache — supaya PIN yang baru saja di-reset tidak ikut kedaluwarsa.
+// Jadi semua jalur autentikasi (login, ganti PIN, verifikasi PIN admin) wajib
+// pakai readSheetDataFresh, tidak boleh readSheetData.
 
 import { getRegistrySpreadsheetId } from '../google/registry';
-import { readSheetData, sheetToObjects } from '../google/sheets';
+import { readSheetDataFresh, sheetToObjects } from '../google/sheets';
 import { asBool, asStr } from '../store';
 import { listAllUsers } from '../google/registry-admin';
 
@@ -19,7 +21,7 @@ interface FreshUser {
 }
 
 async function readUsersFresh(): Promise<FreshUser[]> {
-  const { headers, rows } = await readSheetData(getRegistrySpreadsheetId(), 'Users');
+  const { headers, rows } = await readSheetDataFresh(getRegistrySpreadsheetId(), 'Users');
   return (sheetToObjects(headers, rows) as Record<string, unknown>[]).map((r) => ({
     User_ID: asStr(r['User_ID']),
     Username: asStr(r['Username']),

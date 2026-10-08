@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-auth';
 import { resetUsersCache } from '@/lib/google/registry-admin';
 import {
-  readSheetData,
+  readSheetDataFresh,
   sheetToObjects,
   writeRow,
   columnIndexToLetter,
@@ -26,7 +26,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
       return NextResponse.json({ error: 'REGISTRY_SPREADSHEET_ID belum dikonfigurasi' }, { status: 500 });
     }
 
-    const { headers, rows } = await readSheetData(registryId, 'Users');
+    const { headers, rows } = await readSheetDataFresh(registryId, 'Users');
     const users = sheetToObjects(headers, rows) as Record<string, string>[];
     const idx = users.findIndex(
       (u) =>
