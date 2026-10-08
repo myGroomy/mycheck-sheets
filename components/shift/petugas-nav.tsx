@@ -15,7 +15,7 @@ import {
 
 const LINKS = [
   { href: '/', label: 'Beranda', icon: Home },
-  { href: '/#daftar-shift', label: 'Checklist', icon: ClipboardCheck },
+  { href: '/daftar-shift', label: 'Checklist', icon: ClipboardCheck },
   { href: '/incident', label: 'Incident', icon: AlertTriangle },
   { href: '/report', label: 'Laporan', icon: FileText },
   // Hanya di hamburger, tidak di bar bawah: bar bawah dibatasi 4 ikon supaya
@@ -25,10 +25,16 @@ const LINKS = [
 
 const BOTTOM_LINKS = LINKS.filter((link) => link.inBottomBar !== false);
 
+// "Checklist" juga menyala di halaman detail shift (/shift/<id>) karena itu
+// kelanjutan dari pekerjaan checklist yang sama.
 function isActive(pathname: string, href: string) {
-  if (href === '/') return pathname === '/';
-  if (href === '/#daftar-shift') return pathname.startsWith('/shift');
-  return pathname === href || pathname.startsWith(`${href}/`);
+  // Perhatikan: '/daftar-shift' TIDAK diawali '/shift', jadi harus dicek
+  // terpisah. Bandingkan dengan '/shift/' (dengan slash) supaya path lain
+  // yang diawali 'shift' tidak ikut kena.
+  if (href === '/daftar-shift') {
+    return pathname === '/daftar-shift' || pathname.startsWith('/shift/');
+  }
+  return pathname === href;
 }
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
