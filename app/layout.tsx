@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { PwaStatus } from '@/components/pwa-status';
+import { AuthProvider } from '@/lib/AuthContext';
+import { CabangProvider } from '@/lib/CabangContext';
+import { AuthGuard } from '@/components/AuthGuard';
 import './globals.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -37,7 +40,11 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${plusJakartaSans.variable} bg-canvas text-ink antialiased`}>
         <PwaStatus />
-        {children}
+        <AuthProvider>
+          <CabangProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </CabangProvider>
+        </AuthProvider>
         <Toaster position="top-center" richColors />
       </body>
     </html>
