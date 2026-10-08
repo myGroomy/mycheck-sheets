@@ -1,7 +1,7 @@
 # Testing Guide — checklist-shift
 
 ## 1. Tujuan
-Memastikan alur shift berjalan benar, gagal dengan aman, data antar cabang terisolasi, dan aturan konkurensi/penguncian tegak dengan database Supabase PostgreSQL.
+Memastikan alur shift berjalan benar, gagal dengan aman, data antar cabang terisolasi, dan guard konsistensi tetap tegak di atas Google Sheets.
 
 Tandai `[x]` hanya jika benar-benar diverifikasi. Pisahkan **[Otomatis]** dan **[Manual]**.
 
@@ -66,20 +66,20 @@ Login -> Buka Shift -> (Baca handover) -> Checklist bersama -> Handover -> Tutup
 - [ ] [Otomatis] Token tidak dapat ditebak dan hanya menampilkan satu laporan
 - [ ] [Manual] Tautan `wa.me` memakai template admin dengan variabel terisi
 
-## 9. Data Layer (PostgreSQL)
-- [ ] [Otomatis] Constraint BR-01 (partial unique index) mencegah shift ganda
-- [ ] [Otomatis] Advisory lock BR-01: dua panggilan bersamaan → satu dapat lock, satu ditolak
-- [ ] [Otomatis] `SELECT FOR UPDATE` BR-12: dua aksi bersamaan → satu menang, satu kalah
-- [ ] [Otomatis] Hash chain audit log: edit manual satu baris → verifikasi mendeteksi mismatch
-- [ ] [Otomatis] Idempotency: `client_action_id` duplikat → return hasil sebelumnya
-- [ ] [Otomatis] Semua tulis atomik dalam transaction (tidak ada data setengah jadi)
-- [ ] [Manual] `template_snapshot` checklist terbesar < 50KB (JSONB)
-- [ ] [Manual] Waktu respons wajar dengan data realistis (mis. ribuan entries)
-- [ ] [Otomatis] Tidak ada baris yang dihapus oleh kode aplikasi (BR-40)
-- [ ] [Otomatis] Zod parse data dari DB tidak error untuk semua tabel
-- [ ] [Otomatis] Enum constraint menolak nilai tidak valid (role, status, input_type, dll)
-- [ ] [Otomatis] Foreign key constraint menolak referensi tidak valid
-- [ ] [Manual] Hash chain audit log terverifikasi cron mingguan
+## 9. Data Layer (Google Sheets)
+- [ ] [Otomatis] BR-01: dua `POST /api/shifts/open` bersamaan untuk definisi+tanggal yang sama → hanya satu instance dibuat
+- [ ] [Otomatis] BR-12: dua aksi pada `point_ref` yang sama → satu `diterima`, satu `409 BR12_CONFLICT`
+- [ ] [Otomatis] Semua tulisan memakai `RAW`: `shift_date` & `tab_month` tetap string ISO, centang tetap `"true"`/`"false"` (bukan serial angka/boolean)
+- [ ] [Otomatis] Idempotency: `client_action_id` duplikat → `status: duplikat`, tidak insert baru
+- [ ] [Otomatis] Hash chain audit: edit manual satu baris `AuditLog_*` → verifikasi mendeteksi mismatch
+- [ ] [Otomatis] Mutasi Registry/Users meng-invalidate cache (ubah user → daftar user terbaru tanpa tunggu TTL)
+- [ ] [Otomatis] PIN yang baru di-reset langsung ditolak oleh `verifyAdminPin` (tidak menunggu TTL cache)
+- [ ] [Otomatis] `filterRowsMulti` mengembalikan hasil identik dengan `filterRows` per-sheet
+- [ ] [Otomatis] Tab bulanan otomatis dibuat saat shift pertama dibuka di bulan baru
+- [ ] [Otomatis] Tidak ada baris yang dihapus oleh kode aplikasi pada shift/incident/laporan (BR-40)
+- [ ] [Manual] `template_snapshot` shift terbesar masih muat di satu sel (batas praktis 50.000 karakter)
+- [ ] [Manual] Waktu respons wajar dengan data realistis (ribuan entries)
+- [ ] [Manual] Hash chain audit diverifikasi (chain terputus = reset per bulan, ituemonsengaja)
 
 ## 10. Offline dan Koneksi
 - [ ] [Manual] Mode pesawat: banner "Tidak ada koneksi" muncul; aksi wajib online disabled dengan tooltip
@@ -138,5 +138,5 @@ Jangan rilis bila:
 ## 16. Catatan Eksekusi
 - Jalankan pengujian konkurensi dengan dua akun/perangkat nyata, bukan hanya satu tab.
 - Uji dengan dua cabang agar isolasi data terverifikasi.
-- Gunakan project Supabase uji terpisah dari produksi.
+- Gunakan spreadsheet Registry + spreadsheet cabang **uji terpisah** dari produksi (salin template, jangan sentuh template master).
 - Setiap fase di IMPLEMENTATION_PLAN.md menjalankan bagian TESTING.md yang relevan sebelum lanjut.

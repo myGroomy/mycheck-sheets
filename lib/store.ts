@@ -4,6 +4,7 @@
 import { getSheetsClient } from './google/client';
 import {
   readSheetData,
+  readSheetsBatch,
   appendRows,
   writeCells,
   writeRow,
@@ -42,6 +43,29 @@ export async function findRow(spreadsheetId: string, sheet: string, column: stri
 export async function filterRows(spreadsheetId: string, sheet: string, predicate: (row: Record<string, unknown>) => boolean): Promise<Record<string, unknown>[]> {
   const rows = await listRows(spreadsheetId, sheet);
   return rows.filter(predicate);
+}
+
+/**
+ * Baca beberapa sheet statis sekaligus (1 panggilan API) lalu filter masing-masing.
+ * Dipakai untuk request yang butuh data dari >1 sheet (mis. ShiftInstances +
+ * Reports + IncidentIndex) supaya tidak satu panggilan per sheet.
+ */
+export async function filterRowsMulti(
+  spreadsheetId: string,
+  specs: { sheet: string; predicate?: (row: Record<string, unknown>) => boolean }[]
+): Promise<Record<string, unknown>[][]> {
+  if (specs.length === 0) return [];
+  const data = await readSheetsBatch(spreadsheetId, specs.map((s) => s.sheet));
+
+  return specs.map((spec, i) => {
+    const { headers, rows } = data[i] ?? { headers: [], rows: [] };
+    const objects = rows.map((row) => {
+      const obj: Record<string, unknown> = {};
+      headers.forEach((h, j) => { obj[h] = row[j]; });
+      return obj;
+    });
+    return spec.predicate ? objects.filter(spec.predicate) : objects;
+  });
 }
 
 /** Baca baris sheet bulanan secara aman: [] bila sheet belum ada */

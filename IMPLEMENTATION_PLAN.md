@@ -1,5 +1,18 @@
 # Implementation Plan — checklist-shift v2
 
+> ## ⚠️ Status: SUDAH SELESAI — jangan mulai dari dokumen ini
+>
+> Rencana ini ditulis untuk versi **PostgreSQL/Supabase** dan **tidak lagi dipakai**
+> sebagai acuan. Seluruh fase telah dikerjakan ulang ke arsitektur Google Sheets.
+>
+> Untuk status dan keputusan teknis yang berlaku, baca **`REFACTOR.md`**
+> (rencana migrasi + catatan tiap fase). Untuk struktur data, **`DATABASE_SCHEMA.md`**.
+>
+> Ringkasan: Fase 0 (restruktur ke single project) ✅ · Fase 1 (auth + Google client)
+> ✅ · Fase 2 (shift lifecycle) ✅ · Fase 3 (admin + laporan) ✅ · Fase 4 (incident,
+> notifikasi, UI auth) ✅ · Fase 5 (cache, batching, cleanup, dokumentasi) ✅
+
+
 > **Stack baru (lihat TRD.md v2):** Next.js fullstack + Supabase PostgreSQL + Drizzle ORM + Supabase Storage + Google Drive PDF archive. Redis, Hono, Google Sheets API, Dexie, offline queue, dan Vercel project kedua **dihapus**.
 
 ## Aturan Kerja

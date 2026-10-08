@@ -3,7 +3,7 @@
 // (`/api/admin/stats`) dan halaman `app/admin/page.tsx`.
 
 import { getCabangList } from '../google/registry';
-import { filterRows } from '../store';
+import { filterRowsMulti } from '../store';
 import { asStr } from '../store';
 import { listShiftDefinitions } from './template-service';
 import type { AuthContext } from '../api-auth';
@@ -55,20 +55,19 @@ export async function buildAdminStats(ctx: AuthContext): Promise<AdminStats> {
     if (cabang.Spreadsheet_ID) {
       const spreadsheetId = String(cabang.Spreadsheet_ID);
 
-      const instances = await filterRows(spreadsheetId, 'ShiftInstances', () => true);
+      // Tiga sheet statis dibaca dalam satu panggilan API (values.batchGet).
+      const [instances, index, reports] = await filterRowsMulti(spreadsheetId, [
+        { sheet: 'ShiftInstances' },
+        { sheet: 'IncidentIndex' },
+        { sheet: 'Reports' },
+      ]);
+
       const openInstances = instances.filter((i) => asStr(i['status']) === 'berjalan');
       activeShifts = openInstances.length;
 
       // IncidentIndex adalah indeks ringan (satu baris per incident)
-      let index: Record<string, unknown>[] = [];
-      try {
-        index = await filterRows(spreadsheetId, 'IncidentIndex', () => true);
-      } catch {
-        index = [];
-      }
       openIncidents = index.filter((i) => asStr(i['status']) === 'open').length;
 
-      const reports = await filterRows(spreadsheetId, 'Reports', () => true);
       reportsToday = reports.filter((r) => asStr(r['generated_at']) >= todayIso).length;
 
       // Alert: shift berjalan tanpa report

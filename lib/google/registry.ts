@@ -21,8 +21,15 @@ export interface CabangRecord {
 }
 
 let _registryId: string | null = null;
+
+// Cache di-memory per proses dengan TTL supaya daftar cabang tidak dibaca ulang
+// dari Sheets pada setiap request.
+const CABANG_CACHE_TTL_MS = 60_000;
+
 let _cabangCache: Record<string, { spreadsheetId: string; folderId: string; cabang: CabangRecord }> = {};
+let _cabangCacheAt = 0;
 let _cabangListCache: CabangRecord[] | null = null;
+let _cabangListCacheAt = 0;
 
 export function getRegistrySpreadsheetId(): string {
   if (_registryId) return _registryId;
@@ -74,14 +81,18 @@ export async function deleteSheetRows(
 }
 
 export function resetRegistryCache(): void {
-  _registryId = null;
   _cabangCache = {};
+  _cabangCacheAt = 0;
   _cabangListCache = null;
+  _cabangListCacheAt = 0;
 }
 
-/** Daftar cabang aktif dari registry. */
+/** Daftar cabang aktif dari registry (di-cache TTL). */
 export async function getCabangList(): Promise<CabangRecord[]> {
-  if (_cabangListCache) return _cabangListCache;
+  if (_cabangListCache && Date.now() - _cabangListCacheAt < CABANG_CACHE_TTL_MS) {
+    return _cabangListCache;
+  }
+
   const registryId = getRegistrySpreadsheetId();
   const { headers, rows } = await readSheetData(registryId, 'Daftar_Cabang');
   const list = sheetToObjects(headers, rows) as CabangRecord[];
@@ -89,19 +100,21 @@ export async function getCabangList(): Promise<CabangRecord[]> {
     const v = r['Aktif'];
     return v === true || v === 'true' || v === 'TRUE' || v === 'True';
   });
+  _cabangListCacheAt = Date.now();
   return _cabangListCache;
 }
 
 /**
- * Resolve spreadsheet + folder untuk satu cabang. Mirip resolveCabangSpreadsheet_,
- * tapi tanpa cache GAS di memori proses (hanya cache sederhana per-branch).
+ * Resolve spreadsheet + folder untuk satu cabang (di-cache TTL).
  */
 export async function resolveCabang(cabangId: string): Promise<{
   spreadsheetId: string;
   folderId: string;
   cabang: CabangRecord;
 }> {
-  if (_cabangCache[cabangId]) return _cabangCache[cabangId];
+  if (_cabangCache[cabangId] && Date.now() - _cabangCacheAt < CABANG_CACHE_TTL_MS) {
+    return _cabangCache[cabangId];
+  }
 
   const registryId = getRegistrySpreadsheetId();
   const { headers, rows } = await readSheetData(registryId, 'Daftar_Cabang');
@@ -119,6 +132,7 @@ export async function resolveCabang(cabangId: string): Promise<{
 
   const resolved = { spreadsheetId, folderId, cabang };
   _cabangCache[cabangId] = resolved;
+  _cabangCacheAt = Date.now();
   return resolved;
 }
 

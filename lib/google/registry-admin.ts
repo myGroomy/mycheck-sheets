@@ -131,7 +131,21 @@ export async function deleteCabangRow(rowNumber: number): Promise<void> {
 // Users
 // ============================================
 
-export async function listAllUsers(): Promise<UserRow[]> {
+// Sheet Users dibaca hampir di setiap request (nama petugas, otorisasi,
+// verifikasi PIN admin), jadi hasilnya di-cache dengan TTL + single-flight.
+const USERS_CACHE_TTL_MS = 60_000;
+let _usersCache: UserRow[] | null = null;
+let _usersCacheAt = 0;
+let _usersPending: Promise<UserRow[]> | null = null;
+
+/** Buang cache Users — dipanggil setiap mutasi pada sheet Users. */
+export function resetUsersCache(): void {
+  _usersCache = null;
+  _usersCacheAt = 0;
+  _usersPending = null;
+}
+
+async function fetchUsers(): Promise<UserRow[]> {
   const registryId = getRegistrySpreadsheetId();
   const { headers, rows } = await readSheetData(registryId, USERS_SHEET);
   return (sheetToObjects(headers, rows) as UserRow[]).map((r) => ({
@@ -148,11 +162,30 @@ export async function listAllUsers(): Promise<UserRow[]> {
   }));
 }
 
+export async function listAllUsers(): Promise<UserRow[]> {
+  if (_usersCache && Date.now() - _usersCacheAt < USERS_CACHE_TTL_MS) {
+    return _usersCache;
+  }
+  // Single-flight: request paralel menunggu satu panggilan yang sama
+  if (_usersPending) return _usersPending;
+
+  _usersPending = fetchUsers();
+  try {
+    const users = await _usersPending;
+    _usersCache = users;
+    _usersCacheAt = Date.now();
+    return users;
+  } finally {
+    _usersPending = null;
+  }
+}
+
 export async function insertUser(row: UserRow): Promise<void> {
   const registryId = getRegistrySpreadsheetId();
   await appendRows(registryId, USERS_SHEET, [
     USER_HEADERS.map((h) => row[h as keyof UserRow] ?? ''),
   ]);
+  resetUsersCache();
 }
 
 export async function updateUserCells(
@@ -166,11 +199,13 @@ export async function updateUserCells(
     return { row: rowNumber, col, value };
   });
   await writeRegistryCells(registryId, USERS_SHEET, cells);
+  resetUsersCache();
 }
 
 export async function deleteUserRow(rowNumber: number): Promise<void> {
   const registryId = getRegistrySpreadsheetId();
   await deleteSheetRows(registryId, USERS_SHEET, rowNumber);
+  resetUsersCache();
 }
 
 /** Daftar id cabang yang boleh diakses user (kolom Cabang_ID dipisah koma). */

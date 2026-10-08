@@ -149,7 +149,7 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
 
-        <p className="mt-4 text-center text-xs text-ink-light">v2.0 — Supabase PostgreSQL</p>
+        <p className="mt-4 text-center text-xs text-ink-light">v2.0 — Google Sheets</p>
       </div>
     </main>
   );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-auth';
+import { resetUsersCache } from '@/lib/google/registry-admin';
 import {
   readSheetData,
   sheetToObjects,
@@ -51,6 +52,10 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     if (mustChangeCol >= 0) {
       await writeRow(registryId, `Users!${columnIndexToLetter(mustChangeCol)}${rowNumber}`, ['FALSE']);
     }
+
+    // Tulis langsung ke sheet, jadi cache Users harus dibuang agar PIN lama
+    // tidak masih dipakai untuk login berikutnya.
+    resetUsersCache();
 
     return NextResponse.json({ message: 'PIN berhasil diubah' });
   } catch (error) {

@@ -732,20 +732,65 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 
 ---
 
-### Phase 5: Optimization & Cleanup (Days 13-14)
+### Phase 5: Optimization & Cleanup (Days 13-14) — ✅ DONE
 
-**Goal:** Performance tuning + cleanup
+**Goal:** Production-ready, optimized mycheck
 
-- [ ] Add in-memory caching for branch/user data
-- [ ] Add registry cache (like stokis)
-- [ ] Batch Google Sheets API calls where possible
-- [ ] Remove all unused files
-- [ ] Remove Drizzle ORM remnants
-- [ ] Remove Supabase remnants
-- [ ] Update documentation
-- [ ] Final testing
+**Cache:**
+- [x] `lib/google/cache.ts` — utilitas TTL + single-flight (`ttlCache`, `memoize`)
+- [x] `getCabangList()` + `resolveCabang()` di-cache 60 detik (sebelumnya cache
+      per-proses tanpa batas waktu → data edit manual di Sheets tidak pernah
+      terbaca ulang)
+- [x] `listAllUsers()` di-cache 60 detik + single-flight. Sheet `Users` dibaca
+      hampir di setiap request; sebelumnya **selalu** menembak API.
+      Terukur: **0 ms** (cache) vs **99 ms** (cold)
+- [x] Semua mutasi Registry/Users invalidate cache
+      (`resetRegistryCache()` / `resetUsersCache()`)
 
-**Deliverable:** Production-ready, optimized mycheck
+**Batching:**
+- [x] `readSheetsBatch()` di `lib/google/sheets.ts` (`values.batchGet`)
+- [x] `filterRowsMulti()` di `lib/store.ts` — baca N sheet statis dalam 1 panggilan
+- [x] `lib/admin/stats-service.ts` memakainya: 3 pembacaan sheet → 1 panggilan
+      (hasil `/api/admin/stats` diverifikasi identik)
+
+**Cleanup:**
+- [x] `drizzle/` (schema, migration, 2 seed script) + `drizzle.config.ts` dihapus
+- [x] `apps/` + `packages/` dihapus, script npm diarahkan ke root
+- [x] File mati ditemukan lewat import-graph, dihapus: `components/ui/skeleton.tsx`,
+      `components/ui/tabs.tsx`, `lib/branch.ts`, `lib/google/drive.ts`
+- [x] `lib/drive/` (duplikat `lib/google/client.ts` dengan env var lama +
+      `throw` di level modul) dihapus → `photos/upload` pakai `getDriveClient()`
+- [x] `lib/auth.ts` (duplikat `withAuth`) dihapus → `change-pin` pindah ke `lib/api-auth.ts`
+- [x] Label "v2.0 — Supabase PostgreSQL" di halaman login → "Google Sheets"
+- [x] `.env.example` ditulis ulang (masih mendokumentasikan Supabase/PIN)
+
+**Dokumentasi:**
+- [x] `AGENTS.md` §4 Stack, §5 Aturan Data, §12 Perintah ditulis ulang;
+      BR-01/05/12/43 dan aturan foto disesuaikan ke Sheets
+- [x] `DATABASE_SCHEMA.md` ditulis ulang (890 baris skema PostgreSQL → skema Sheets)
+- [x] `TRD.md` diberi banner v3 + tabel keputusan v2 vs v3, 8 bagian usang dipatch
+- [x] `TESTING.md` §9 Data Layer ditulis ulang untuk guard Sheets
+- [x] `IMPLEMENTATION_PLAN.md` diberi banner "SUDAH SELESAI" → arahkan ke REFACTOR.md
+- [x] `PRD.md`, `UI-UX.md`, `APP_FLOW.md` **tidak diubah** (dokumen produk, masih valid)
+
+**Verifikasi akhir:**
+- [Otomatis] `npm run typecheck` → 0 error
+- [Otomatis] `npm run lint` → No ESLint warnings or errors
+- [Otomatis] `npm run build` → Compiled successfully, 40/40 static pages
+- [Otomatis] `/api/health` → registry ok, storage ok
+- [Otomatis] 9 endpoint inti + 4 halaman → 200
+- [Otomatis] Siklus shift penuh: open → entries (termasuk rejections & idempotency)
+      → handover → close → close-ulang 409
+- [Otomatis] PIN di-reset → PIN lama langsung ditolak (bukan menunggu TTL cache)
+
+**Sisa yang diketahui (bukan blocker):**
+- Hash chain audit di-reset per tab bulanan.
+- `npm run build` di mesin RAM < 4GB perlu `NODE_OPTIONS=--max-old-space-size=3072`.
+- Race condition pada BR-01/BR-12 masih mungkin terjadi pada request benar-benar
+  paralel (tidak ada unique index / row lock di Sheets).
+- Warning `Found lockfile missing swc dependencies` dari Next 14 — build tetap jalan.
+
+**Deliverable:** ✅ Production-ready
 
 ---
 

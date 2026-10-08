@@ -34,9 +34,7 @@
     "dist",
     "build",
     "prototypes",
-    "apps",
-    "drizzle",
-    "drizzle.config.ts"
+    "apps"
   ],
   "include": [
     "next-env.d.ts",

@@ -55,6 +55,35 @@ export async function readSheetData(
 }
 
 /**
+ * Baca beberapa sheet dalam SATU panggilan API (`values.batchGet`).
+ * Mengembalikan array SheetData dengan urutan sama seperti `ranges`.
+ *
+ * Dipakai ketika satu request butuh beberapa sheet dari spreadsheet yang sama —
+ * memangkas jumlah panggilan API (kuota) sekaligus menurunkan latensi.
+ */
+export async function readSheetsBatch(
+  spreadsheetId: string,
+  ranges: string[]
+): Promise<SheetData[]> {
+  if (ranges.length === 0) return [];
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.batchGet({
+    spreadsheetId,
+    ranges,
+  });
+
+  return (res.data.valueRanges || []).map((vr) => {
+    const values = vr.values || [];
+    if (values.length === 0) return { headers: [], rows: [] };
+    const headers = (values[0] || []).map((h) => String(h).trim());
+    const rows = values
+      .slice(1)
+      .filter((row) => row.some((cell) => String(cell).trim() !== ''));
+    return { headers, rows };
+  });
+}
+
+/**
  * Konversi { headers, rows } menjadi array objek dengan kunci = header.
  * Mirip sheetToObjects_ di GAS.
  */

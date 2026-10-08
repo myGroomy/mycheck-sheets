@@ -1,8 +1,33 @@
-# Technical Requirements Document — checklist-shift (v2)
+# Technical Requirements Document — checklist-shift (v3)
 
 Acuan fungsional: `PRD.md`. Jika konflik, PRD.md berlaku untuk perilaku produk; dokumen ini berlaku untuk keputusan teknis.
 
-> **Perubahan dari v1:** Stack disederhanakan. Google Sheets API, Redis/Upstash, Hono (apps/api terpisah), Dexie (offline queue), dan dua Vercel project **dihapus**. Digantikan oleh Supabase PostgreSQL, Next.js API Routes, dan Supabase Storage dengan arsip PDF ke Google Drive.
+> ## ⚠️ Status: sebagian besar isian v2 di bawah sudah USANG
+>
+> v2 Substitution PostgreSQL/Supabase + Drizzle. v3 mengembalikan arsitektur
+> **Google Sheets** (seperti stokis). Bagian yang masih menyebut Supabase,
+> PostgreSQL, Drizzle, advisory lock, `packages/shared`, atau signed URL
+> **tidak lagi menggambarkan implementasi** — jangan diikuti.
+>
+> Acuan yang benar untuk arsitektur saat ini:
+> - Struktur data → `DATABASE_SCHEMA.md`
+> - Stack & aturan kerja → `AGENTS.md` §4–§5
+> - Alasan &Riwayat perubahan → `REFACTOR.md`
+>
+> Ringkasan keputusan teknis v3:
+>
+> |Aspek | v2 (usang) | v3 (sekarang) |
+> |---|---|---|
+> | Database | Supabase PostgreSQL | **Google Sheets API** (Registry + 1 spreadsheet/cabang) |
+> | ORM | Drizzle ORM | **Tidak ada** — `lib/store.ts` |
+> | Struktur | 1 DB, cabang via `branch_id` | **Cabang = spreadsheet** |
+> | Transaksi | `db.transaction` | **Tidak ada** — kompensasi manual |
+> | Sesi | Tabel `sessions` + JWT | **Cookie HMAC-SHA256** (`mycheck_session`) |
+> | PIN | argon2 hash | **Plaintext** (6 digit) |
+> | Lock / rate limit | advisory lock + `pin_fail_attempts` | **Tidak ada** |
+> | Storage foto | Supabase Storage (TTL 7 hari) | **Google Drive** via route proxy |
+> | Monorepo | `apps/web` + `packages/shared` | **Single project** di root |
+> | Sheets bulanan | "tidak relevan" | **Inti** — `Entries_2026-10` dll. |
 
 ---
 
@@ -31,7 +56,7 @@ PWA mobile-first (Bahasa Indonesia) untuk memastikan SOP tiap shift outlet F&B d
 | Backend | Next.js API Routes (built-in, monorepo gabung) | Putus |
 | Framework backend terpisah | ~~Hono~~ — **dihapus** | Dihapus |
 | Validasi | Zod, skema di `packages/shared` | Putus |
-| Database | **Supabase PostgreSQL** | Putus |
+| Database | **Supabase PostgreSQL** | **Google Sheets API** (Registry + 1 spreadsheet per cabang) |
 | ORM | **Drizzle ORM** | Putus |
 | Storage foto aktif | **Supabase Storage** (bucket `shift-photos`, foto ~7 hari) | Putus |
 | Arsip foto | **Google Drive PDF** mingguan (service account) | Putus |
@@ -92,7 +117,7 @@ Cron Jobs:
 
 - Browser memanggil `/api/*` pada domain web Next.js. Tidak ada CORS, tidak ada masalah cookie SameSite lintas domain (iOS).
 - Supabase PostgreSQL diakses dari server-side Next.js via Drizzle ORM menggunakan connection string. **Tidak ada akses langsung dari browser ke Supabase** (menggunakan service role key, bukan anon key).
-- Foto diakses lewat route `/api/photos/[id]` yang memeriksa akses cabang lalu mengembalikan signed URL Supabase (TTL 1 jam).
+- Foto diakses lewat route `/api/photos/[id]` yang memeriksa akses cabang lalu mem-proxy byte dari Drive. Tidak ada signed URL — file milik service account sehingga tidak bisa dibuat publik.
 
 ---
 
@@ -106,9 +131,9 @@ apps/web/          Next.js (App Router, API Routes, Service Worker)
   components/      UI components
   public/          Static assets, manifest.json
 packages/shared/   Tipe TypeScript + Zod schemas (kontrak API ↔ UI)
-  schema/          Zod schemas per entity (identik dengan Drizzle schema)
+  lib/shared/      Zod schemas per entity
   types/           TypeScript types
-drizzle/           Drizzle config + migration files
+(tidak ada) — skema didefinisikan header sheet, lihat DATABASE_SCHEMA.md
   schema.ts        Definisi semua tabel
   migrations/      SQL migration files
 ```
@@ -121,11 +146,11 @@ Tidak ada `apps/api` (Hono dihapus) dan tidak ada `apps/gas`.
 
 Detail lengkap ada di `DATABASE_SCHEMA.md`. Ringkasan:
 
-- **Satu database PostgreSQL** untuk semua data. Cabang dibedakan via `branch_id` kolom (bukan per spreadsheet).
+- **Satu Registry spreadsheet** untuk cabang/user/setting global, plus **satu spreadsheet per cabang**. Cabang dibedakan secara implisit lewat spreadsheet (tidak ada kolom `branch_id`).
 - ID: ULID 26 karakter (TEXT), dibuat di aplikasi.
 - Waktu: TIMESTAMPTZ (UTC). Tampil sesuai timezone cabang.
 - Enum: TEXT dengan CHECK constraint di PostgreSQL, divalidasi Zod di `packages/shared`.
-- `template_snapshot`: JSONB di PostgreSQL — tidak perlu kompresi (PostgreSQL handle natively, batas praktis jauh di atas 50KB).
+- `template_snapshot`: JSON di sel Sheets (`snapshot_encoding` = `json`). Batas praktis sel Sheets 50.000 karakter.
 - Tidak ada tab bulanan — gunakan index pada `shift_date` / `reported_at`.
 - Tabel besar (entries, entry_logs, incidents): diindex pada `shift_instance_id` dan `branch_id`.
 - `summary` table: agregat harian diisi cron, dibaca dashboard/statistik.
@@ -134,8 +159,8 @@ Detail lengkap ada di `DATABASE_SCHEMA.md`. Ringkasan:
 
 ## 7. Pola Akses Data
 
-- Baca via Drizzle query (SELECT dengan index). Tidak perlu cache Redis karena PostgreSQL punya index yang efisien.
-- Tulis selalu dalam transaction PostgreSQL untuk atomicity.
+- Baca lewat `lib/store.ts`. Setiap baca = 1 panggilan API, jadi wajib cache TTL (`lib/google/cache.ts`) dan `values.batchGet` (`filterRowsMulti`) untuk membaca beberapa sheet sekaligus.
+- **Tidak ada transaksi.** Operasi multi-sheet tidak atomik; bila sebagian gagal, lakukan kompensasi.
 - Lock untuk operasi kritis: advisory lock atau `SELECT FOR UPDATE` (lihat bagian 8).
 - Idempotency: cek `entry_logs.client_action_id UNIQUE` sebelum proses. Jika sudah ada, kembalikan hasil sebelumnya.
 - Tidak ada rowmap cache — `WHERE id = $1` pada table dengan PK TEXT sudah efisien.

@@ -25,7 +25,7 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 - Jangan menambah dependensi, library, atau service baru tanpa izin. Jelaskan alasannya dulu.
 - Jangan membuat fitur, halaman, atau abstraksi di luar permintaan (tanpa over-engineering).
 - Jangan menyentuh `.env*`, file kredensial, atau konfigurasi deploy.
-- Jangan menjalankan migrasi database ke production. Gunakan database/project Supabase uji.
+- Tidak ada migrasi database. Perubahan skema = ubah header di Registry/spreadsheet cabang (lihat `lib/google/branch-schema.ts`).
 - Jangan commit atau push kecuali diminta.
 - Jika tugas terlalu besar, pecah dan usulkan langkah, jangan dikerjakan sekaligus.
 
@@ -38,43 +38,49 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 
 ## 4. Stack
 
-- Monorepo: `apps/web` (Next.js App Router, TypeScript, Tailwind, shadcn/ui, Lucide), `packages/shared` (tipe + Zod). **Tidak ada `apps/api` atau `apps/gas`.**
-- Database: **Supabase PostgreSQL** + **Drizzle ORM**. Semua tabel dalam satu database; cabang dibedakan via `branch_id`.
-- Storage foto aktif: **Supabase Storage** bucket `shift-photos` (foto hidup \~7 hari, max 500MB free tier).
-- Arsip foto: **Google Drive PDF** mingguan via service account. Nama file: `{branch_name}-{shift_date}-{shift_name}-{branch_id}-{ulid}.pdf`. Folder: `checklist-shift-archive/{branch_code}/`.
-- Lock: **PostgreSQL advisory lock** (`pg_try_advisory_xact_lock`). **Tidak ada Redis.**
-- Sesi + rate limit: Tabel `sessions` + `pin_fail_attempts` di PostgreSQL + in-memory rate limit per process. **Tidak ada Redis.**
-- Offline: Serwist app shell cache saja. **Tidak ada Dexie. Tidak ada offline write queue.**
-- Deploy: Vercel **satu project** (Next.js fullstack, API Routes built-in). **Tidak ada project kedua.**
+- **Single project Next.js** (App Router, TypeScript, Tailwind, shadcn/ui, Lucide) di root repo. Tidak ada monorepo, tidak ada `apps/`, tidak ada `packages/`.
+- **Data: Google Sheets API**, accessed sebagai service account. Tidak ada database SQL.
+  - **Registry** (`REGISTRY_SPREADSHEET_ID`) — satu spreadsheet pusat, sheet ber-PascalCase:
+    `Daftar_Cabang`, `Settings_Global`, `Users`, `Share_Tokens`, `Template_Referensi`.
+  - **Spreadsheet per cabang** — satu spreadsheet per cabang (cabang = spreadsheet, jadi tidak ada kolom `branch_id`). Sheet ber-camelCase, kolom snake_case. Sheet config: `ShiftDefinitions`, `SopCategories`, `ChecklistPoints`, `HandoverFields`, `ShiftInstances`, `Participants`, `Reports`, `Addenda`, `Summary`, `Snapshots`, `IncidentIndex`, `IncidentCategories`, `Notifications`, `_meta`.
+  - Sheet transaksional memakai **tab bulanan** `<Nama>_<YYYY-MM>`: `Entries_*`, `EntryLogs_*`, `Handovers_*`, `HandoverAcks_*`, `Incidents_*`, `IncidentNotes_*`, `Photos_*`, `AuditLog_*`. `ShiftInstances.tab_month` menentukan tab mana yang dipakai sebuah instance.
+- Sumber kebenaran struktur spreadsheet = **`Template_cabang_mycheck`**. Cabang baru = copy template manual di Google Drive, rename, share ke service account, lalu daftarkan `Cabang_ID`-nya di `Daftar_Cabang` (`npm run setup:branch`). Copy via API tidak dipakai (kuota Drive).
+- Akses data: `lib/store.ts` (filter/list/insert/update) di atas `lib/google/sheets.ts`. Template config di `lib/admin/template-service.ts`.
+- **Auth**: cookie HMAC-SHA256 (`mycheck_session`, `lib/session.ts`) + PIN **plaintext** di sheet `Users`. `lib/api-auth.ts` untuk route handler, `lib/page-auth.ts` untuk Server Component.
+- Storage foto: **Google Drive** (folder dari `GOOGLE_DRIVE_FOLDER_ID`), diakses lewat route terautentikasi `/api/photos/[id]` yang mem-proxy byte.
+- **Tidak ada** Redis, advisory lock, advisory transaction, `drizzle/`, Supabase, Serwist/PWA service worker, offline write queue.
+- Lock & rate limiting **tidak ada** (disepakati sebagai downgrade keamanan).
+- Deploy: Vercel **satu project**.
 - Tema: Minimalist Corporate.
-- Foto: Supabase Storage (aktif) → Google Drive PDF (arsip mingguan). **Sudah diputuskan.**
 
-## 5. Aturan Data (PostgreSQL)
+## 5. Aturan Data (Google Sheets)
 
-- Baca/tulis kolom berdasarkan nama kolom via Drizzle ORM, bukan urutan.
-- DILARANG menghapus baris. Hanya UPDATE status/is\_active/void. Nonaktifkan lewat `is_active=FALSE` atau `status='void'`.
-- Waktu disimpan TIMESTAMPTZ UTC. Tampil sesuai zona waktu cabang.
-- ID memakai ULID, dibuat di aplikasi dengan library `ulid`.
-- Semua tulis atomik: dalam satu `db.transaction(...)`. Satu aksi pengguna = satu transaction.
-- BR-01 dijaga oleh partial unique index + advisory lock. BR-12 dijaga oleh `SELECT FOR UPDATE`.
-- Jika advisory lock tidak bisa diambil (`pg_try_advisory_xact_lock` return FALSE), operasi DITOLAK (fail closed).
-- Setiap aksi dari klien membawa `client_action_id` (ULID) untuk idempotency. Dicek di `entry_logs.client_action_id UNIQUE`.
-- Skema Zod di `packages/shared` harus identik dengan Drizzle schema. Jangan mengubah skema tanpa izin dan tanpa migration.
-- Kolom baru ditambah lewat Drizzle migration file baru (append-only, tidak rename/drop).
+- Baca/tulis **berdasarkan nama kolom** lewat `lib/store.ts`, bukan urutan. Header sheet adalah skema — ubah `lib/google/branch-schema.ts` bila menambah kolom.
+- **Semua tulis wajib `valueInputOption: 'RAW'`.** Dengan `USER_ENTERED`, Sheets mengurai `"2026-10-08"` menjadi serial angka `46303` dan `"true"` menjadi boolean — merusak `shift_date`, `tab_month`, dan nilai centang.
+- Boolean ditulis sebagai string `'TRUE'`/`FALSE` (lihat `toCellValue`).
+- Kolom bool dibaca lewat `asBool()` — jangan bandingkan string langsung.
+- DILARANG menghapus baris secara bisnis. Hanya ubah status/is_active/void.
+- Waktu disimpan sebagai string ISO UTC. Tampil sesuai zona waktu cabang.
+- ID memakai ULID, dibuat di aplikasi dengan `ulid`.
+- **Tidak ada transaksi.** operasi multi-sheet tidak atomik — compensating action bila gagal.
+- Idempotency: setiap aksi dari klien membawa `client_action_id`, dicek di `EntryLogs.client_action_id` sebelum menulis.
+- **Semua operasi baca Sheet itu mahal** (1 panggilan API). Pakai cache TTL (`lib/google/cache.ts`) dan `values.batchGet` (`filterRowsMulti`) bila membaca >1 sheet.
+- Mutasi ke Registry/Users **wajib** memanggil `resetRegistryCache()` / `resetUsersCache()`.
+- Verifikasi PIN admin (`lib/admin/sensitive-action.ts`) **wajib** membaca sheet langsung, bukan cache — supaya PIN yang baru di-reset tidak kedaluwarsa.
 
 ## 6. Aturan Bisnis Inti (penegakan + deteksi)
 
-- BR-01: satu shift non-void per (definisi shift + tanggal + is\_test) per cabang. Dijaga oleh partial unique index + advisory lock.
+- BR-01: satu shift non-void per (definisi shift + tanggal + is\_test) per cabang. Dijaga oleh pengecekan di `POST /api/shifts/open` sebelum insert (tidak ada unique index di Sheets).
 - BR-02: tanggal shift = tanggal saat dibuka (zona waktu cabang).
-- BR-05: shift memakai snapshot template (JSONB); perubahan template tidak memengaruhi shift berjalan.
-- BR-12: aksi pertama pada item diterima; yang kalah mendapat "sudah diselesaikan oleh X". Dijaga `SELECT FOR UPDATE`.
+- BR-05: shift memakai snapshot template (JSON di kolom `ShiftInstances.template_snapshot`); perubahan template tidak memengaruhi shift berjalan.
+- BR-12: aksi pertama pada item diterima; yang kalah mendapat "sudah diselesaikan oleh X". Dijaga oleh pengecekan state entry sebelum update (tidak ada row lock di Sheets).
 - BR-14: tidak ada "centang semua".
 - BR-23: penentuan waktu memakai jam server terkoreksi, bukan jam HP.
 - BR-30: tutup shift hanya oleh PJ, semua item wajib selesai/skip beralasan, handover terisi.
 - Setelah ditutup, shift, checklist, handover, dan laporan tidak dapat diubah lewat API. Koreksi hanya lewat addendum.
 - BR-40: API tidak menghapus baris.
 - BR-41: isi incident tidak dapat diedit; koreksi lewat catatan tambahan.
-- BR-43: audit log append-only dengan hash chain. Bersifat DETEKSI: verifikasi mingguan oleh cron, kerusakan dilaporkan ke admin.
+- BR-43: audit log append-only dengan hash chain, ditulis ke tab bulanan `AuditLog_<YYYY-MM>`. Hash chain di-reset per tab bulan (bukan global).
 - Aksi sensitif admin wajib alasan + konfirmasi PIN dan tercatat di audit log.
 - Admin terakhir tidak boleh dinonaktifkan atau diturunkan.
 
@@ -86,7 +92,7 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 - Cookie sesi: HttpOnly, Secure, SameSite=Lax. Pasang CSRF (custom header `X-Requested-With`) dan rate limiting.
 - Validasi semua input di server dengan Zod.
 - Pesan galat ke pengguna tidak membocorkan detail database/Google.
-- Foto disajikan lewat route API `/api/photos/[id]` yang memeriksa akses cabang → Supabase signed URL, bukan tautan langsung ke Storage.
+- Foto disajikan lewat route API `/api/photos/[id]` yang memeriksa akses cabang lalu mem-proxy byte dari Drive. Jangan pernah memberi tautan langsung ke Drive.
 
 ## 8. Gaya Kode
 
@@ -122,14 +128,21 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 - Apakah web push diimplementasikan di Fase awal atau belakangan.
 - Akordeon vs tab untuk Kategori SOP; apakah admin memakai HP.
 
-## 12. Perintah (terverifikasi Fase 0, npm workspaces)
+## 12. Perintah
 
-- Install: `npm install` (root)
-- Dev web: `npm run dev --workspace=apps/web` (default `:3000`)
-- DB schema push (development): `npx drizzle-kit push`
-- DB migration (production): `npx drizzle-kit migrate`
-- Typecheck: `npx tsc --noEmit -p packages/shared/tsconfig.json`, `npx tsc --noEmit -p apps/web/tsconfig.json`
-- Build: `npm run build --workspace=apps/web`
+Semua perintah dijalankan dari root repo (`mycheck/`).
+
+- Install: `npm install`
+- Dev: `npm run dev` (default `:3000`)
+- Build: `npm run build`
+- Typecheck: `npm run typecheck`
+- Lint: `npm run lint`
+- Inisialisasi Registry: `npm run setup:registry`
+- Daftarkan cabang: `npm run setup:branch -- <Cabang_ID> <Nama> <Spreadsheet_ID> [Timezone] [Kode]`
+- Buat admin pertama: `npm run seed:admin`
+
+Catatan: `npm run build` di mesin dengan RAM < 4GB perlu
+`NODE_OPTIONS="--max-old-space-size=3072"`.
 
 ## 13. Saat Ragu
 
