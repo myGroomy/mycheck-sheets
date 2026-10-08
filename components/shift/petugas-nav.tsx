@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { AlertTriangle, ClipboardCheck, FileText, Home, Menu } from 'lucide-react';
+import { AlertTriangle, BookOpen, ClipboardCheck, FileText, Home, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -18,7 +18,12 @@ const LINKS = [
   { href: '/#daftar-shift', label: 'Checklist', icon: ClipboardCheck },
   { href: '/incident', label: 'Incident', icon: AlertTriangle },
   { href: '/report', label: 'Laporan', icon: FileText },
+  // Hanya di hamburger, tidak di bar bawah: bar bawah dibatasi 4 ikon supaya
+  // target sentuh tetap nyaman di layar HP.
+  { href: '/docs', label: 'Panduan', icon: BookOpen, inBottomBar: false },
 ];
+
+const BOTTOM_LINKS = LINKS.filter((link) => link.inBottomBar !== false);
 
 function isActive(pathname: string, href: string) {
   if (href === '/') return pathname === '/';
@@ -87,7 +92,7 @@ export function PetugasNav() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur md:hidden"
       >
         <div className="mx-auto grid max-w-lg grid-cols-4">
-          {LINKS.map((link) => {
+          {BOTTOM_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (
               <Link

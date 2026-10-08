@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUpRight,
+  BookOpen,
   Check,
   ClipboardCheck,
   FileCheck2,
@@ -58,6 +59,13 @@ export function LandingPage() {
         </Link>
         <div className="flex items-center gap-3">
           <span className="hidden text-sm text-[#77716b] sm:inline">Untuk operasional F&amp;B</span>
+          <Link
+            href="/docs"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-[#292524] px-5 text-sm font-semibold text-[#292524] transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#292524] focus-visible:ring-offset-2"
+          >
+            <BookOpen className="h-4 w-4" aria-hidden="true" />
+            Panduan
+          </Link>
           <Link
             href="/login"
             className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#292524] px-5 text-sm font-semibold text-white transition hover:bg-[#44403c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#292524] focus-visible:ring-offset-2"

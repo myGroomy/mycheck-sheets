@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   BarChart3,
   Building2,
+  BookOpen,
   ClipboardList,
   Clock,
   FileText,
@@ -60,6 +61,7 @@ const NAV: NavItem[] = [
   { href: '/admin/laporan', label: 'Laporan', icon: BarChart3, ready: true },
   { href: '/admin/pengaturan', label: 'Pengaturan', icon: Settings, ready: true },
   { href: '/admin/audit-log', label: 'Audit Log', icon: ScrollText, ready: true },
+  { href: '/docs', label: 'Panduan', icon: BookOpen, ready: true },
 ];
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {

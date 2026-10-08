@@ -1,7 +1,9 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 
 function LoginForm() {
   const router = useRouter();
@@ -133,6 +135,15 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center p-4 bg-canvas text-ink">
       <div className="w-full max-w-sm">
+        {/* Kembali ke landing page */}
+        <Link
+          href="/"
+          className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Kembali
+        </Link>
+
         {/* Logo & Header */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-xl bg-ink text-canvas">
