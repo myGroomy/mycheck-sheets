@@ -36,6 +36,7 @@ interface ShiftDefSummary {
 interface ShiftsResponse {
   branches: { id: string; name: string; code: string; timezone: string }[];
   shifts: ShiftDefSummary[];
+  server_time: string;
 }
 
 interface IncidentRow {
@@ -59,7 +60,10 @@ interface ProgressResponse {
 
 const HEADER = { 'X-Requested-With': 'fetch' } as const;
 
-function formatTanggal(iso: string) {
+// Tanggal dalam zona waktu perangkat hanya untuk tampilan; nilai yang dipakai
+// selalu server_time (BR-23).
+function formatTanggal(iso: string | null) {
+  if (!iso) return 'Memuat tanggal...';
   return new Date(iso).toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',
@@ -111,6 +115,7 @@ export function PetugasHome({
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [belumSelesai, setBelumSelesai] = useState<number | null>(null);
+  const [serverTime, setServerTime] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -125,17 +130,29 @@ export function PetugasHome({
 
       if (!shiftRes.ok) throw new Error('Gagal memuat data shift');
 
-      const shiftData = (await shiftRes.json()) as ShiftsResponse;
-      setBranches(shiftData.branches);
-      setShifts(shiftData.shifts);
-      setIncidents(incidentRes.ok ? ((await incidentRes.json()) as { incidents: IncidentRow[] }).incidents : []);
+      const shiftData = (await shiftRes.json()) as Partial<ShiftsResponse>;
+      setBranches(shiftData.branches ?? []);
+      setShifts(shiftData.shifts ?? []);
+      // BR-23: penentuan waktu memakai jam server, bukan jam HP. Tanggal di
+      // header diambil dari server_time, bukan `new Date()` di perangkat.
+      setServerTime(shiftData.server_time ?? null);
+      // Semua parsing respons dibuat tahan bentuk tak terduga: kalau kunci hilang,
+      // hasilnya array kosong — bukan `undefined` yang membuat halaman crash.
+      setIncidents(
+        incidentRes.ok
+          ? (((await incidentRes.json()) as { incidents?: IncidentRow[] }).incidents ?? [])
+          : []
+      );
+      // /api/notifications mengembalikan { items }, bukan { notifications }.
       setNotifications(
-        notifRes.ok ? ((await notifRes.json()) as { notifications: NotificationRow[] }).notifications : []
+        notifRes.ok
+          ? (((await notifRes.json()) as { items?: NotificationRow[] }).items ?? [])
+          : []
       );
 
       // Jumlah item belum selesai: satu panggilan progress per shift yang sedang
       // berjalan. Shift berjalan biasanya 1-3, jadi ini tetap murah.
-      const running = shiftData.shifts.filter((s) => s.instance?.status === 'berjalan');
+      const running = (shiftData.shifts ?? []).filter((s) => s.instance?.status === 'berjalan');
       if (running.length === 0) {
         setBelumSelesai(0);
       } else {
@@ -146,8 +163,10 @@ export function PetugasHome({
                 headers: HEADER,
               });
               if (!res.ok) return 0;
-              const data = (await res.json()) as ProgressResponse;
-              return data.progress.belum;
+              const data = (await res.json()) as Partial<ProgressResponse>;
+              // Guard: kalau bentuk respons berubah, jangan sampai membuat
+              // halaman crash — tandai saja 0.
+              return Number(data?.progress?.belum ?? 0) || 0;
             } catch {
               return 0;
             }
@@ -189,7 +208,7 @@ export function PetugasHome({
           Checklist-shift
         </p>
         <h1 className="mt-1 text-2xl font-bold text-ink">Halo, {userName}</h1>
-        <p className="mt-1 text-sm text-ink-muted">{formatTanggal(new Date().toISOString())}</p>
+        <p className="mt-1 text-sm text-ink-muted">{formatTanggal(serverTime)}</p>
       </header>
 
       {notice && (
