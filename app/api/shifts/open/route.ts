@@ -1,7 +1,6 @@
-import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { ulid } from 'ulid';
-import { buildTemplateSnapshot, type Snapshot } from '../../../../lib/db/snapshot';
+import { buildTemplateSnapshot, hashSnapshot } from '../../../../lib/db/snapshot';
 import { appendAuditLogFor } from '../../../../lib/db/audit';
 import { getServerTime } from '../../../../lib/db/server-time';
 import { getShiftDate, isWithinShiftHours } from '../../../../lib/shift/time';
@@ -14,10 +13,6 @@ import { resolveCabang } from '../../../../lib/google/registry';
 interface OpenShiftBody {
   shiftDefinitionId?: string;
   isTest?: boolean;
-}
-
-function hashSnapshot(snapshot: Snapshot): string {
-  return createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
 }
 
 /**
@@ -104,8 +99,20 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     });
   }
 
+  // Shift dengan kunci ini pernah ada tapi sudah di-void (ADM-OP-05: shift yang
+  // dibuka tidak sengaja dibatalkan). Membukanya lagi adalah instance BARU, jadi
+  // ID-nya harus baru — bukan ID deterministik yang sama. Kalau ID-nya sama,
+  // resolveInstance akan menemukan baris void yang lama dan shift yang baru
+  // akan ikut ter-void oleh rekonsiliasi BR-01.
+  const voidedBefore = await filterRows(
+    spreadsheetId,
+    'ShiftInstances',
+    (r) => asStr(r['id']) === shiftInstanceId && asStr(r['status']) === 'void'
+  );
+  const instanceId = voidedBefore.length > 0 ? ulid() : shiftInstanceId;
+
   await insertRow(spreadsheetId, 'ShiftInstances', {
-    id: shiftInstanceId,
+    id: instanceId,
     shift_definition_id: shiftDefinitionId,
     shift_date: shiftDate,
     tab_month: shiftDate.slice(0, 7),
@@ -123,13 +130,13 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
   });
 
   // Rekonsiliasi BR-01: bila request paralel sempat sama-sama lolos pengecekan
-  // di atas, baris duplikat akan di-void — baris pertama yang jadi shift kanonik.
-  // Baris TIDAK dihapus (BR-40), hanya di-void.
-  await voidDuplicateShiftInstances(spreadsheetId, shiftInstanceId);
+  // di atas, baris duplikat akan di-void — baris non-void pertama yang jadi shift
+  // kanonik. Baris TIDAK dihapus (BR-40), hanya di-void.
+  await voidDuplicateShiftInstances(spreadsheetId, instanceId);
 
   await insertRow(spreadsheetId, 'Participants', {
     id: ulid(),
-    shift_instance_id: shiftInstanceId,
+    shift_instance_id: instanceId,
     user_id: ctx.user.id,
     first_action_at: now.toISOString(),
     first_action_type: 'buka_shift',
@@ -140,9 +147,9 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     actorId: ctx.user.id,
     action: 'open_shift',
     objectType: 'shift_instance',
-    objectId: shiftInstanceId,
+    objectId: instanceId,
     branchId,
-    shiftInstanceId,
+    shiftInstanceId: instanceId,
     after: {
       shiftDefinitionId,
       shiftDate,
@@ -154,7 +161,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
 
   return NextResponse.json({
     status: 'dibuka',
-    shift_instance_id: shiftInstanceId,
+    shift_instance_id: instanceId,
     opened_outside_hours: openedOutsideHours,
     shift_date: shiftDate,
     total_items: snapshot.categories.reduce((sum, c) => sum + c.points.length, 0),

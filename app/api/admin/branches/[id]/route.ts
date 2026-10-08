@@ -40,6 +40,7 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
       spreadsheetId: branch.Spreadsheet_ID,
       folderDriveId: branch.Folder_Drive_ID,
       isActive: branch.Aktif,
+      address: branch.Alamat || null,
     },
   });
 });
@@ -88,6 +89,7 @@ export const PUT = withAuth(async (req: NextRequest, ctx) => {
   if (updateData.name !== undefined) updates['Nama_Cabang'] = updateData.name;
   if (updateData.code !== undefined) updates['Kode'] = updateData.code;
   if (updateData.timezone !== undefined) updates['Timezone'] = updateData.timezone;
+  if (updateData.address !== undefined) updates['Alamat'] = updateData.address;
   if ((body as { isActive?: boolean }).isActive !== undefined) {
     updates['Aktif'] = (body as { isActive: boolean }).isActive;
   }

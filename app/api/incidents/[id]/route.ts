@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireBranchAccess, requireRole, withAuth } from '../../../../lib/api-auth';
 import { appendAuditLogFor } from '../../../../lib/db/audit';
-import { asBool, asStr, listMonthlyRows } from '../../../../lib/store';
+import { asBool, asStr, filterRows, listMonthlyRows } from '../../../../lib/store';
 import { categoryNameMap, findIncidentAcrossBranches, incidentTabMonth, pushNotification, updateIncidentRow, userNameMap } from '../../../../lib/incidents';
 
 export const GET = withAuth(async (req: NextRequest, ctx) => {
@@ -55,35 +55,125 @@ export const PATCH = withAuth(async (req: NextRequest, ctx) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
   const incidentId = new URL(req.url).pathname.split('/').at(-1) ?? '';
-  let body: { status?: string } = {};
-  try { body = (await req.json()) as { status?: string }; } catch {
+  let body: { status?: string; linkToShiftId?: string; unlink?: boolean } = {};
+  try { body = (await req.json()) as typeof body; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
-  if (body.status !== 'open' && body.status !== 'selesai') {
+
+  const wantsLink = body.linkToShiftId !== undefined || body.unlink === true;
+  const wantsStatus = body.status !== undefined;
+
+  if (!wantsLink && !wantsStatus) {
+    return NextResponse.json({ error: 'Tidak ada perubahan yang diminta.' }, { status: 400 });
+  }
+  if (wantsStatus && body.status !== 'open' && body.status !== 'selesai') {
     return NextResponse.json({ error: 'status harus open atau selesai.' }, { status: 400 });
   }
+
   const located = await findIncidentAcrossBranches(ctx, incidentId);
   if (!located) return NextResponse.json({ error: 'Incident tidak ditemukan' }, { status: 404 });
   const { spreadsheetId, branchId, incident } = located;
   const tabMonth = incidentTabMonth(incident);
-  const before = asStr(incident['status']);
-  if (before === body.status) return NextResponse.json({ status: 'tidak_berubah', incident_id: incidentId });
   const now = new Date().toISOString();
-  const ok = await updateIncidentRow(spreadsheetId, tabMonth, incidentId, {
-    status: body.status, status_changed_by: ctx.user.id, status_changed_at: now, updated_at: now, version: (Number(incident['version']) || 1) + 1,
-  });
-  if (!ok) return NextResponse.json({ error: 'Incident tidak ditemukan' }, { status: 404 });
-  await appendAuditLogFor(spreadsheetId, {
-    actorId: ctx.user.id, action: 'update_incident_status', objectType: 'incident', objectId: incidentId,
-    branchId, shiftInstanceId: asStr(incident['shift_instance_id']) || undefined,
-    before: { status: before }, after: { status: body.status },
-  });
-  try {
-    await pushNotification(spreadsheetId, {
-      userId: asStr(incident['reported_by']), type: 'incident_status',
-      title: `Incident ${body.status === 'selesai' ? 'selesai' : 'dibuka kembali'}`,
-      body: asStr(incident['description']).slice(0, 140), link: `/incident/${incidentId}`,
+
+  // ---- Tautkan ke shift (ADM-IN-03) ----------------------------------------
+  // Incident "di luar shift" berdiri sendiri; admin boleh menautkannya ke shift
+  // yang tepat, atau melepaskannya lagi kembali berdiri sendiri.
+  if (wantsLink) {
+    const previousShiftId = asStr(incident['shift_instance_id']);
+    let nextShiftId = '';
+
+    if (body.unlink === true) {
+      nextShiftId = '';
+    } else {
+      const target = String(body.linkToShiftId ?? '').trim();
+      if (!target) {
+        return NextResponse.json(
+          { error: 'linkToShiftId wajib diisi, atau kirim unlink: true.' },
+          { status: 400 }
+        );
+      }
+      // Shift tujuan harus milik cabang yang sama dengan incident.
+      const candidates = await filterRows(
+        spreadsheetId,
+        'ShiftInstances',
+        (r) => asStr(r['id']) === target
+      );
+      if (!candidates[0]) {
+        return NextResponse.json(
+          { error: 'Shift tidak ditemukan di cabang incident ini.' },
+          { status: 404 }
+        );
+      }
+      nextShiftId = target;
+    }
+
+    if (previousShiftId !== nextShiftId) {
+      const ok = await updateIncidentRow(spreadsheetId, tabMonth, incidentId, {
+        shift_instance_id: nextShiftId,
+        // Menautkan berarti incident bukan lagi "di luar shift".
+        outside_shift: nextShiftId === '' ? true : false,
+        link_source: body.unlink === true ? 'admin_unlink' : 'admin',
+        linked_by: ctx.user.id,
+        linked_at: now,
+        updated_at: now,
+        version: (Number(incident['version']) || 1) + 1,
+      });
+      if (!ok) return NextResponse.json({ error: 'Incident tidak ditemukan' }, { status: 404 });
+
+      // Sinkronkan index supaya daftar incident lintas cabang ikut benar.
+      try {
+        const { listRowsWithNumber } = await import('../../../../lib/store');
+        const { updateRow } = await import('../../../../lib/store');
+        const numbered = await listRowsWithNumber(spreadsheetId, 'IncidentIndex');
+        const hit = numbered.find((r) => asStr(r.data['incident_id']) === incidentId);
+        if (hit) {
+          await updateRow(spreadsheetId, 'IncidentIndex', hit.rowNumber, {
+            shift_instance_id: nextShiftId,
+            outside_shift: nextShiftId === '',
+            updated_at: now,
+          });
+        }
+      } catch {
+        // index boleh tidak ada
+      }
+
+      await appendAuditLogFor(spreadsheetId, {
+        actorId: ctx.user.id,
+        action: 'link_incident_shift',
+        objectType: 'incident',
+        objectId: incidentId,
+        branchId,
+        shiftInstanceId: nextShiftId || previousShiftId || undefined,
+        before: { shiftInstanceId: previousShiftId, outsideShift: asBool(incident['outside_shift']) },
+        after: { shiftInstanceId: nextShiftId, outsideShift: nextShiftId === '' },
+      });
+    }
+  }
+
+  // ---- Ubah status (IN-04 / ADM-IN-02) -------------------------------------
+  if (wantsStatus) {
+    const before = asStr(incident['status']);
+    if (before === body.status) {
+      return NextResponse.json({ status: 'tidak_berubah', incident_id: incidentId });
+    }
+    const ok = await updateIncidentRow(spreadsheetId, tabMonth, incidentId, {
+      status: body.status, status_changed_by: ctx.user.id, status_changed_at: now, updated_at: now, version: (Number(incident['version']) || 1) + 1,
     });
-  } catch { /* best-effort */ }
+    if (!ok) return NextResponse.json({ error: 'Incident tidak ditemukan' }, { status: 404 });
+    await appendAuditLogFor(spreadsheetId, {
+      actorId: ctx.user.id, action: 'update_incident_status', objectType: 'incident', objectId: incidentId,
+      branchId, shiftInstanceId: asStr(incident['shift_instance_id']) || undefined,
+      before: { status: before }, after: { status: body.status },
+    });
+    try {
+      await pushNotification(spreadsheetId, {
+        userId: asStr(incident['reported_by']), type: 'incident_status',
+        title: `Incident ${body.status === 'selesai' ? 'selesai' : 'dibuka kembali'}`,
+        body: asStr(incident['description']).slice(0, 140), link: `/incident/${incidentId}`,
+      });
+    } catch { /* best-effort */ }
+  }
+
   return NextResponse.json({ status: 'diperbarui', incident_id: incidentId });
 });

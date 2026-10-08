@@ -1,5 +1,6 @@
 // lib/db/snapshot.ts
 // Build template snapshot — versi Google Sheets, sesuai Template_cabang_mycheck.
+import { createHash } from 'crypto';
 import { asBool, asNum, asStr, filterRows, listRows } from '../store';
 
 interface SnapshotPoint {
@@ -29,6 +30,14 @@ export interface Snapshot {
   settings: { tolerance_default_minutes: number; timezone: string };
   categories: SnapshotCategory[];
   handover_fields: { id: string; label: string; field_type: string; options: string[] | null; is_required: boolean; sort_order: number }[];
+}
+
+/**
+ * Hash snapshot template — dipakai untuk mendeteksi perubahan template setelah
+ * shift dibuka (BR-05: shift memakai snapshot saat dibuka).
+ */
+export function hashSnapshot(snapshot: Snapshot): string {
+  return createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
 }
 
 export async function buildTemplateSnapshot(

@@ -1,7 +1,7 @@
 // lib/instance-resolver.ts
 // Cari shift instance berdasarkan ID di semua cabang yang bisa diakses user.
 import { AuthContext } from './api-auth';
-import { findRow } from './store';
+import { listRowsWithNumber } from './store';
 import { resolveCabang } from './google/registry';
 
 export interface ResolvedInstance {
@@ -32,12 +32,18 @@ export async function resolveInstance(
   for (const cabangId of ctx.branchIds) {
     try {
       const { spreadsheetId, cabang } = await resolveCabang(cabangId);
-      const row = await findRow(spreadsheetId, 'ShiftInstances', 'id', shiftInstanceId);
-      if (row) {
-        const tabMonth = tabMonthOf(row.data);
+      const rows = await listRowsWithNumber(spreadsheetId, 'ShiftInstances');
+      const matches = rows.filter((r) => String(r.data['id'] ?? '') === shiftInstanceId);
+      if (matches.length > 0) {
+        // Bisa ada >1 baris dengan ID sama: shift yang di-void lalu dibuka
+        // kembali memakai kunci logis yang sama. Yang benar adalah baris
+        // non-void; kalau semuanya void, ambil yang terakhir ditulis.
+        const active = matches.filter((r) => String(r.data['status'] ?? '') !== 'void');
+        const picked = active.length > 0 ? active[active.length - 1] : matches[matches.length - 1];
+        const tabMonth = tabMonthOf(picked.data);
         return {
-          instance: row.data,
-          rowNumber: row.rowNumber,
+          instance: picked.data,
+          rowNumber: picked.rowNumber,
           spreadsheetId,
           branchId: cabangId,
           branchTimezone: (cabang['Timezone'] as string) || 'Asia/Jakarta',

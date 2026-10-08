@@ -19,6 +19,8 @@ export interface SensitiveActionValues {
   reason: string;
   pin: string;
   newPin?: string;
+  /** Diisi dari `extraField`, mis. userId PJ baru pada aksi "Ganti PJ". */
+  extra?: string;
 }
 
 interface SensitiveActionDialogProps {
@@ -32,6 +34,18 @@ interface SensitiveActionDialogProps {
   error?: string | null;
   /** Tampilkan input PIN baru (untuk reset PIN) */
   withNewPin?: boolean;
+  /**
+   * Wajib konfirmasi PIN. Default true karena hampir semua aksi sensitif
+   * memerlukannya (ADM-SEC-01). Dikecualikan: "buka shift atas nama"
+   * (ADM-OP-04) — PRD tidak memasukkan aksi itu ke daftar aksi sensitif.
+   */
+  requirePin?: boolean;
+  /** Field tambahan di atas input alasan (mis. pemilih petugas untuk Ganti PJ). */
+  extraField?: React.ReactNode;
+  /** Isi `values.extra` saat submit —controlled oleh parent. */
+  extraValue?: string;
+  /** Field tambahan wajib terisi sebelum submit diizinkan. */
+  extraValid?: boolean;
   onSubmit: (values: SensitiveActionValues) => void;
 }
 
@@ -48,6 +62,10 @@ export function SensitiveActionDialog({
   loading = false,
   error,
   withNewPin = false,
+  requirePin = true,
+  extraField,
+  extraValue,
+  extraValid = true,
   onSubmit,
 }: SensitiveActionDialogProps) {
   const [reason, setReason] = useState('');
@@ -64,14 +82,19 @@ export function SensitiveActionDialog({
   }, [open]);
 
   const reasonValid = reason.trim().length >= 3;
-  const pinValid = /^\d{6}$/.test(pin);
+  const pinValid = !requirePin || /^\d{6}$/.test(pin);
   const newPinValid = !withNewPin || /^\d{6}$/.test(newPin);
-  const canSubmit = reasonValid && pinValid && newPinValid && !loading;
+  const canSubmit = reasonValid && pinValid && newPinValid && extraValid && !loading;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
-    onSubmit({ reason: reason.trim(), pin, ...(withNewPin ? { newPin } : {}) });
+    onSubmit({
+      reason: reason.trim(),
+      pin,
+      ...(withNewPin ? { newPin } : {}),
+      ...(extraField ? { extra: extraValue ?? '' } : {}),
+    });
   };
 
   return (
@@ -101,6 +124,8 @@ export function SensitiveActionDialog({
               {error}
             </div>
           )}
+
+          {extraField}
 
           <div className="space-y-1">
             <Label htmlFor="sa-reason">
@@ -139,7 +164,12 @@ export function SensitiveActionDialog({
 
           <div className="space-y-1">
             <Label htmlFor="sa-pin">
-              PIN Konfirmasi Admin <span className="text-error">*</span>
+              PIN Konfirmasi Admin{' '}
+              {requirePin ? (
+                <span className="text-error">*</span>
+              ) : (
+                <span className="text-ink-light">(tidak wajib)</span>
+              )}
             </Label>
             <Input
               id="sa-pin"

@@ -24,6 +24,7 @@ export interface CabangRow {
   Spreadsheet_ID: string;
   Folder_Drive_ID: string;
   Aktif: boolean;
+  Alamat: string;
   [key: string]: unknown;
 }
 
@@ -49,6 +50,9 @@ const CABANG_HEADERS = [
   'Spreadsheet_ID',
   'Folder_Drive_ID',
   'Aktif',
+  // PRD ADM-BR-01 / PRD §10 menyebut "alamat singkat". Ditambahkan di akhir
+  // supaya kolom lama tidak bergeser dan data existing tidak perlu dimigrasi.
+  'Alamat',
 ];
 const USER_HEADERS = [
   'User_ID',
@@ -96,6 +100,7 @@ export async function listAllCabang(): Promise<CabangRow[]> {
     Spreadsheet_ID: asStr(r.Spreadsheet_ID),
     Folder_Drive_ID: asStr(r.Folder_Drive_ID),
     Aktif: asBool(r.Aktif),
+    Alamat: asStr(r.Alamat),
   }));
 }
 

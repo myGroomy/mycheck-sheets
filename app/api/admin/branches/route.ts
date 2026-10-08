@@ -25,6 +25,7 @@ export const GET = withAuth(async (_req, ctx) => {
       spreadsheetId: b.Spreadsheet_ID,
       folderDriveId: b.Folder_Drive_ID,
       isActive: b.Aktif,
+      address: b.Alamat || null,
       // Facade ke bentuk lama (frontend masih membaca snake_case)
       spreadsheet_id: b.Spreadsheet_ID,
       folder_drive_id: b.Folder_Drive_ID,
@@ -54,7 +55,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     );
   }
 
-  const { name, code, timezone } = parseResult.data;
+  const { name, code, timezone, address } = parseResult.data;
 
   if (!isValidTimeZone(timezone)) {
     return NextResponse.json(
@@ -81,6 +82,7 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     Spreadsheet_ID: '',
     Folder_Drive_ID: folderDriveId(),
     Aktif: false, // aktif setelah Spreadsheet_ID diisi & di-share ke service account
+    Alamat: address?.trim() ?? '',
     Created_At: new Date().toISOString(),
   };
 

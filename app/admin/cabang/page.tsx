@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Plus, Search } from 'lucide-react';
+import { Check, Copy, Pencil, Plus, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,6 +30,8 @@ interface Branch {
   code: string;
   address: string | null;
   timezone: string;
+  spreadsheetId: string;
+  folderDriveId: string;
   isActive: boolean;
   createdAt: string;
 }
@@ -43,6 +45,47 @@ interface BranchForm {
 }
 
 const EMPTY_FORM: BranchForm = { name: '', code: '', address: '', timezone: 'Asia/Jakarta' };
+
+/** Sel ID panjang (Spreadsheet/Folder Drive) — dipotong + bisa disalin. */
+function CopyableId({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  if (!value) {
+    return <span className="text-xs text-ink-light">—</span>;
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      toast.success(`${label} disalin`);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error('Gagal menyalin. Salin manual dari teks.');
+    }
+  };
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <code className="max-w-[13rem] truncate font-mono text-[11px]" title={value}>
+        {value}
+      </code>
+      <button
+        type="button"
+        onClick={copy}
+        className="rounded p-1 text-ink-light transition-colors hover:bg-canvas hover:text-ink"
+        aria-label={`Salin ${label}`}
+        title={`Salin ${label}`}
+      >
+        {copied ? (
+          <Check className="h-3.5 w-3.5" aria-hidden="true" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+        )}
+      </button>
+    </span>
+  );
+}
 
 export default function CabangPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -197,6 +240,8 @@ export default function CabangPage() {
               <TableHead>Nama</TableHead>
               <TableHead>Alamat</TableHead>
               <TableHead>Zona Waktu</TableHead>
+              <TableHead>Spreadsheet</TableHead>
+              <TableHead>Folder Drive</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
@@ -204,14 +249,14 @@ export default function CabangPage() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-ink-muted">
+                <TableCell colSpan={8} className="text-center text-ink-muted">
                   Memuat...
                 </TableCell>
               </TableRow>
             )}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-ink-muted">
+                <TableCell colSpan={8} className="text-center text-ink-muted">
                   Belum ada cabang
                 </TableCell>
               </TableRow>
@@ -224,6 +269,12 @@ export default function CabangPage() {
                   {b.address || '—'}
                 </TableCell>
                 <TableCell className="text-xs">{b.timezone}</TableCell>
+                <TableCell>
+                  <CopyableId value={b.spreadsheetId} label="Spreadsheet ID" />
+                </TableCell>
+                <TableCell>
+                  <CopyableId value={b.folderDriveId} label="Folder Drive ID" />
+                </TableCell>
                 <TableCell>
                   <Badge variant={b.isActive ? 'default' : 'secondary'}>
                     {b.isActive ? 'Aktif' : 'Nonaktif'}

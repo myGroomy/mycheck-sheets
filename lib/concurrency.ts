@@ -107,8 +107,13 @@ export async function resetDuplicateEntryRows(
 }
 
 /**
- * Void baris duplikat ShiftInstances yang memakai ID sama, selain baris paling
- * awal. Kembalikan jumlah baris yang di-void.
+ * Void baris duplikat ShiftInstances yang memakai ID sama, selain baris kanonik.
+ * Kembalikan jumlah baris yang di-void.
+ *
+ * Baris kanonik = baris NON-VOID paling awal. Penting: kalau baris paling awal
+ * sudah void (mis. shift di-void lalu dibuka lagi), baris itu TIDAK boleh
+ * dipilih sebagai kanonik — kalau begitu shift yang baru dibuka akan langsung
+ * ikut di-void. Baris yang sudah void dilewati, tidak di-void ulang.
  */
 export async function voidDuplicateShiftInstances(
   spreadsheetId: string,
@@ -117,12 +122,14 @@ export async function voidDuplicateShiftInstances(
   const rows = (await listRowsWithNumber(spreadsheetId, 'ShiftInstances')).filter(
     (r) => asStr(r.data['id']) === instanceId
   );
-  if (rows.length <= 1) return 0;
 
-  const [, ...duplicates] = rows;
+  const active = rows.filter((r) => asStr(r.data['status']) !== 'void');
+  if (active.length <= 1) return 0;
+
+  // Baris non-void paling awal = kanonik.
+  const [, ...duplicates] = active;
   let voided = 0;
   for (const dup of duplicates) {
-    if (asStr(dup.data['status']) === 'void') continue;
     await updateRow(spreadsheetId, 'ShiftInstances', dup.rowNumber, {
       status: 'void',
       void_reason: 'duplikat konkuren (BR-01)',
