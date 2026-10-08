@@ -1,0 +1,26 @@
+# Dokumentasi checklist-shift
+
+Dokumentasi ini dibagi untuk pengguna aplikasi dan developer yang akan
+melanjutkan pengembangan.
+
+| Dokumen | Untuk siapa | Isi |
+| --- | --- | --- |
+| [Panduan Pengguna](./panduan-pengguna.mdx) | Petugas dan admin cabang | Login, siklus shift, checklist, incident, laporan, dan pengaturan admin |
+| [Panduan Developer](./panduan-developer.mdx) | Developer dan maintainer | Struktur repo, arsitektur, setup lokal, aturan perubahan, validasi, dan hal yang perlu dicek |
+
+## Akses di aplikasi
+
+Panduan pengguna tersedia langsung di aplikasi melalui `/docs`. Halaman itu
+ditulis khusus untuk petugas dan admin. Panduan developer di direktori ini
+tetap menjadi dokumentasi internal repository dan tidak ditampilkan kepada
+pengguna aplikasi. File MDX adalah sumber dokumentasi; halaman `/docs` tidak
+merender file MDX ini secara otomatis.
+
+Untuk keputusan produk dan teknis, tetap baca dokumen acuan di root repository:
+`AGENTS.md`, `PRD.md`, `DATABASE_SCHEMA.md`, `TRD.md`, `APP_FLOW.md`,
+`IMPLEMENTATION_PLAN.md`, `TESTING.md`, dan `UI-UX.md`.
+
+Spesifikasi menggambarkan target produk; route dan kode saat ini menunjukkan
+apa yang sudah tersedia. Jika keduanya berbeda, jangan menganggap fitur sudah
+selesai hanya karena tercantum dalam spesifikasi. Verifikasi implementasi dan
+konfirmasikan keputusan yang belum jelas sebelum mengubah perilaku.

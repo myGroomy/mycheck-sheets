@@ -1,0 +1,128 @@
+# Panduan Pengguna
+
+Panduan ringkas untuk petugas dan admin yang menggunakan checklist-shift.
+Aplikasi digunakan melalui browser sebagai PWA dan antarmukanya berbahasa
+Indonesia.
+
+## Mulai menggunakan aplikasi
+
+1. Buka alamat aplikasi yang diberikan admin.
+2. Pilih **Masuk**, lalu isi username dan PIN 6 digit.
+3. Jika akun terkunci, nonaktif, atau PIN tidak dikenali, hubungi admin. Admin
+   dapat membuka kunci atau mereset PIN.
+4. Setelah login, gunakan navigasi sesuai perangkat:
+   - **HP/tablet kecil:** bilah navigasi di bagian bawah.
+   - **Desktop/tablet lebar:** tombol menu ☰ pada header membuka navigasi
+     samping.
+
+Jangan membagikan PIN kepada orang lain. PIN digunakan untuk login dan untuk
+mengonfirmasi penutupan shift oleh PJ.
+
+## Petugas
+
+### Beranda dan shift
+
+Beranda menampilkan cabang yang dapat diakses dan definisi shift yang tersedia.
+Jika akun memiliki akses ke lebih dari satu cabang, pilih shift pada cabang
+yang benar.
+
+- Pilih **Buka Shift** untuk memulai shift yang belum berjalan. Petugas yang
+  membukanya menjadi Penanggung Jawab (PJ) shift.
+- Pilih **Gabung** atau **Check-in** untuk bergabung ke shift yang sudah
+  berjalan.
+- Pilih **Lanjutkan** untuk membuka checklist shift yang sudah diikuti.
+- Satu pelaksanaan shift dibagikan oleh semua pesertanya; checklist bukan
+  salinan pribadi.
+
+### Mengerjakan checklist
+
+Pada halaman shift, item dikelompokkan menurut kategori SOP. Ikuti instruksi
+setiap item dan gunakan kontrol yang tersedia, misalnya centang, jawaban
+Ya/Tidak, angka, teks, atau foto.
+
+- Isikan item saat pekerjaan benar-benar dilakukan. Nama petugas dan waktu
+  pencatatan menjadi bagian dari riwayat shift.
+- Jika item sudah dikerjakan oleh rekan, status yang tercatat menunjukkan
+  siapa yang menyelesaikannya.
+- Jika item tidak dapat dikerjakan, gunakan **Skip** dan tulis alasan yang
+  jelas. Skip dengan alasan memenuhi syarat penyelesaian item wajib, tetapi
+  tetap ditandai sebagai skip pada laporan.
+- Selama shift berjalan, item yang sudah selesai dapat dibatalkan jika memang
+  perlu; pembatalan tercatat.
+- Aksi tulis membutuhkan koneksi internet. Jika gagal, baca pesannya lalu
+  coba ulang saat koneksi pulih.
+
+### Menutup shift (khusus PJ)
+
+Tombol **Tutup Shift** hanya tersedia untuk PJ.
+
+1. **Validasi checklist:** semua item wajib harus selesai atau di-skip dengan
+   alasan. Daftar item yang belum memenuhi syarat ditampilkan di sini.
+2. **Handover:** isi semua field wajib untuk shift berikutnya. Tambahkan
+   catatan bila diperlukan dan nyatakan apakah ada incident yang perlu
+   diteruskan.
+3. **Konfirmasi penutupan:** masukkan **PIN akun PJ sendiri**, yaitu PIN yang
+   digunakan untuk login. Ini bukan PIN baru dan bukan PIN admin lain.
+
+Setelah penutupan berhasil, shift dan checklist dikunci, lalu laporan dibuat.
+Koreksi laporan dilakukan sebagai addendum melalui alur admin, bukan dengan
+mengedit shift yang sudah ditutup.
+
+### Incident
+
+- Buka **Incident** untuk melihat kejadian yang tercatat.
+- Pilih **Buat Incident** untuk memilih cabang, kategori, waktu kejadian, dan
+  menuliskan deskripsi.
+- Foto bukti bersifat opsional; form membatasi unggahan hingga lima foto,
+  maksimal 5 MB per foto.
+- Isi incident yang sudah dikirim tidak dapat diedit. Tambahkan catatan
+  tindak lanjut pada halaman detail jika ada informasi baru.
+
+### Laporan
+
+Buka **Laporan** untuk melihat laporan shift pada cabang yang dapat diakses.
+Laporan memuat status checklist, handover, incident, dan peserta shift. Bila
+admin membagikan tautan laporan publik, buka tautan tersebut untuk tampilan
+read-only; tautan dapat kedaluwarsa atau dicabut.
+
+## Admin
+
+Halaman admin tersedia bagi akun berperan admin. Menu admin berisi:
+
+- **Dasbor:** ringkasan operasional.
+- **Cabang** dan **Akun:** mengelola cabang, pengguna, dan akses cabang.
+- **Shift**, **Checklist Builder**, dan **Handover Builder:** mengelola
+  template operasional yang dipakai saat shift baru dibuka.
+- **Kategori Incident:** mengelola kategori incident.
+- **Laporan:** meninjau laporan dan tindakan yang tersedia pada laporan.
+- **Pengaturan** dan **Audit Log:** pengaturan aplikasi dan peninjauan riwayat
+  aksi.
+
+Akun dapat diberi akses ke lebih dari satu cabang. Perubahan template tidak
+mengubah snapshot template pada shift yang sudah berjalan.
+
+Aksi admin yang sensitif mungkin meminta alasan dan PIN admin. Nonaktifkan
+akun, reset PIN, atau ubah akses hanya setelah memeriksa dampaknya. Data
+riwayat tidak dihapus permanen.
+
+## PWA dan koneksi
+
+Aplikasi dapat ditambahkan ke layar utama dari browser yang mendukung PWA.
+Cache offline hanya untuk shell aplikasi/bacaan tertentu; **jangan mengandalkan
+aplikasi untuk menyimpan perubahan checklist, incident, atau handover tanpa
+koneksi internet**.
+
+## Pemecahan masalah
+
+| Gejala | Yang dapat dicoba |
+| --- | --- |
+| Tombol login kembali ke landing page atau sesi tidak berlaku | Buka `/login` lagi. Jika masih gagal, hapus data situs aplikasi atau minta admin mencabut sesi dan login kembali. |
+| PIN salah atau akun terkunci | Pastikan username/PIN benar; setelah beberapa percobaan gagal, hubungi admin untuk membuka kunci atau mereset PIN. |
+| Tidak dapat membuka shift atau melihat cabang | Pastikan cabang yang benar dipilih dan minta admin memeriksa akses akun. |
+| Item wajib menghalangi penutupan | Selesaikan item tersebut atau pilih Skip dan isi alasan. |
+| PIN penutupan ditolak | Masukkan PIN login milik PJ yang sedang menutup shift. |
+| Perubahan tidak tersimpan | Periksa koneksi internet dan ulangi aksi. Jangan menganggap aksi berhasil jika aplikasi menampilkan pesan gagal. |
+
+Untuk melaporkan masalah, sertakan perangkat/browser, halaman, langkah
+reproduksi, waktu kejadian, serta tangkapan layar yang tidak menampilkan PIN
+atau informasi rahasia.
