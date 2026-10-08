@@ -1,3 +1,4 @@
+import { PassThrough } from 'stream';
 import { NextRequest, NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { withAuth, type AuthContext } from '../../../../lib/api-auth';
@@ -171,9 +172,14 @@ export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   const filename = `mycheck-${branchId}-${resolvedShiftId ?? 'general'}-${photoId}.${ext}`;
 
   const drive = getDriveClient();
+  // Drive API mewajibkan media.body berupa stream — Buffer mentah membuat
+  // googleapis gagal saat menyusun multipart ("part.body.pipe is not a
+  // function"). Pola ini sama dengan uploadXlsxToDrive di stokis.
+  const bodyStream = new PassThrough();
+  bodyStream.end(buffer);
   const res = await drive.files.create({
     requestBody: { name: filename, parents: [folderId] },
-    media: { mimeType: file.type, body: buffer },
+    media: { mimeType: file.type, body: bodyStream },
     fields: 'id, webViewLink',
   });
   const uploaded = {
