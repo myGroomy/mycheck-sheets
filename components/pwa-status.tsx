@@ -9,15 +9,29 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = 'pwa-install-dismissed';
-const SHOWN_KEY = 'pwa-install-shown';
+const SNOOZE_KEY = 'pwa-install-snoozed';
 
 export function PwaStatus() {
   const [isOnline, setIsOnline] = useState(true);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // Dibaca lewat state, bukan langsung dari storage saat render: nilai storage
+  // tidak memicu re-render, dan membaca localStorage saat render bisa
+  // menimbulkan hydration mismatch.
+  const [dismissedForever, setDismissedForever] = useState(false);
+  const [snoozed, setSnoozed] = useState(false);
+  // Kalau aplikasi sudah terpasang, tidak perlu lagi/install banner. Dicek
+  // setelah mount: di server nilai ini selalu false, jadi mengeceknya saat
+  // render akanhydration mismatch.
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
     updateOnlineStatus();
+
+    // Pulihkan keputusan yang sudah dibuat pengguna pada kunjungan sebelumnya.
+    setDismissedForever(localStorage.getItem(DISMISS_KEY) === 'true');
+    setSnoozed(sessionStorage.getItem(SNOOZE_KEY) === 'true');
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
 
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
@@ -82,12 +96,19 @@ export function PwaStatus() {
     setDeferredPrompt(null);
   };
 
-  const dismissPermanently = () => {
-    localStorage.setItem(DISMISS_KEY, 'true');
+  // "Nanti" — sembunyi sampai tab ini ditutup, tapi akan muncul lagi lain kali.
+  const snooze = () => {
+    sessionStorage.setItem(SNOOZE_KEY, 'true');
+    setSnoozed(true);
     setDeferredPrompt(null);
   };
 
-  const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+  // "Jangan tampilkan lagi" — permanen, tidak akan muncul lagi di perangkat ini.
+  const dismissPermanently = () => {
+    localStorage.setItem(DISMISS_KEY, 'true');
+    setDismissedForever(true);
+    setDeferredPrompt(null);
+  };
 
   if (isStandalone) {
     return null;
@@ -100,14 +121,14 @@ export function PwaStatus() {
           Tidak ada koneksi. Beberapa fitur wajib online akan dinonaktifkan.
         </div>
       )}
-      {deferredPrompt && sessionStorage.getItem(SHOWN_KEY) !== 'true' && (
+      {deferredPrompt && !dismissedForever && !snoozed && (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 rounded-lg border border-border bg-surface p-3 shadow-lg">
           <p className="text-sm text-ink">Install aplikasi untuk akses lebih cepat?</p>
           <div className="flex gap-2">
             <Button type="button" size="sm" onClick={() => void installApp()}>
               Pasang
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => { sessionStorage.setItem(SHOWN_KEY, 'true'); setDeferredPrompt(null); }}>
+            <Button type="button" size="sm" variant="outline" onClick={snooze}>
               Nanti
             </Button>
             <Button type="button" size="sm" variant="ghost" onClick={dismissPermanently}>
