@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
 import { getServerTime } from '../../../../../lib/db/server-time';
@@ -22,13 +22,15 @@ interface CloseBody {
   no_incident?: boolean;
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const pathParts = new URL(req.url).pathname.split('/');
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const pathParts = new URL(_req.url).pathname.split('/');
   const shiftInstanceId = pathParts[pathParts.length - 2];
 
   let body: CloseBody = {};
   try {
-    body = (await req.json()) as CloseBody;
+    body = (await _req.json()) as CloseBody;
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

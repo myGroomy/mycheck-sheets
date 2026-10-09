@@ -1,16 +1,12 @@
 import { requireAdmin } from '@/lib/page-auth';
-import { AdminShell } from '@/components/admin/shell';
 
+// Navigasi sekarang diserahkan sepenuhnya ke <Navbar /> di root layout.
+// Layout ini hanya menjaga penjaga redirect untuk area /admin.
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const ctx = await requireAdmin();
-
-  return (
-    <AdminShell user={{ name: ctx.user.name, username: ctx.user.username }}>
-      {children}
-    </AdminShell>
-  );
+  await requireAdmin();
+  return <>{children}</>;
 }

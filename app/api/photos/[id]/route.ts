@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, type AuthContext } from '../../../../lib/api-auth';
+import { NextResponse } from 'next/server';
+import { withAuth } from '../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../lib/google/registry';
 import { getDriveClient } from '../../../../lib/google/client';
 import { listMonthlyRows, asStr } from '../../../../lib/store';
@@ -11,8 +11,10 @@ import { listMonthlyRows, asStr } from '../../../../lib/store';
  * publik. Alih-alih signed URL, route ini mem-proxy byte dari Drive setelah
  * memeriksa hak akses — URL tetap berada di balik autentikasi.
  */
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  const photoId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const photoId = new URL(_req.url).pathname.split('/').slice(-2)[0];
 
   const cabangs = await getCabangList();
   let located: {

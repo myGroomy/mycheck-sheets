@@ -1,5 +1,5 @@
 // app/api/admin/incident-categories/[id]/route.ts — Phase 4 (Sheets).
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { locateIncidentCategory } from '../../../../../lib/admin/resolve-config';
 import { deleteIncidentCategory, getIncidentCategory, updateIncidentCategory } from '../../../../../lib/admin/template-service';
@@ -7,12 +7,14 @@ import { appendAuditLogFor } from '../../../../../lib/db/audit';
 import { asStr, filterRows } from '../../../../../lib/store';
 import { isCategoryInUse } from '../../../../../lib/incidents';
 
-export const PUT = withAuth(async (req: NextRequest, ctx) => {
+export const PUT = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
-  const id = new URL(req.url).pathname.split('/').pop() ?? '';
+  const id = new URL(_req.url).pathname.split('/').pop() ?? '';
   let body: { name?: string; sortOrder?: number; sort_order?: number; isActive?: boolean; is_active?: boolean } = {};
-  try { body = (await req.json()) as typeof body; } catch {
+  try { body = (await _req.json()) as typeof body; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
   const loc = await locateIncidentCategory(ctx, id);
@@ -38,10 +40,12 @@ export const PUT = withAuth(async (req: NextRequest, ctx) => {
   return NextResponse.json({ message: 'Kategori incident berhasil diperbarui' });
 });
 
-export const DELETE = withAuth(async (req: NextRequest, ctx) => {
+export const DELETE = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
-  const id = new URL(req.url).pathname.split('/').pop() ?? '';
+  const id = new URL(_req.url).pathname.split('/').pop() ?? '';
   const loc = await locateIncidentCategory(ctx, id);
   if (!loc) return NextResponse.json({ error: 'Kategori incident tidak ditemukan' }, { status: 404 });
   if (await isCategoryInUse(ctx, id)) {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { resolveCabang } from '../../../../../../lib/google/registry';
 import { createShiftDefinition, listShiftDefinitions } from '../../../../../../lib/admin/template-service';
@@ -8,11 +8,13 @@ import { createShiftDefinition, listShiftDefinitions } from '../../../../../../l
  * Cabang diambil dari query `?branchId=...`; admin tanpa branchId memakai
  * cabang pertama yang bisa diakses.
  */
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const requested = new URL(req.url).searchParams.get('branchId');
+  const requested = new URL(_req.url).searchParams.get('branchId');
   const targets = requested ? [requested] : ctx.branchIds;
   if (targets.length === 0) {
     return NextResponse.json({ shifts: [] });
@@ -60,22 +62,24 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
   return NextResponse.json({ shifts: result });
 });
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = (await _req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
 
   // Branch id ada di path: /api/admin/branches/[id]/shifts
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const pathBranchId = pathParts[pathParts.length - 2];
   const branchId = String(
-    body['branchId'] ?? new URL(req.url).searchParams.get('branchId') ?? pathBranchId ?? ''
+    body['branchId'] ?? new URL(_req.url).searchParams.get('branchId') ?? pathBranchId ?? ''
   );
   if (!branchId) {
     return NextResponse.json({ error: 'branchId wajib diisi' }, { status: 400 });

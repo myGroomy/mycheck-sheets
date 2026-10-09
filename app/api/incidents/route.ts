@@ -1,6 +1,6 @@
 // app/api/incidents/route.ts
 // Phase 4 (Sheets): daftar + buat incident.
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { requireBranchAccess, withAuth } from '../../../lib/api-auth';
 import { resolveCabang, getCabangList, getSettingsGlobal } from '../../../lib/google/registry';
@@ -26,7 +26,9 @@ async function linkWindowHours(): Promise<number> {
     return Number.isFinite(raw) && raw > 0 ? raw : 4;
   } catch { return 4; }
 }
-export const GET = withAuth(async (_req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const cabangs = await getCabangList();
   const branchRows = cabangs.filter((c) => ctx.branchIds.includes(c.Cabang_ID)).map((c) => ({
     id: c.Cabang_ID, name: (c['Nama_Cabang'] as string) || c.Cabang_ID, code: (c['Kode'] as string) || c.Cabang_ID,
@@ -99,9 +101,11 @@ export const GET = withAuth(async (_req: NextRequest, ctx) => {
   response.headers.set('Vary', 'Cookie');
   return response;
 });
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   let body: IncidentBody = {};
-  try { body = (await req.json()) as IncidentBody; } catch {
+  try { body = (await _req.json()) as IncidentBody; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
   const categoryId = body.categoryId;

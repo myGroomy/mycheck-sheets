@@ -1,19 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
-import { withAuth, requireBranchAccess, requireRole, type AuthContext } from '../../../../../../lib/api-auth';
+import { withAuth, requireBranchAccess, requireRole } from '../../../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../../../lib/google/registry';
 import { filterRows, insertRow, asStr } from '../../../../../../lib/store';
 import { appendAuditLogFor } from '../../../../../../lib/db/audit';
 
 /** Tambah addendum (catatan revisi) pada sebuah laporan. */
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  const reportId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const reportId = new URL(_req.url).pathname.split('/').slice(-2)[0];
   const roleError = requireRole(ctx, 'admin');
   if (roleError) return roleError;
 
   let body: { note?: string } = {};
   try {
-    body = (await req.json()) as { note?: string };
+    body = (await _req.json()) as { note?: string };
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

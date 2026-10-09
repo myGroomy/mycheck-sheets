@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerTime } from '../../../lib/db/server-time';
 import { getShiftDate } from '../../../lib/shift/time';
 import { withAuth } from '../../../lib/api-auth';
@@ -9,8 +9,10 @@ import { getCabangList } from '../../../lib/google/registry';
  * Daftar shift untuk petugas: definisi shift aktif pada cabang yang
  * diakses + status instance hari ini (belum dibuka / berjalan / ditutup).
  */
-export const GET = withAuth(async (req: NextRequest, ctx) => {
-  const branchIdParam = new URL(req.url).searchParams.get('branchId');
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const branchIdParam = new URL(_req.url).searchParams.get('branchId');
   const branchIds = branchIdParam
     ? ctx.branchIds.filter((id) => id === branchIdParam)
     : ctx.branchIds;

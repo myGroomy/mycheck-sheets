@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../lib/api-auth';
 import { resolveCabang } from '../../../../lib/google/registry';
 import { listAllCabang } from '../../../../lib/google/registry-admin';
@@ -18,11 +18,13 @@ async function auditTabs(spreadsheetId: string): Promise<string[]> {
     .filter((t) => /^AuditLog_\d{4}-\d{2}$/.test(t));
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const { searchParams } = new URL(req.url);
+  const { searchParams } = new URL(_req.url);
   const actorId = searchParams.get('actorId');
   const action = searchParams.get('action');
   const branchId = searchParams.get('branchId');

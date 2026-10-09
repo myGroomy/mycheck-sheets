@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
@@ -18,13 +18,15 @@ interface HandoverBody {
   noIncidentConfirmed?: boolean;
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const pathParts = new URL(req.url).pathname.split('/');
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const pathParts = new URL(_req.url).pathname.split('/');
   const shiftInstanceId = pathParts[pathParts.length - 2];
 
   let body: HandoverBody = {};
   try {
-    body = (await req.json()) as HandoverBody;
+    body = (await _req.json()) as HandoverBody;
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

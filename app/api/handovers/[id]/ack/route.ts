@@ -1,6 +1,6 @@
 // app/api/handovers/[id]/ack/route.ts — Phase 4 (Sheets).
 // Tandai handover shift sebelumnya sebagai sudah dibaca (idempotent).
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
@@ -8,10 +8,12 @@ import { ensureMonthlySheet, insertRow, listMonthlyRows } from '../../../../../l
 import { asStr } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const handoverId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const handoverId = new URL(_req.url).pathname.split('/').slice(-2)[0];
   let body: { shift_instance_id?: string } = {};
-  try { body = (await req.json()) as { shift_instance_id?: string }; } catch { /* kosong */ }
+  try { body = (await _req.json()) as { shift_instance_id?: string }; } catch { /* kosong */ }
   // Cari handover di semua cabang yang bisa diakses (3 bulan terakhir)
   const months: string[] = [];
   for (let back = 0; back < 3; back++) {

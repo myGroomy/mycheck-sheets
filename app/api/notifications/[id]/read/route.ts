@@ -1,11 +1,13 @@
 // app/api/notifications/[id]/read/route.ts — Phase 4 (Sheets). Idempotent.
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withAuth } from '../../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../../lib/google/registry';
 import { asStr, listRowsWithNumber, updateRow } from '../../../../../lib/store';
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const notificationId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const notificationId = new URL(_req.url).pathname.split('/').slice(-2)[0];
   const cabangs = await getCabangList();
   for (const cabang of cabangs) {
     if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;

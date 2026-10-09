@@ -1,7 +1,7 @@
 import { PassThrough } from 'stream';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
-import { withAuth, type AuthContext } from '../../../../lib/api-auth';
+import { withAuth } from '../../../../lib/api-auth';
 import { resolveInstance } from '../../../../lib/instance-resolver';
 import { resolveCabang } from '../../../../lib/google/registry';
 import {
@@ -23,8 +23,10 @@ function extensionFor(mime: string): string | null {
   return null;
 }
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  const formData = await req.formData();
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const formData = await _req.formData();
   const file = formData.get('file');
   const ownerType = String(formData.get('ownerType') ?? 'incident');
   const ownerId = String(formData.get('ownerId') ?? '');

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AlertCircle, ArrowRight, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PetugasNav } from '@/components/shift/petugas-nav';
 
 interface ReportItem {
   id: string;
@@ -46,7 +45,7 @@ export function ReportList() {
 
   return (
     <main className="mx-auto max-w-4xl space-y-5 p-4 pb-24 md:p-6">
-      <PetugasNav />
+      
       <header>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Riwayat</p>
         <h1 className="mt-1 text-2xl font-bold">Laporan shift</h1>

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { handoverFieldTypeSchema } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { locateHandoverField } from '../../../../../lib/admin/resolve-config';
@@ -33,11 +33,13 @@ const toApiField = (f: {
   version: f.version,
 });
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
   const loc = await locateHandoverField(ctx, id);
@@ -60,16 +62,18 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
   });
 });
 
-export const PUT = withAuth(async (req: NextRequest, ctx) => {
+export const PUT = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = (await _req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
@@ -123,11 +127,13 @@ export const PUT = withAuth(async (req: NextRequest, ctx) => {
   return NextResponse.json({ message: 'Bidang handover berhasil diperbarui' });
 });
 
-export const DELETE = withAuth(async (req: NextRequest, ctx) => {
+export const DELETE = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
   const loc = await locateHandoverField(ctx, id);

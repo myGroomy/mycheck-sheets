@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { locateShiftDefinition } from '../../../../../../lib/admin/resolve-config';
 import {
@@ -24,11 +24,13 @@ const toApiCategory = (c: {
   version: c.version,
 });
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const shiftId = pathParts[pathParts.length - 2];
 
   const loc = await locateShiftDefinition(ctx, shiftId);
@@ -47,16 +49,18 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
   });
 });
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const shiftId = pathParts[pathParts.length - 2];
 
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = (await _req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

@@ -1,13 +1,15 @@
 // app/api/incidents/[id]/route.ts — Phase 4 (Sheets).
 // GET: detail + notes + photos. PATCH (admin): ubah status open<->selesai (IN-04).
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireBranchAccess, requireRole, withAuth } from '../../../../lib/api-auth';
 import { appendAuditLogFor } from '../../../../lib/db/audit';
 import { asBool, asStr, filterRows, listMonthlyRows } from '../../../../lib/store';
 import { categoryNameMap, findIncidentAcrossBranches, incidentTabMonth, pushNotification, updateIncidentRow, userNameMap } from '../../../../lib/incidents';
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
-  const incidentId = new URL(req.url).pathname.split('/').at(-1) ?? '';
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const incidentId = new URL(_req.url).pathname.split('/').at(-1) ?? '';
   const located = await findIncidentAcrossBranches(ctx, incidentId);
   if (!located) return NextResponse.json({ error: 'Incident tidak ditemukan' }, { status: 404 });
   const branchAccessError = requireBranchAccess(ctx, located.branchId);
@@ -51,12 +53,14 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
   return response;
 });
 
-export const PATCH = withAuth(async (req: NextRequest, ctx) => {
+export const PATCH = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
-  const incidentId = new URL(req.url).pathname.split('/').at(-1) ?? '';
+  const incidentId = new URL(_req.url).pathname.split('/').at(-1) ?? '';
   let body: { status?: string; linkToShiftId?: string; unlink?: boolean } = {};
-  try { body = (await req.json()) as typeof body; } catch {
+  try { body = (await _req.json()) as typeof body; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
 

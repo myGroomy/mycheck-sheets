@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { branchSchema } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../lib/api-auth';
 import { isValidTimeZone } from '../../../../lib/valid-timezone';
@@ -10,7 +10,9 @@ import {
 
 const folderDriveId = () => process.env.GOOGLE_DRIVE_FOLDER_ID ?? '';
 
-export const GET = withAuth(async (_req, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
@@ -36,13 +38,15 @@ export const GET = withAuth(async (_req, ctx) => {
   });
 });
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await _req.json();
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

@@ -3,7 +3,7 @@
 //
 // Ketiganya aksi sensitif: wajib alasan + konfirmasi PIN (ADM-SEC-01) dan
 // tercatat di audit log (ADM-AL-02).
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { verifyAdminPin } from '../../../../../lib/admin/sensitive-action';
@@ -16,15 +16,17 @@ const bodySchema = z.object({
   newPjUserId: z.string().optional(),
 });
 
-export const PATCH = withAuth(async (req: NextRequest, ctx) => {
+export const PATCH = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const shiftInstanceId = new URL(req.url).pathname.split('/').at(-1) ?? '';
+  const shiftInstanceId = new URL(_req.url).pathname.split('/').at(-1) ?? '';
 
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = await _req.json();
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

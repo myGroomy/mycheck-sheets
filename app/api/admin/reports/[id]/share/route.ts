@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import {
   withAuth,
@@ -38,8 +38,10 @@ async function locateReport(
   return null;
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  const reportId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const reportId = new URL(_req.url).pathname.split('/').slice(-2)[0];
   const roleError = requireRole(ctx, 'admin');
   if (roleError) return roleError;
 
@@ -62,14 +64,16 @@ export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
   });
 });
 
-export const POST = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  const reportId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const reportId = new URL(_req.url).pathname.split('/').slice(-2)[0];
   const roleError = requireRole(ctx, 'admin');
   if (roleError) return roleError;
 
   let body: { expiresHours?: number; note?: string } = {};
   try {
-    body = (await req.json()) as { expiresHours?: number; note?: string };
+    body = (await _req.json()) as { expiresHours?: number; note?: string };
   } catch {
     body = {};
   }

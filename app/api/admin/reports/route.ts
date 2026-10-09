@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../lib/google/registry';
 import { filterRows } from '../../../../lib/store';
@@ -9,11 +9,13 @@ import { listShiftDefinitions } from '../../../../lib/admin/template-service';
  * Daftar laporan untuk panel admin. Berbeda dari /api/reports, endpoint ini
  * tidak menyaring shift test dan mengembalikan `isLocked`.
  */
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const branchFilter = new URL(req.url).searchParams.get('branchId');
+  const branchFilter = new URL(_req.url).searchParams.get('branchId');
   const cabangs = await getCabangList();
   const targets = cabangs.filter(
     (c) => ctx.branchIds.includes(c.Cabang_ID) && (!branchFilter || c.Cabang_ID === branchFilter)

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-auth';
 import { resetUsersCache } from '@/lib/google/registry-admin';
 import {
@@ -8,9 +8,11 @@ import {
   columnIndexToLetter,
 } from '@/lib/google/sheets';
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   try {
-    const body = await req.json();
+    const body = await _req.json();
     const oldPin = String(body?.oldPin ?? '').trim();
     const newPin = String(body?.newPin ?? '').trim();
 

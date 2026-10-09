@@ -1,10 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
 import { filterRows, listMonthlyRows } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
-  const pathParts = new URL(req.url).pathname.split('/');
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const pathParts = new URL(_req.url).pathname.split('/');
   const shiftInstanceId = pathParts[pathParts.length - 2];
 
   const resolved = await resolveInstance(ctx, shiftInstanceId);

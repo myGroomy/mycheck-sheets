@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PetugasNav } from '@/components/shift/petugas-nav';
 import type { Snapshot } from '@/lib/db/snapshot';
 import { PublicReportView, type PublicReportViewData } from '@/components/report/public-report-view';
 
@@ -116,13 +115,13 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   }, [reportId]);
 
   if (loading) {
-    return <><PetugasNav /><main className="mx-auto max-w-5xl p-4"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat laporan…</div></main></>;
+    return <><main className="mx-auto max-w-5xl p-4"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat laporan…</div></main></>;
   }
 
   if (error || !data) {
     return (
       <>
-        <PetugasNav />
+        
         <main className="mx-auto max-w-5xl space-y-4 p-4">
           <Button type="button" variant="outline" onClick={() => router.push('/report')}><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke laporan</Button>
           <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
@@ -135,7 +134,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
 
   return (
     <>
-      <PetugasNav />
+      
       <div className="mx-auto max-w-5xl px-4 pt-4 md:px-8 print:hidden">
         <Button asChild type="button" variant="outline">
           <Link href="/report"><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke laporan</Link>

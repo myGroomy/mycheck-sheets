@@ -5,7 +5,7 @@
 // sensitif (yang wajib PIN adalah tutup paksa, ganti PJ, void, buka kunci
 // laporan, reset PIN, ubah peran/akses, nonaktifkan akun). Alasan tetap wajib
 // dan aksi tetap masuk audit log.
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { openShiftOnBehalf } from '../../../../../lib/admin/shift-operations';
@@ -16,13 +16,15 @@ const bodySchema = z.object({
   reason: z.string().min(3, 'Alasan minimal 3 karakter'),
 });
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = await _req.json();
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

@@ -1,11 +1,13 @@
 // app/api/notifications/route.ts — Phase 4 (Sheets).
 // GET 50 notifikasi terbaru user dari sheet statis Notifications per cabang.
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withAuth } from '../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../lib/google/registry';
 import { asStr, filterRows } from '../../../lib/store';
 
-export const GET = withAuth(async (_req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const cabangs = await getCabangList();
   const items: { id: string; type: string; payload: unknown; read_at: string | null; created_at: string }[] = [];
   for (const cabang of cabangs) {

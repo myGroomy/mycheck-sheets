@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { branchSchema } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { isValidTimeZone } from '../../../../../lib/valid-timezone';
@@ -19,11 +19,13 @@ async function findCabangRowNumber(cabangId: string): Promise<number | null> {
   return hit ? hit.rowNumber : null;
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
   const branch = (await listAllCabang()).find((b) => b.Cabang_ID === id);
@@ -45,16 +47,18 @@ export const GET = withAuth(async (req: NextRequest, ctx) => {
   });
 });
 
-export const PUT = withAuth(async (req: NextRequest, ctx) => {
+export const PUT = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await _req.json();
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
@@ -108,11 +112,13 @@ export const PUT = withAuth(async (req: NextRequest, ctx) => {
   return NextResponse.json({ message: 'Cabang berhasil diperbarui' });
 });
 
-export const DELETE = withAuth(async (req: NextRequest, ctx) => {
+export const DELETE = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
   const existing = (await listAllCabang()).find((b) => b.Cabang_ID === id);

@@ -1,6 +1,6 @@
 // app/api/incidents/[id]/notes/route.ts — Phase 4 (Sheets).
 // POST catatan tindak lanjut (IN-06): penulis + waktu tercatat, isi awal tak diubah.
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
@@ -8,10 +8,12 @@ import { insertRow } from '../../../../../lib/store';
 import { monthlySheet } from '../../../../../lib/google/branch-schema';
 import { ensureIncidentTabs, findIncidentAcrossBranches, incidentTabMonth } from '../../../../../lib/incidents';
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const incidentId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const incidentId = new URL(_req.url).pathname.split('/').slice(-2)[0];
   let body: { note?: string } = {};
-  try { body = (await req.json()) as { note?: string }; } catch {
+  try { body = (await _req.json()) as { note?: string }; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
   const note = body.note?.trim();

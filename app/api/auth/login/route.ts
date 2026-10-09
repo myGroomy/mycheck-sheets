@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readSheetDataFresh, sheetToObjects } from '@/lib/google/sheets';
 import { createSessionToken, setSessionCookieHeader } from '@/lib/session';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await _req.json();
     const username = String(body?.username ?? '').trim();
     const pin = String(body?.pin ?? '').trim();
 

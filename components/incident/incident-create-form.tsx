@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AlertCircle, ArrowLeft, Camera, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PetugasNav } from '@/components/shift/petugas-nav';
 
 interface Option {
   id: string;
@@ -132,12 +131,12 @@ export function IncidentCreateForm() {
   };
 
   if (loading) {
-    return <main className="mx-auto max-w-2xl p-4"><PetugasNav /><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat form…</div></main>;
+    return <main className="mx-auto max-w-2xl p-4"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat form…</div></main>;
   }
 
   return (
     <main className="mx-auto max-w-2xl space-y-5 p-4 pb-24 md:p-6">
-      <PetugasNav />
+      
       <header>
         <Button asChild variant="outline" size="sm"><Link href="/incident"><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke incident</Link></Button>
         <h1 className="mt-4 text-2xl font-bold">Buat incident</h1>

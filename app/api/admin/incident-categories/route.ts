@@ -1,6 +1,6 @@
 // app/api/admin/incident-categories/route.ts — Phase 4 (Sheets).
 // GET: gabungan kategori semua cabang (beserta branchId). POST: buat di cabang target.
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../lib/google/registry';
 import { appendAuditLogFor } from '../../../../lib/db/audit';
@@ -9,10 +9,12 @@ import { createIncidentCategory, listIncidentCategories } from '../../../../lib/
 import { ensureSheet } from '../../../../lib/google/sheets';
 import { STATIC_SHEETS } from '../../../../lib/google/branch-schema';
 
-export const GET = withAuth(async (req, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
-  const branchFilter = new URL(req.url).searchParams.get('branchId');
+  const branchFilter = new URL(_req.url).searchParams.get('branchId');
   const cabangs = await getCabangList();
   const targets = cabangs.filter((c) => ctx.branchIds.includes(c.Cabang_ID) && (!branchFilter || c.Cabang_ID === branchFilter));
   const categories: Record<string, unknown>[] = [];
@@ -33,11 +35,13 @@ export const GET = withAuth(async (req, ctx) => {
   return NextResponse.json({ categories });
 });
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
   let body: { name?: string; sortOrder?: number; sort_order?: number; isActive?: boolean; is_active?: boolean; branchId?: string } = {};
-  try { body = (await req.json()) as typeof body; } catch {
+  try { body = (await _req.json()) as typeof body; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
   const name = (body.name ?? '').trim();

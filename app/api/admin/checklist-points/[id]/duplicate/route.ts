@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { locateChecklistPoint } from '../../../../../../lib/admin/resolve-config';
 import { duplicateChecklistPoint } from '../../../../../../lib/admin/template-service';
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const sourceId = pathParts[pathParts.length - 2];
 
   const loc = await locateChecklistPoint(ctx, sourceId);

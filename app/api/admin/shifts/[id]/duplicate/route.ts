@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { locateShiftDefinition } from '../../../../../../lib/admin/resolve-config';
 import {
@@ -6,11 +6,13 @@ import {
   getShiftDefinition,
 } from '../../../../../../lib/admin/template-service';
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   // /api/admin/shifts/[id]/duplicate -> id di index length - 2
   const sourceId = pathParts[pathParts.length - 2];
 

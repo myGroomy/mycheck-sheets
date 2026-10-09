@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../../../lib/api-auth';
 import { resolveCabang } from '../../../../../../../lib/google/registry';
 import { insertRow } from '../../../../../../../lib/store';
@@ -12,11 +12,13 @@ import { ulid } from 'ulid';
  * Hanya sheet konfigurasi yang disalin — data operasional (shift instance,
  * entries, reports) tidak ikut.
  */
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   // /api/admin/branches/[id]/copy-from/[source_id]
   // [..., 'branches', targetBranchId, 'copy-from', sourceBranchId]
   const sourceBranchId = pathParts[pathParts.length - 1];

@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   withAuth,
   requireBranchAccess,
   requireRole,
-  type AuthContext,
+  
 } from '../../../../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../../../../lib/google/registry';
 import { filterRows, asStr } from '../../../../../../../lib/store';
@@ -13,8 +13,10 @@ import {
   updateShareTokenCells,
 } from '../../../../../../../lib/google/share-tokens';
 
-export const DELETE = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  const pathParts = new URL(req.url).pathname.split('/');
+export const DELETE = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const pathParts = new URL(_req.url).pathname.split('/');
   const reportId = pathParts[pathParts.length - 3];
   const tokenId = pathParts[pathParts.length - 1];
 

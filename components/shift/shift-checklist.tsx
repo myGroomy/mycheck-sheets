@@ -7,7 +7,6 @@ import { AlertCircle, ArrowLeft, Clock3, Loader2, UserRound } from 'lucide-react
 import { Button } from '@/components/ui/button';
 import { ChecklistPointControls } from '@/components/shift/checklist-point-controls';
 import { ShiftCloseDialog } from '@/components/shift/shift-close-dialog';
-import { PetugasNav } from '@/components/shift/petugas-nav';
 
 type EntryState = 'belum' | 'selesai' | 'skip';
 type InputType = 'centang' | 'foto' | 'teks' | 'angka' | 'ok_tidak_ok';
@@ -218,7 +217,7 @@ export function ShiftChecklistClient({
   if (loading && !data) {
     return (
       <main className="mx-auto max-w-6xl space-y-4 p-4 md:p-6">
-        <PetugasNav />
+        
         <div className="flex min-h-[60dvh] items-center justify-center gap-2 text-sm text-ink-muted">
           <Loader2 className="h-4 w-4 animate-spin" />
           Memuat shift...
@@ -230,7 +229,7 @@ export function ShiftChecklistClient({
   if (!data) {
     return (
       <main className="mx-auto max-w-4xl p-4">
-        <PetugasNav />
+        
         <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-ink-muted">
           Shift tidak tersedia.
         </div>
@@ -240,7 +239,7 @@ export function ShiftChecklistClient({
 
   return (
     <main className="mx-auto max-w-6xl space-y-4 p-4 md:p-6">
-      <PetugasNav />
+      
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" size="sm" asChild>

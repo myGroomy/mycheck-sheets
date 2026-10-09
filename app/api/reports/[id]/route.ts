@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { withAuth, requireBranchAccess, type AuthContext } from '../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../lib/google/registry';
 import { filterRows, asStr } from '../../../../lib/store';
@@ -27,8 +27,10 @@ async function locateReport(
   return null;
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx: AuthContext) => {
-  const reportId = new URL(req.url).pathname.split('/').at(-1) ?? '';
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const reportId = new URL(_req.url).pathname.split('/').at(-1) ?? '';
 
   const located = await locateReport(ctx, reportId);
   if (!located) {

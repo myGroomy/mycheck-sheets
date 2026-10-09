@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import type { Snapshot } from '../../../../../lib/db/snapshot';
 import { getServerTime } from '../../../../../lib/db/server-time';
 import { getZonedParts, isPointActiveOn } from '../../../../../lib/shift/time';
@@ -35,8 +35,10 @@ interface ProgressCategory {
   points: ProgressEntry[];
 }
 
-export const GET = withAuth(async (req: NextRequest, ctx) => {
-  const pathParts = new URL(req.url).pathname.split('/');
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const pathParts = new URL(_req.url).pathname.split('/');
   const shiftInstanceId = pathParts[pathParts.length - 2];
 
   const resolved = await resolveInstance(ctx, shiftInstanceId);

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { updateUserSchema, sensitiveActionSchema } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { verifyAdminPin, countActiveAdmins } from '../../../../../lib/admin/sensitive-action';
@@ -18,16 +18,18 @@ async function findUserRowNumber(userId: string): Promise<number | null> {
   return hit ? hit.rowNumber : null;
 }
 
-export const PUT = withAuth(async (req: NextRequest, ctx) => {
+export const PUT = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const targetUserId = pathParts[pathParts.length - 1];
 
   let body: Record<string, unknown>;
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = (await _req.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
@@ -111,11 +113,13 @@ export const PUT = withAuth(async (req: NextRequest, ctx) => {
   return NextResponse.json({ message: 'User berhasil diperbarui' });
 });
 
-export const DELETE = withAuth(async (req: NextRequest, ctx) => {
+export const DELETE = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   const targetUserId = pathParts[pathParts.length - 1];
 
   const existing = (await listAllUsers()).find((u) => u.User_ID === targetUserId);
@@ -131,7 +135,7 @@ export const DELETE = withAuth(async (req: NextRequest, ctx) => {
   }
 
   if (existing.Role === 'admin') {
-    const pinErr = await verifyAdminPin(ctx.user.id, new URL(req.url).searchParams.get('pin') ?? '');
+    const pinErr = await verifyAdminPin(ctx.user.id, new URL(_req.url).searchParams.get('pin') ?? '');
     if (pinErr) return NextResponse.json({ error: pinErr }, { status: 403 });
     if ((await countActiveAdmins(targetUserId)) < 1) {
       return NextResponse.json(

@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, ArrowLeft, Image as ImageIcon, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PetugasNav } from '@/components/shift/petugas-nav';
 
 interface IncidentDetailData {
   incident: {
@@ -78,11 +77,11 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
     }
   };
 
-  if (loading) return <main className="mx-auto max-w-3xl p-4"><PetugasNav /><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat detail incident…</div></main>;
+  if (loading) return <main className="mx-auto max-w-3xl p-4"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat detail incident…</div></main>;
   if (!data) {
     return (
       <main className="mx-auto max-w-3xl space-y-4 p-4">
-        <PetugasNav />
+        
         <Button asChild variant="outline"><Link href="/incident"><ArrowLeft className="mr-2 h-4 w-4" />Kembali</Link></Button>
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error ?? 'Incident tidak ditemukan.'}</div>
       </main>
@@ -91,7 +90,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
 
   return (
     <main className="mx-auto max-w-3xl space-y-5 p-4 pb-24 md:p-6">
-      <PetugasNav />
+      
       <Button asChild variant="outline"><Link href="/incident"><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke incident</Link></Button>
       {error && <div role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
       <article className="rounded-2xl border border-border bg-surface p-5">

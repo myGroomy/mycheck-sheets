@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { buildTemplateSnapshot, hashSnapshot } from '../../../../lib/db/snapshot';
 import { appendAuditLogFor } from '../../../../lib/db/audit';
@@ -21,10 +21,12 @@ interface OpenShiftBody {
  * BR-05: shift memakai snapshot template saat dibuka.
  * BR-02: tanggal shift = tanggal saat dibuka di zona waktu cabang.
  */
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   let body: OpenShiftBody;
   try {
-    body = (await req.json()) as OpenShiftBody;
+    body = (await _req.json()) as OpenShiftBody;
   } catch {
     body = {};
   }

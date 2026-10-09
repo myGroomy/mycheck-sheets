@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { withAuth, type AuthContext } from '../../../lib/api-auth';
+import { NextResponse } from 'next/server';
+import { withAuth } from '../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../lib/google/registry';
 import { filterRows } from '../../../lib/store';
 import { asStr } from '../../../lib/store';
 import { listShiftDefinitions } from '../../../lib/admin/template-service';
 
 /** Daftar laporan (Reports) dari seluruh cabang yang diakses user. */
-export const GET = withAuth(async (_req: NextRequest, ctx: AuthContext) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   if (ctx.branchIds.length === 0) return NextResponse.json({ reports: [] });
 
   const cabangs = await getCabangList();

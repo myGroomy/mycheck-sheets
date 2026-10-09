@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PetugasNav } from '@/components/shift/petugas-nav';
 
 interface ShiftDefSummary {
   id: string;
@@ -200,7 +199,7 @@ export function PetugasHome({
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
-      <PetugasNav />
+      
 
       {/* Sapaan */}
       <header className="rounded-2xl border border-border bg-surface p-4 shadow-sm">

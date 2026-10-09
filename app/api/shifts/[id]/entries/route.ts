@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import type { Snapshot } from '../../../../../lib/db/snapshot';
 import { getServerTime } from '../../../../../lib/db/server-time';
@@ -94,12 +94,14 @@ async function getUserName(username: string): Promise<string | null> {
  * idempotency -> validasi shift berjalan -> proses BR-12 ->
  * UPSERT entries + INSERT entry_logs + upsert participants.
  */
-export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const shiftInstanceId = new URL(req.url).pathname.split('/').slice(-2)[0];
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const shiftInstanceId = new URL(_req.url).pathname.split('/').slice(-2)[0];
 
   let body: EntryBody;
   try {
-    body = (await req.json()) as EntryBody;
+    body = (await _req.json()) as EntryBody;
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

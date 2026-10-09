@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { locateShiftDefinition } from '../../../../../../lib/admin/resolve-config';
 import { resolveCabang } from '../../../../../../lib/google/registry';
@@ -10,11 +10,13 @@ import {
 } from '../../../../../../lib/admin/template-service';
 
 /** Pratinjau template shift: kategori, point, dan bidang handover. */
-export const GET = withAuth(async (req: NextRequest, ctx) => {
+export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   // /api/admin/shifts/[id]/preview -> shiftId di index length - 2
   const shiftId = pathParts[pathParts.length - 2];
 

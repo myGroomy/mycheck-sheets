@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, FolderKanban, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PetugasNav } from '@/components/shift/petugas-nav';
 
 interface ShiftInstanceSummary {
   shift_instance_id: string;
@@ -168,7 +167,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
-      <PetugasNav />
+      
       <header className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Checklist-shift</p>

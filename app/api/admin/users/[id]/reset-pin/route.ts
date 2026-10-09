@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { sensitiveActionSchema } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { verifyAdminPin } from '../../../../../../lib/admin/sensitive-action';
@@ -10,17 +10,19 @@ import {
 import { getRegistrySpreadsheetId } from '../../../../../../lib/google/registry';
 import { listRowsWithNumber } from '../../../../../../lib/store';
 
-export const POST = withAuth(async (req: NextRequest, ctx) => {
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(req.url).pathname.split('/');
+  const pathParts = new URL(_req.url).pathname.split('/');
   // /api/admin/users/[id]/reset-pin -> id berada di index length - 2
   const targetUserId = pathParts[pathParts.length - 2];
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await _req.json();
   } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }

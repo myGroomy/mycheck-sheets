@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
 import { getServerTime } from '../../../../../lib/db/server-time';
@@ -10,10 +10,12 @@ import { resolveInstance } from '../../../../../lib/instance-resolver';
  * Gabung shift yang sedang berjalan.
  * `?duty=1` menandai aksi pertama pengguna sebagai "saya bertugas".
  */
-export const POST = withAuth(async (req: NextRequest, ctx) => {
-  const pathParts = new URL(req.url).pathname.split('/');
+export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+withAuth(async (_req, ctx, _session) => {
+  const pathParts = new URL(_req.url).pathname.split('/');
   const shiftInstanceId = pathParts[pathParts.length - 2];
-  const isDuty = new URL(req.url).searchParams.get('duty') === '1';
+  const isDuty = new URL(_req.url).searchParams.get('duty') === '1';
 
   const resolved = await resolveInstance(ctx, shiftInstanceId);
   if (!resolved) {
