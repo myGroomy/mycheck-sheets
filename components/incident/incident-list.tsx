@@ -60,7 +60,7 @@ export function IncidentList() {
   const visible = incidents.filter((incident) => !branchId || incident.branchId === branchId);
 
   return (
-    <main className="mx-auto max-w-4xl space-y-5 p-4 pb-24 md:p-6">
+    <main className="mx-auto max-w-4xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>

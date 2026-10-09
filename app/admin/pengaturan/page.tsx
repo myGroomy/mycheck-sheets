@@ -154,7 +154,7 @@ export default function PengaturanPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">Pengaturan</h1>

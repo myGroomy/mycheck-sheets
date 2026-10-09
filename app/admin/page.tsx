@@ -6,7 +6,7 @@ export default async function AdminIndex() {
   const { stats, branches: branchStats, alerts } = await buildAdminStats(ctx);
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">

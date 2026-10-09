@@ -115,14 +115,14 @@ export function ReportDetail({ reportId }: { reportId: string }) {
   }, [reportId]);
 
   if (loading) {
-    return <><main className="mx-auto max-w-5xl p-4"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat laporan…</div></main></>;
+    return <><main className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat laporan…</div></main></>;
   }
 
   if (error || !data) {
     return (
       <>
         
-        <main className="mx-auto max-w-5xl space-y-4 p-4">
+        <main className="mx-auto max-w-5xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <Button type="button" variant="outline" onClick={() => router.push('/report')}><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke laporan</Button>
           <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error ?? 'Laporan tidak ditemukan.'}

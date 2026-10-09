@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Copy, Pencil, Plus, Search } from 'lucide-react';
+import { Check, Copy, ExternalLink, Pencil, Plus, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,8 +46,29 @@ interface BranchForm {
 
 const EMPTY_FORM: BranchForm = { name: '', code: '', address: '', timezone: 'Asia/Jakarta' };
 
-/** Sel ID panjang (Spreadsheet/Folder Drive) — dipotong + bisa disalin. */
-function CopyableId({ value, label }: { value: string; label: string }) {
+/** Helper URL Google dari ID. */
+function spreadsheetUrl(id: string): string {
+  return `https://docs.google.com/spreadsheets/d/${id}/edit`;
+}
+function driveFolderUrl(id: string): string {
+  return `https://drive.google.com/drive/folders/${id}`;
+}
+
+/**
+ * Sel ID panjang (Spreadsheet/Folder Drive) — tombol yang membuka file/folder
+ * asli di tab baru, plus tombol salin ID. Bukan sekadar teks ID.
+ */
+function LinkableId({
+  value,
+  label,
+  href,
+  actionLabel,
+}: {
+  value: string;
+  label: string;
+  href: string;
+  actionLabel: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   if (!value) {
@@ -67,9 +88,16 @@ function CopyableId({ value, label }: { value: string; label: string }) {
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <code className="max-w-[13rem] truncate font-mono text-[11px]" title={value}>
-        {value}
-      </code>
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex max-w-[13rem] items-center gap-1.5 rounded-md border border-border bg-canvas px-2 py-1 font-mono text-[11px] text-ink transition-colors hover:border-ink-muted hover:bg-surface hover:text-ink"
+        title={`${actionLabel} (${value})`}
+      >
+        <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <span className="truncate">{value}</span>
+      </a>
       <button
         type="button"
         onClick={copy}
@@ -206,7 +234,7 @@ export default function CabangPage() {
   const activeCount = branches.filter((b) => b.isActive).length;
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">Cabang</h1>
@@ -270,10 +298,20 @@ export default function CabangPage() {
                 </TableCell>
                 <TableCell className="text-xs">{b.timezone}</TableCell>
                 <TableCell>
-                  <CopyableId value={b.spreadsheetId} label="Spreadsheet ID" />
+                  <LinkableId
+                    value={b.spreadsheetId}
+                    label="Spreadsheet ID"
+                    href={spreadsheetUrl(b.spreadsheetId)}
+                    actionLabel="Buka Spreadsheet"
+                  />
                 </TableCell>
                 <TableCell>
-                  <CopyableId value={b.folderDriveId} label="Folder Drive ID" />
+                  <LinkableId
+                    value={b.folderDriveId}
+                    label="Folder Drive ID"
+                    href={driveFolderUrl(b.folderDriveId)}
+                    actionLabel="Buka Folder Drive"
+                  />
                 </TableCell>
                 <TableCell>
                   <Badge variant={b.isActive ? 'default' : 'secondary'}>

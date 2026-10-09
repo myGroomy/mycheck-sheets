@@ -101,7 +101,7 @@ function StatCard({
   const toneClass =
     tone === 'warning' ? 'text-amber-700' : tone === 'ok' ? 'text-emerald-700' : 'text-ink';
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4">
+    <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
         <Icon className="h-3.5 w-3.5" aria-hidden="true" />
         {label}
@@ -148,7 +148,7 @@ export function PetugasHome({
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
+      <main className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         <PetugasNav />
         <SkeletonHeader />
         <SkeletonStatGrid count={4} />
@@ -159,7 +159,7 @@ export function PetugasHome({
 
   if (!data) {
     return (
-      <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
+      <main className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         <PetugasNav />
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-amber-800">
           Gagal memuat data beranda. Silakan coba lagi.
@@ -195,7 +195,7 @@ export function PetugasHome({
   ];
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
+    <main className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       <PetugasNav />
 
       {/* Sapaan */}
@@ -228,7 +228,7 @@ export function PetugasHome({
 
       {/* Incident + item belum selesai */}
       <section aria-label="Yang perlu diperhatikan" className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
@@ -247,7 +247,7 @@ export function PetugasHome({
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
             <ListTodo className="h-3.5 w-3.5" aria-hidden="true" />
             Item belum selesai
@@ -349,7 +349,7 @@ export function PetugasHome({
       </section>
 
       {/* Profil singkat */}
-      <section aria-label="Profil" className="rounded-2xl border border-border bg-surface p-4">
+      <section aria-label="Profil" className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-ink-muted">Akun saya</p>

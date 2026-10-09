@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   title: 'checklist-shift',
   description: 'PWA untuk SOP shift karyawan F&B',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
+  },
   appleWebApp: {
     capable: true,
     title: 'checklist-shift',

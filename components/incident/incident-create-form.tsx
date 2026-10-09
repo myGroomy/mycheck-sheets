@@ -131,11 +131,11 @@ export function IncidentCreateForm() {
   };
 
   if (loading) {
-    return <main className="mx-auto max-w-2xl p-4"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat form…</div></main>;
+    return <main className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10"><div className="flex min-h-40 items-center justify-center gap-2 text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat form…</div></main>;
   }
 
   return (
-    <main className="mx-auto max-w-2xl space-y-5 p-4 pb-24 md:p-6">
+    <main className="mx-auto max-w-2xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <header>
         <Button asChild variant="outline" size="sm"><Link href="/incident"><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke incident</Link></Button>
@@ -145,7 +145,7 @@ export function IncidentCreateForm() {
 
       {message && <div role="alert" className={`flex items-start gap-2 rounded-xl border p-3 text-sm ${message.error ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{message.text}</div>}
 
-      <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-surface p-4 md:p-6">
+      <form onSubmit={submit} className="space-y-4 rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         <label className="block space-y-1 text-sm font-medium">
           Cabang <span className="text-error">*</span>
           <select value={branchId} onChange={(event) => { setBranchId(event.target.value); setShiftInstanceId(''); }} required className="min-h-12 w-full rounded-lg border border-border bg-canvas px-3 text-base">

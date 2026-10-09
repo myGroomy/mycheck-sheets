@@ -161,6 +161,50 @@ Yang dikerjakan:
 (Turbopack dev, Tailwind 4, React 19) + perceived load (skeleton streaming),
 TANPA mengubah sistem UI Radix + shadcn + token warna custom.
 
+---
+
+## 🧹 Pembersihan Data (di luar 5 fase) — Panel "Peringatan" & Cabang CBG01
+
+**Masalah 1 — Panel "Peringatan" menampilkan shift basi.**
+- Diagnosis (baca Registry langsung, bypass cache): sheet `Daftar_Cabang` hanya
+  berisi `CBGBDG01` ("Cabang Pusat"), TAPI spreadsheet cabang itu sheet
+  `ShiftInstances` masih menyimpan **49 baris data test**, **13 berstatus
+  `berjalan`** yang tidak pernah ditutup & tanpa report → masuk panel Peringatan
+  (`stats-service.ts` query TIDAK menyaring `is_test`).
+- Perbaikan (Fase A): skrip `scripts/cleanup-berjalan-shifts.mjs` (DRY-RUN default,
+  `apply` untuk eksekusi) meng-void 13 baris `berjalan` (set `status=void` +
+  `void_reason/void_by/void_at`). Terverifikasi: **sisa `berjalan` = 0**.
+
+**Masalah 2 — Cabang "CBG01" masih muncul (dibahas terpisah).**
+- Diagnosis: `Daftar_Cabang` bersih (hanya `CBGBDG01`), TAPI 9 user di sheet
+  `Users` masih ber-`Cabang_ID="CBG01BDG, CBG02CMH"` → jadi sumber `session.cabangId`
+  (cookie 7 hari) untuk petugas. Belum ditindaklanjuti (menunggu keputusan user).
+
+**Catatan cache:** kedua pembersihan menulis LANGSUNG ke Sheets, jadi cache
+in-memory (`registry.ts` TTL 60s, `sheets.ts` TTL 15s) tidak auto-invalidate.
+UI segar setelah TTL habis / restart server / logout-login (untuk cookie session).
+
+**Rekomendasi kode (Fase B, belum dikerjakan):** filter `is_test=true` di
+`stats-service.ts` agar data test tak mencemari dasbor; validasi `branchIds`
+terhadap Registry di `api-auth.ts`/`page-auth.ts` (jangan percaya cookie buta).
+
+### Tugas lanjutan (sesi ini)
+- **Selaraskan `Users.Cabang_ID`:** 9 user di sheet `Users` semula
+  `CBG01BDG, CBG02CMH` (tidak ada di `Daftar_Cabang`) → diubah ke `CBGBDG01`
+  (cabang aktif valid) via `scripts/fix-users-cabang.mjs` (DRY-RUN default).
+  Terverifikasi: ke-9 user kini `CBGBDG01`.
+- **Kolom Spreadsheet & Folder Drive jadi tombol link** (`app/admin/cabang/page.tsx`):
+  komponen `CopyableId` → `LinkableId`. Sekarang `<a target="_blank">` mengarah ke
+  `https://docs.google.com/spreadsheets/d/{id}/edit` dan
+  `https://drive.google.com/drive/folders/{id}`, plus tombol salin ID tetap ada.
+  `tsc --noEmit` exit 0.
+- **Skrip pembersih:** `scripts/cleanup-berjalan-shifts.mjs` (void shift test
+  berjalan), `scripts/fix-users-cabang.mjs` (selaraskan Cabang_ID user).
+
+**Catatan cache:** semua skrip menulis LANGSUNG ke Sheets, cache in-memory
+(TTL 15–60s) tidak auto-invalidate; untuk perubahan sesi user (cabang), petugas
+perlu **logout–login** agar cookie `cabangId` ter-refresh.
+
 
 ---
 

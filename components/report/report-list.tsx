@@ -44,7 +44,7 @@ export function ReportList() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-4xl space-y-5 p-4 pb-24 md:p-6">
+    <main className="mx-auto max-w-4xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <header>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Riwayat</p>

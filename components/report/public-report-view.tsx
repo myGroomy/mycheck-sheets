@@ -64,7 +64,7 @@ export function PublicReportView({
       : {};
 
   return (
-    <main className="mx-auto max-w-5xl space-y-5 p-4 md:p-8 print:max-w-none print:p-0">
+    <main className="mx-auto max-w-5xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 print:max-w-none print:p-0">
       <header className="rounded-2xl border border-border bg-surface p-5 shadow-sm print:border-0 print:shadow-none">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -122,7 +122,7 @@ export function PublicReportView({
               return state === 'selesai' || state === 'skip';
             }).length;
             return (
-              <section key={category.id} className="break-inside-avoid rounded-xl border border-border bg-canvas p-4">
+              <section key={category.id} className="break-inside-avoid rounded-xl border border-border bg-canvas px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-semibold">{category.name}</h3>
                   <span className="text-xs text-ink-muted">{categoryDone}/{category.points.length} selesai/skip</span>
@@ -245,7 +245,7 @@ function Meta({ label, value }: { label: string; value: string }) {
 }
 
 function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <div className="rounded-xl border border-border bg-surface p-4"><p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-ink-muted">{detail}</p></div>;
+  return <div className="rounded-xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10"><p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-ink-muted">{detail}</p></div>;
 }
 
 function statusText(status: string) {

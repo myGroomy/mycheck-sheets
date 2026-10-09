@@ -166,7 +166,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
   };
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
+    <main className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <header className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
@@ -187,17 +187,17 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
       )}
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Cabang akses</p>
           <p className="mt-2 text-2xl font-bold text-ink">{branches.length}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Shift berjalan</p>
           <p className="mt-2 text-2xl font-bold text-ink">
             {shifts.filter((item) => item.instance && item.instance.status === 'berjalan').length}
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Status</p>
           <p className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
             <CheckCircle2 className="h-4 w-4" />

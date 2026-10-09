@@ -216,7 +216,7 @@ export function ShiftChecklistClient({
 
   if (loading && !data) {
     return (
-      <main className="mx-auto max-w-6xl space-y-4 p-4 md:p-6">
+      <main className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         
         <div className="flex min-h-[60dvh] items-center justify-center gap-2 text-sm text-ink-muted">
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -228,7 +228,7 @@ export function ShiftChecklistClient({
 
   if (!data) {
     return (
-      <main className="mx-auto max-w-4xl p-4">
+      <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         
         <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-ink-muted">
           Shift tidak tersedia.
@@ -238,7 +238,7 @@ export function ShiftChecklistClient({
   }
 
   return (
-    <main className="mx-auto max-w-6xl space-y-4 p-4 md:p-6">
+    <main className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -278,15 +278,15 @@ export function ShiftChecklistClient({
       </header>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Progress</p>
           <p className="mt-2 text-2xl font-bold text-ink">{totalDone + totalSkip}/{data.progress.total}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Belum</p>
           <p className="mt-2 text-2xl font-bold text-ink">{data.progress.belum}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface p-4">
+        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Peserta</p>
           <p className="mt-2 text-2xl font-bold text-ink">{data.participants.length}</p>
         </div>

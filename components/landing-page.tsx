@@ -141,7 +141,7 @@ export function LandingPage() {
                 <div className="h-2 overflow-hidden rounded-full bg-[#e9e6df]">
                   <div className="h-full w-2/3 rounded-full bg-[#718b72]" />
                 </div>
-                <div className="rounded-2xl border border-[#e8e5df] bg-white p-4">
+                <div className="rounded-2xl border border-[#e8e5df] bg-white px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
                   <div className="mb-3 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold">Persiapan area</p>
