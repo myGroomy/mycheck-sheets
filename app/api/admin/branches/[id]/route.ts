@@ -4,7 +4,7 @@ import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { isValidTimeZone } from '../../../../../lib/valid-timezone';
 import {
   deleteCabangRow,
-  listAllCabang,
+  getCabangList,
   updateCabangCells,
 } from '../../../../../lib/google/registry-admin';
 import { listRowsWithNumber } from '../../../../../lib/store';
@@ -28,7 +28,7 @@ withAuth(async (_req, ctx, _session) => {
   const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
-  const branch = (await listAllCabang()).find((b) => b.Cabang_ID === id);
+  const branch = (await getCabangList()).find((b) => b.Cabang_ID === id);
   if (!branch) {
     return NextResponse.json({ error: 'Cabang tidak ditemukan' }, { status: 404 });
   }
@@ -79,7 +79,7 @@ withAuth(async (_req, ctx, _session) => {
     );
   }
 
-  const existing = (await listAllCabang()).find((b) => b.Cabang_ID === id);
+  const existing = (await getCabangList()).find((b) => b.Cabang_ID === id);
   if (!existing) {
     return NextResponse.json({ error: 'Cabang tidak ditemukan' }, { status: 404 });
   }
@@ -121,7 +121,7 @@ withAuth(async (_req, ctx, _session) => {
   const pathParts = new URL(_req.url).pathname.split('/');
   const id = pathParts[pathParts.length - 1];
 
-  const existing = (await listAllCabang()).find((b) => b.Cabang_ID === id);
+  const existing = (await getCabangList()).find((b) => b.Cabang_ID === id);
   if (!existing) {
     return NextResponse.json({ error: 'Cabang tidak ditemukan' }, { status: 404 });
   }

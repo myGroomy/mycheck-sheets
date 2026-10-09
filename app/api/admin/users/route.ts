@@ -4,7 +4,7 @@ import { requireRole, withAuth } from '../../../../lib/api-auth';
 import {
   branchIdsOf,
   insertUser,
-  listAllCabang,
+  getCabangList,
   listAllUsers,
   type UserRow,
 } from '../../../../lib/google/registry-admin';
@@ -34,7 +34,7 @@ withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const cabangs = await listAllCabang();
+  const cabangs = await getCabangList();
   const cabangNames = new Map(cabangs.map((c) => [c.Cabang_ID, c.Nama_Cabang]));
 
   const userList = await listAllUsers();
@@ -74,7 +74,7 @@ withAuth(async (_req, ctx, _session) => {
     );
   }
 
-  const validCabangs = new Set((await listAllCabang()).map((c) => c.Cabang_ID));
+  const validCabangs = new Set((await getCabangList()).map((c) => c.Cabang_ID));
   const unknownBranch = branchIds.find((b) => !validCabangs.has(b));
   if (unknownBranch) {
     return NextResponse.json(

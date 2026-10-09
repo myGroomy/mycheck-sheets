@@ -46,7 +46,8 @@ async function resolveBranchIds(
 }
 
 async function buildContext(): Promise<AuthContext | null> {
-  const token = cookies().get(COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
 
   const session = verifySessionToken(token);

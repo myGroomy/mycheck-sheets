@@ -34,14 +34,15 @@ export const viewport: Viewport = {
   themeColor: '#292524',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   // Baca session cookie di server supaya Navbar me-render item sesuai role
   // sejak SSR. Tanpa ini, admin akan melihat navbar petugas sampai hydration.
-  const token = cookies().get('mycheck_session')?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get('mycheck_session')?.value;
   const session = token ? verifySessionToken(token) : null;
   const initialRole = session?.role === 'admin' ? 'admin' : 'petugas';
 

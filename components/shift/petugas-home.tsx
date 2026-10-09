@@ -4,9 +4,9 @@
 // Sapaan -> ringkasan shift hari ini -> incident/item belum selesai ->
 // notifikasi -> jalan pintas -> profil singkat.
 //
-// Semua angka berasal dari API yang sudah ada (api/shifts, api/incidents,
-// api/shifts/[id]/progress, api/notifications). Tidak ada endpoint baru dan
-// tidak ada perubahan skema.
+// Sekarang memakai /api/beranda (satu panggilan) — menggantikan 4 panggilan
+// terpisah ke /api/shifts, /api/incidents, /api/notifications,
+// dan /api/shifts/[id]/progress.
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,52 +15,66 @@ import {
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
-  Clock3,
   FileText,
   ListTodo,
   MapPin,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  SkeletonHeader,
+  SkeletonStatGrid,
+  SkeletonList,
+} from '@/components/ui/skeletons';
+import { PetugasNav } from '@/components/shift/petugas-nav';
 
-interface ShiftDefSummary {
-  id: string;
-  branchId: string;
-  name: string;
-  startTime: string;
-  endTime: string;
-  instance: { shift_instance_id: string; status: string; pj_user_id: string | null } | null;
-}
-
-interface ShiftsResponse {
-  branches: { id: string; name: string; code: string; timezone: string }[];
-  shifts: ShiftDefSummary[];
-  server_time: string;
-}
-
-interface IncidentRow {
-  id: string;
-  status: string;
-  outsideShift: boolean;
-  description: string;
-}
-
-interface NotificationRow {
-  id: string;
-  type: string;
-  payload: { title: string; body: string; link: string | null };
-  created_at: string;
-  read_at: string | null;
-}
-
-interface ProgressResponse {
-  progress: { total: number; selesai: number; skip: number; belum: number };
+interface DashboardSummary {
+  shift: {
+    total: number;
+    berjalan: number;
+    belumDibuka: number;
+    ditutup: number;
+  };
+  incident: {
+    open: number;
+    total: number;
+  };
+  items: {
+    belumSelesai: number;
+  };
+  notifications: {
+    total: number;
+    unread: number;
+    items: Array<{
+      id: string;
+      type: string;
+      title: string;
+      body: string;
+      link: string | null;
+      createdAt: string;
+      readAt: string | null;
+    }>;
+  };
+  shiftBerjalan: Array<{
+    id: string;
+    shiftDefinitionId: string;
+    shiftName: string;
+    branchId: string;
+    branchName: string;
+    startTime: string;
+    endTime: string;
+    instance: {
+      shiftInstanceId: string;
+      status: string;
+      pjUserId: string | null;
+    } | null;
+    branchTimezone: string;
+  }>;
+  serverTime: string;
 }
 
 const HEADER = { 'X-Requested-With': 'fetch' } as const;
 
-// Tanggal dalam zona waktu perangkat hanya untuk tampilan; nilai yang dipakai
-// selalu server_time (BR-23).
 function formatTanggal(iso: string | null) {
   if (!iso) return 'Memuat tanggal...';
   return new Date(iso).toLocaleDateString('id-ID', {
@@ -69,7 +83,7 @@ function formatTanggal(iso: string | null) {
     month: 'long',
     year: 'numeric',
   });
-}
+};
 
 function StatCard({
   label,
@@ -109,70 +123,18 @@ export function PetugasHome({
   username: string;
   role: string;
 }) {
-  const [branches, setBranches] = useState<{ id: string; name: string; timezone: string }[]>([]);
-  const [shifts, setShifts] = useState<ShiftDefSummary[]>([]);
-  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
-  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
-  const [belumSelesai, setBelumSelesai] = useState<number | null>(null);
-  const [serverTime, setServerTime] = useState<string | null>(null);
+  const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [shiftRes, incidentRes, notifRes] = await Promise.all([
-        fetch('/api/shifts', { headers: HEADER }),
-        fetch('/api/incidents', { headers: HEADER }),
-        fetch('/api/notifications', { headers: HEADER }),
-      ]);
-
-      if (!shiftRes.ok) throw new Error('Gagal memuat data shift');
-
-      const shiftData = (await shiftRes.json()) as Partial<ShiftsResponse>;
-      setBranches(shiftData.branches ?? []);
-      setShifts(shiftData.shifts ?? []);
-      // BR-23: penentuan waktu memakai jam server, bukan jam HP. Tanggal di
-      // header diambil dari server_time, bukan `new Date()` di perangkat.
-      setServerTime(shiftData.server_time ?? null);
-      // Semua parsing respons dibuat tahan bentuk tak terduga: kalau kunci hilang,
-      // hasilnya array kosong — bukan `undefined` yang membuat halaman crash.
-      setIncidents(
-        incidentRes.ok
-          ? (((await incidentRes.json()) as { incidents?: IncidentRow[] }).incidents ?? [])
-          : []
-      );
-      // /api/notifications mengembalikan { items }, bukan { notifications }.
-      setNotifications(
-        notifRes.ok
-          ? (((await notifRes.json()) as { items?: NotificationRow[] }).items ?? [])
-          : []
-      );
-
-      // Jumlah item belum selesai: satu panggilan progress per shift yang sedang
-      // berjalan. Shift berjalan biasanya 1-3, jadi ini tetap murah.
-      const running = (shiftData.shifts ?? []).filter((s) => s.instance?.status === 'berjalan');
-      if (running.length === 0) {
-        setBelumSelesai(0);
-      } else {
-        const counts = await Promise.all(
-          running.map(async (s) => {
-            try {
-              const res = await fetch(`/api/shifts/${s.instance!.shift_instance_id}/progress`, {
-                headers: HEADER,
-              });
-              if (!res.ok) return 0;
-              const data = (await res.json()) as Partial<ProgressResponse>;
-              // Guard: kalau bentuk respons berubah, jangan sampai membuat
-              // halaman crash — tandai saja 0.
-              return Number(data?.progress?.belum ?? 0) || 0;
-            } catch {
-              return 0;
-            }
-          })
-        );
-        setBelumSelesai(counts.reduce((sum, n) => sum + n, 0));
-      }
+      const res = await fetch('/api/beranda', { headers: HEADER });
+      if (!res.ok) throw new Error('Gagal memuat data beranda');
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error?.message || 'Gagal memuat data');
+      setData(json.data);
     } catch {
       setNotice('Tidak dapat memuat data saat ini. Coba lagi sebentar.');
     } finally {
@@ -181,14 +143,49 @@ export function PetugasHome({
   }, []);
 
   useEffect(() => {
-    void load();
+    load();
   }, [load]);
 
-  const berjalan = shifts.filter((s) => s.instance?.status === 'berjalan');
-  const ditutup = shifts.filter((s) => s.instance?.status === 'ditutup');
-  const belumDibuka = shifts.filter((s) => !s.instance);
-  const incidentOpen = incidents.filter((i) => i.status === 'open');
-  const unread = notifications.filter((n) => !n.read_at);
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
+        <PetugasNav />
+        <SkeletonHeader />
+        <SkeletonStatGrid count={4} />
+        <SkeletonList count={4} />
+      </main>
+    );
+  }
+
+  if (!data) {
+    return (
+      <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
+        <PetugasNav />
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-amber-800">
+          Gagal memuat data beranda. Silakan coba lagi.
+        </div>
+      </main>
+    );
+  }
+
+  const {
+    shift,
+    incident,
+    items,
+    notifications,
+    shiftBerjalan,
+    serverTime,
+  } = data;
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const ditutup = shift.ditutup;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const belumDibuka = shift.belumDibuka;
+  const berjalan = shift.berjalan;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const incidentOpen = incident.open;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const unread = notifications.unread;
 
   const shortcuts = [
     { href: '/daftar-shift', label: 'Checklist', icon: ClipboardCheck },
@@ -199,7 +196,7 @@ export function PetugasHome({
 
   return (
     <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
-      
+      <PetugasNav />
 
       {/* Sapaan */}
       <header className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
@@ -218,15 +215,15 @@ export function PetugasHome({
 
       {/* Ringkasan shift hari ini */}
       <section aria-label="Ringkasan shift hari ini" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total shift" value={shifts.length} icon={ClipboardCheck} />
+        <StatCard label="Total shift" value={shift.total} icon={ClipboardCheck} />
         <StatCard
           label="Sedang berjalan"
-          value={berjalan.length}
+          value={shift.berjalan}
           icon={CheckCircle2}
-          tone={berjalan.length > 0 ? 'ok' : 'default'}
+          tone={berjalan > 0 ? 'ok' : 'default'}
         />
-        <StatCard label="Belum dibuka" value={belumDibuka.length} icon={Clock3} />
-        <StatCard label="Sudah ditutup" value={ditutup.length} icon={CheckCircle2} />
+        <StatCard label="Belum dibuka" value={shift.belumDibuka} icon={ClipboardCheck} />
+        <StatCard label="Sudah ditutup" value={shift.ditutup} icon={CheckCircle2} />
       </section>
 
       {/* Incident + item belum selesai */}
@@ -237,10 +234,10 @@ export function PetugasHome({
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
               Incident open
             </div>
-            {incidentOpen.length > 0 && <Badge variant="outline">{incidentOpen.length}</Badge>}
+            {incident.open > 0 && <Badge variant="outline">{incident.open}</Badge>}
           </div>
-          <p className={`mt-2 text-2xl font-bold ${incidentOpen.length > 0 ? 'text-amber-700' : 'text-ink'}`}>
-            {incidentOpen.length}
+          <p className={`mt-2 text-2xl font-bold ${incident.open > 0 ? 'text-amber-700' : 'text-ink'}`}>
+            {incident.open}
           </p>
           <Link
             href="/incident"
@@ -255,9 +252,7 @@ export function PetugasHome({
             <ListTodo className="h-3.5 w-3.5" aria-hidden="true" />
             Item belum selesai
           </div>
-          <p className="mt-2 text-2xl font-bold text-ink">
-            {loading ? '...' : (belumSelesai ?? 0)}
-          </p>
+          <p className="mt-2 text-2xl font-bold text-ink">{items.belumSelesai}</p>
           <Link
             href="/daftar-shift"
             className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-ink underline"
@@ -268,31 +263,31 @@ export function PetugasHome({
       </section>
 
       {/* Shift yang sedang berjalan */}
-      {berjalan.length > 0 && (
+      {shiftBerjalan.length > 0 && (
         <section aria-label="Shift sedang berjalan" className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">
             Shift sedang berjalan
           </h2>
-          {berjalan.map((s) => {
-            const branch = branches.find((b) => b.id === s.branchId);
-            const isPj = s.instance?.pj_user_id === userId;
+          {shiftBerjalan.map((s) => {
+            const isPj = s.instance?.pjUserId === userId;
             return (
               <div
                 key={s.id}
                 className="flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="font-semibold text-emerald-900">{s.name}</p>
+                  <p className="font-semibold text-emerald-900">{s.shiftName}</p>
                   <p className="mt-0.5 text-xs text-emerald-700">
-                    {branch?.name ?? s.branchId} · {s.startTime.slice(0, 5)}–{s.endTime.slice(0, 5)}
+                    {s.branchName} · {s.startTime}–{s.endTime}
                     {isPj ? ' · Anda PJ' : ''}
                   </p>
                 </div>
-                <Button asChild variant="outline" className="bg-white">
-                  <Link href={`/shift/${s.instance!.shift_instance_id}`}>
-                    {isPj ? 'Lanjutkan' : 'Check-in'}
-                  </Link>
-                </Button>
+                <Link
+                  href={`/shift/${s.instance?.shiftInstanceId}`}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-emerald-700 border border-emerald-200 transition hover:bg-emerald-50"
+                >
+                  {isPj ? 'Lanjutkan' : 'Check-in'}
+                </Link>
               </div>
             );
           })}
@@ -303,28 +298,28 @@ export function PetugasHome({
       <section aria-label="Notifikasi" className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-bold uppercase tracking-wide text-ink-muted">Notifikasi</h2>
-          {unread.length > 0 && <Badge variant="outline">{unread.length} baru</Badge>}
+          {notifications.unread > 0 && <Badge variant="outline">{notifications.unread} baru</Badge>}
         </div>
-        {notifications.length === 0 ? (
+        {notifications.items.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border bg-surface p-4 text-sm text-ink-muted">
             Belum ada notifikasi.
           </p>
         ) : (
           <ul className="space-y-2">
-            {notifications.slice(0, 3).map((n) => {
+            {notifications.items.slice(0, 3).map((n) => {
               const body = (
                 <>
-                  <span className="text-sm font-medium text-ink">{n.payload.title}</span>
+                  <span className="text-sm font-medium text-ink">{n.title}</span>
                   <span className="mt-0.5 block text-xs text-ink-muted">
-                    {n.payload.body}
+                    {n.body}
                   </span>
                 </>
               );
               return (
                 <li key={n.id}>
-                  {n.payload.link ? (
+                  {n.link ? (
                     <Link
-                      href={n.payload.link}
+                      href={n.link}
                       className="block rounded-2xl border border-border bg-surface p-3 transition hover:bg-canvas"
                     >
                       {body}
@@ -363,10 +358,10 @@ export function PetugasHome({
               {username} · {role === 'admin' ? 'Admin' : 'Petugas'}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {branches.map((b) => (
+              {shiftBerjalan.map((b) => (
                 <Badge key={b.id} variant="secondary">
                   <MapPin className="mr-1 h-3 w-3" aria-hidden="true" />
-                  {b.name}
+                  {b.branchName}
                 </Badge>
               ))}
             </div>

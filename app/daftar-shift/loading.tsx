@@ -1,0 +1,14 @@
+import { SkeletonList } from "@/components/ui/skeletons";
+
+/** Fallback streaming untuk /daftar-shift. */
+export default function Loading() {
+  return (
+    <main className="mx-auto max-w-6xl space-y-6 p-4 pb-24 md:p-6">
+      <div className="space-y-2">
+        <div className="h-7 w-40 animate-pulse rounded-md bg-ink/10" />
+        <div className="h-4 w-64 animate-pulse rounded-md bg-ink/10" />
+      </div>
+      <SkeletonList count={6} />
+    </main>
+  );
+}

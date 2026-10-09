@@ -8,6 +8,8 @@ const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
+      role="status"
+      aria-label="Memuat"
       className={cn("size-5 animate-spin rounded-full border-2 border-ink-muted border-t-transparent", className)}
       {...props}
     />
@@ -16,3 +18,4 @@ const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
 Spinner.displayName = "Spinner";
 
 export { Spinner };
+

@@ -4,8 +4,9 @@ import { requireUser } from '@/lib/page-auth';
 export default async function ReportDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   await requireUser();
-  return <ReportDetail reportId={params.id} />;
+  const { id } = await params;
+  return <ReportDetail reportId={id} />;
 }

@@ -4,8 +4,9 @@ import { requireUser } from '@/lib/page-auth';
 export default async function IncidentDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   await requireUser();
-  return <IncidentDetail incidentId={params.id} />;
+  const { id } = await params;
+  return <IncidentDetail incidentId={id} />;
 }

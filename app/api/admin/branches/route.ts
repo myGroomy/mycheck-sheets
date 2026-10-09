@@ -4,7 +4,7 @@ import { requireRole, withAuth } from '../../../../lib/api-auth';
 import { isValidTimeZone } from '../../../../lib/valid-timezone';
 import {
   insertCabang,
-  listAllCabang,
+  getCabangList,
   type CabangRow,
 } from '../../../../lib/google/registry-admin';
 
@@ -16,7 +16,7 @@ withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const branchList = await listAllCabang();
+  const branchList = await getCabangList();
 
   return NextResponse.json({
     branches: branchList.map((b, i) => ({
@@ -68,7 +68,7 @@ withAuth(async (_req, ctx, _session) => {
     );
   }
 
-  const existing = await listAllCabang();
+  const existing = await getCabangList();
   if (existing.some((b) => (b.Kode || b.Cabang_ID) === code)) {
     return NextResponse.json({ error: `Kode cabang '${code}' sudah digunakan.` }, { status: 400 });
   }

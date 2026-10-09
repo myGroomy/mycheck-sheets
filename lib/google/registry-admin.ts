@@ -88,7 +88,7 @@ async function writeRegistryCells(
 // Cabang
 // ============================================
 
-export async function listAllCabang(): Promise<CabangRow[]> {
+export async function getCabangList(): Promise<CabangRow[]> {
   const registryId = getRegistrySpreadsheetId();
   const { headers, rows } = await readSheetData(registryId, CABANG_SHEET);
   return (sheetToObjects(headers, rows) as CabangRow[]).map((r) => ({

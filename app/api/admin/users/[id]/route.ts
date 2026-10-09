@@ -4,7 +4,7 @@ import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { verifyAdminPin, countActiveAdmins } from '../../../../../lib/admin/sensitive-action';
 import {
   deleteUserRow,
-  listAllCabang,
+  getCabangList,
   listAllUsers,
   updateUserCells,
   USERS_SHEET,
@@ -86,7 +86,7 @@ withAuth(async (_req, ctx, _session) => {
   if (isActive !== undefined) updates['Aktif'] = isActive;
 
   if (branchIds !== undefined) {
-    const validCabangs = new Set((await listAllCabang()).map((c) => c.Cabang_ID));
+    const validCabangs = new Set((await getCabangList()).map((c) => c.Cabang_ID));
     const unknown = branchIds.find((b) => !validCabangs.has(b));
     if (unknown) {
       return NextResponse.json(

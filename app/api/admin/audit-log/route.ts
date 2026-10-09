@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../lib/api-auth';
 import { resolveCabang } from '../../../../lib/google/registry';
-import { listAllCabang } from '../../../../lib/google/registry-admin';
+import { getCabangList } from '../../../../lib/google/registry-admin';
 import { listAllUsers } from '../../../../lib/google/registry-admin';
 import { listMonthlyRows } from '../../../../lib/store';
 import { asJson, asNum, asStr } from '../../../../lib/store';
@@ -35,7 +35,7 @@ withAuth(async (_req, ctx, _session) => {
   const cursor = cursorParam ? parseInt(cursorParam, 10) : null;
 
   // Peta lookup nama
-  const cabangs = await listAllCabang();
+  const cabangs = await getCabangList();
   const branchNames = new Map(cabangs.map((c) => [c.Cabang_ID, c.Nama_Cabang]));
   const users = await listAllUsers();
   const userByName = new Map(users.map((u) => [u.Username, u]));

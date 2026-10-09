@@ -1,77 +1,95 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --canvas: #f5f5f5;
-  --surface: #ffffff;
-  --ink: #292524;
-  --ink-muted: #78716c;
-  --ink-light: #a8a29e;
-  --border: #e7e5e4;
-  --border-strong: #d6d3d1;
-  --primary: #292524;
-  --primary-hover: #44403c;
-  --success: #16a34a;
-  --success-bg: #f0fdf4;
-  --warning: #ca8a04;
-  --warning-bg: #fefce8;
-  --error: #dc2626;
-  --error-bg: #fef2f2;
-  --info: #2563eb;
-  --info-bg: #eff6ff;
+/* ===========================================================================
+   Tailwind 4 (CSS-first). Semua token warna & radius custom MYCHECK dipetakan
+   ke @theme agar seluruh className existing (bg-canvas, text-ink, bg-surface,
+   bg-primary/90, rounded-md, ring-ring, dll.) tetap bekerja tanpa perubahan.
+   tw-animate-css = pengganti drop-in tailwindcss-animate (animate-in/fade-in-0/
+   zoom-in-95/slide-in-from-*) untuk komponen Radix (dialog/select/sheet/dropdown).
+   =========================================================================== */
+@theme {
+  /* ---- Palet kustom MYCHECK (Minimalist Corporate) ---- */
+  --color-canvas: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-ink: #292524;
+  --color-ink-muted: #78716c;
+  --color-ink-light: #a8a29e;
+  --color-border: #e7e5e4;
+  --color-border-strong: #d6d3d1;
+  --color-primary: #292524;
+  --color-primary-hover: #44403c;
+  --color-success: #16a34a;
+  --color-success-bg: #f0fdf4;
+  --color-warning: #ca8a04;
+  --color-warning-bg: #fefce8;
+  --color-error: #dc2626;
+  --color-error-bg: #fef2f2;
+  --color-info: #2563eb;
+  --color-info-bg: #eff6ff;
 
-  /* shadcn/ui tokens — mengikuti palet Minimalist Corporate di atas */
-  --background: #f5f5f5;
-  --foreground: #292524;
-  --card: #ffffff;
-  --card-foreground: #292524;
-  --popover: #ffffff;
-  --popover-foreground: #292524;
-  --primary-foreground: #fafaf9;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #292524;
-  --muted: #f5f5f5;
-  --muted-foreground: #78716c;
-  --accent: #f5f5f5;
-  --accent-foreground: #292524;
-  --destructive: #dc2626;
-  --destructive-foreground: #fafaf9;
-  --input: #e7e5e4;
-  --ring: #292524;
-  --radius: 10px;
+  /* ---- Token shadcn/ui (mengikuti palet di atas) ---- */
+  --color-background: #f5f5f5;
+  --color-foreground: #292524;
+  --color-card: #ffffff;
+  --color-card-foreground: #292524;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #292524;
+  --color-primary-foreground: #fafaf9;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #292524;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #78716c;
+  --color-accent: #f5f5f5;
+  --color-accent-foreground: #292524;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #fafaf9;
+  --color-input: #e7e5e4;
+  --color-ring: #292524;
+
+  /* ---- Radius custom (mengganti nilai default Tailwind) ---- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+
+  /* ---- Font ---- */
+  --font-sans: var(--font-plus-jakarta-sans), sans-serif;
 }
 
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+  html {
+    font-size: 14px;
+  }
 
-html {
-  font-size: 14px;
-}
-
-body {
-  font-family: var(--font-plus-jakarta-sans), sans-serif;
-  background: var(--canvas);
-  color: var(--ink);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Safe area */
-@supports (padding-top: env(safe-area-inset-top)) {
   body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    font-family: var(--font-sans);
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Safe area */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    body {
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+
+  /* Print */
+  @media print {
+    body {
+      background: #fff;
+    }
   }
 }
 
-/* Print */
-@media print {
-  body {
-    background: #fff;
-  }
-}

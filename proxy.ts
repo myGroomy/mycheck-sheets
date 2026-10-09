@@ -14,7 +14,10 @@ const PUBLIC_PATHS = [
   '/icons',
 ];
 
-export function middleware(req: NextRequest) {
+// Next.js 16: konvensi `middleware` diganti nama menjadi `proxy`
+// (lihat https://nextjs.org/docs/app/api-reference/file-conventions/proxy).
+// Logika tidak berubah — hanya nama file & fungsi.
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const isPublic =
