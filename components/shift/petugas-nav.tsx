@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { AlertTriangle, BookOpen, ClipboardCheck, FileText, Home, Menu } from 'lucide-react';
+import { AlertTriangle, BookOpen, ClipboardCheck, FileText, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/sheet';
 
 const LINKS = [
-  { href: '/', label: 'Beranda', icon: Home },
   { href: '/daftar-shift', label: 'Checklist', icon: ClipboardCheck },
   { href: '/incident', label: 'Incident', icon: AlertTriangle },
   { href: '/report', label: 'Laporan', icon: FileText },
@@ -97,7 +96,7 @@ export function PetugasNav() {
         aria-label="Navigasi petugas"
         className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur md:hidden"
       >
-        <div className="mx-auto grid max-w-lg grid-cols-4">
+        <div className="mx-auto grid max-w-lg grid-cols-3">
           {BOTTOM_LINKS.map((link) => {
             const active = isActive(pathname, link.href);
             return (

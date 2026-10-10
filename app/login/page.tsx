@@ -8,7 +8,7 @@ import { ArrowLeft } from 'lucide-react';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get('from') || '/';
+  const from = searchParams.get('from') || '/daftar-shift';
 
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
@@ -51,7 +51,7 @@ function LoginForm() {
       }
 
       if (data.user?.mustChangePin) {
-        router.push(data.user.role === 'admin' ? '/admin' : '/');
+        router.push(data.user.role === 'admin' ? '/admin' : '/daftar-shift');
       } else {
         router.push(from);
       }
