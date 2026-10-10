@@ -1,0 +1,64 @@
+---
+title: Instalasi
+description: Menyiapkan lingkungan lokal untuk menjalankan mycheck.
+---
+
+# Instalasi
+
+Panduan ini menyiapkan lingkungan lokal mycheck untuk developer. Aplikasi
+menggunakan Next.js dan Google Sheets; tidak diperlukan database SQL.
+
+## Prasyarat
+
+- Node.js 22.x dan npm.
+- Akses ke repository dan Google Cloud project.
+- Service account dengan akses editor ke Registry dan spreadsheet cabang.
+- ID Registry dan, jika dipakai untuk foto, ID folder Google Drive.
+
+## Siapkan project
+
+```bash
+npm ci
+cp .env.example .env
+```
+
+Isi `.env` secara lokal. Variabel `STOKIS_API_KEY` harus memiliki sedikitnya
+32 karakter dan digunakan untuk menandatangani cookie sesi. Isi
+`GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, dan
+`REGISTRY_SPREADSHEET_ID` sesuai lingkungan. Jangan commit atau membagikan
+rahasia tersebut.
+
+Pastikan Google Sheets API dan Google Drive API aktif pada project Google Cloud.
+Service account harus dapat mengakses spreadsheet Registry dan setiap
+spreadsheet cabang.
+
+## Jalankan aplikasi
+
+```bash
+npm run dev
+```
+
+Buka `http://localhost:3000`. Halaman dokumentasi ini tersedia di
+`http://localhost:3000/docs`.
+
+## Inisialisasi data (bila menyiapkan lingkungan baru)
+
+Jalankan script setup sesuai kebutuhan dan akses spreadsheet yang tersedia:
+
+```bash
+npm run setup:registry
+npm run setup:branch -- <Cabang_ID> <Nama> <Spreadsheet_ID> [Timezone] [Kode]
+npm run seed:admin
+```
+
+`setup:branch` mendaftarkan spreadsheet cabang yang sudah disiapkan. Pastikan
+ID dan nama cabang benar sebelum menjalankannya. Ikuti output script untuk
+menyelesaikan proses; script tidak menggantikan penyiapan akses Google Drive.
+
+## Pemeriksaan
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```

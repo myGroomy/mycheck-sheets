@@ -1,0 +1,45 @@
+---
+title: Arsitektur
+description: Lapisan aplikasi, penyimpanan, autentikasi, dan batasan desain mycheck.
+---
+
+# Arsitektur
+
+mycheck adalah satu aplikasi Next.js App Router dengan antarmuka PWA
+mobile-first. API, UI petugas/admin, dan dokumentasi berada dalam satu
+repository.
+
+## Lapisan aplikasi
+
+- `app/` berisi halaman, layout, dan route handler API.
+- `components/` berisi komponen antarmuka.
+- `lib/` berisi autentikasi, validasi, akses data, serta integrasi Google.
+- `content/docs/` berisi file MDX dokumentasi yang disajikan Fumadocs di bawah
+  `/docs`.
+
+Route dokumentasi memakai catch-all `/docs/[[...mdxPath]]`. Halaman MDX
+didaftarkan secara eksplisit di route agar URL dokumentasi tetap selaras dengan
+halaman yang tersedia.
+
+## Data dan penyimpanan
+
+Data aplikasi disimpan di Google Sheets, bukan database SQL. Spreadsheet
+Registry menyimpan data global; setiap cabang menggunakan spreadsheet
+tersendiri. `lib/store.ts` menyediakan operasi atas helper Google Sheets.
+Struktur sheet dan kolomnya adalah bagian dari kontrak aplikasi.
+
+Foto disimpan pada Google Drive. Pengambilan foto dilakukan melalui route API
+aplikasi sehingga pemeriksaan akses dapat diterapkan di server.
+
+## Identitas dan akses
+
+Login menggunakan username dan PIN dari Registry. Server membuat cookie sesi
+bertanda tangan HMAC-SHA256. Route API melakukan pemeriksaan sesi, peran, dan
+akses cabang sesuai fungsinya.
+
+## Batasan desain
+
+Google Sheets tidak menyediakan transaksi atau penguncian baris seperti
+database relasional. Validasi bisnis dilakukan di aplikasi; operasi lintas
+sheet perlu mempertimbangkan kegagalan parsial. Perubahan template tidak
+mengubah snapshot template pada shift yang sudah berjalan.

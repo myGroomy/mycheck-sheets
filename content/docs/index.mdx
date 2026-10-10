@@ -1,31 +1,31 @@
+---
+title: Dokumentasi mycheck
+description: Panduan penggunaan dan pengembangan mycheck.
+---
+
 # Dokumentasi mycheck
 
-Dokumentasi ini dibagi untuk pengguna aplikasi dan developer yang akan
-melanjutkan pengembangan.
+Selamat datang di dokumentasi mycheck, PWA untuk membantu tim F&B menjalankan
+SOP shift, mencatat checklist, dan meneruskan informasi antarshift.
 
-| Dokumen | Untuk siapa | Isi |
-| --- | --- | --- |
-| [Panduan Pengguna](./panduan-pengguna.mdx) | Petugas dan admin cabang | Login, siklus shift, checklist, incident, laporan, dan pengaturan admin |
-| [Panduan Developer](./panduan-developer.mdx) | Developer dan maintainer | Struktur repo, arsitektur, setup lokal, aturan perubahan, validasi, dan hal yang perlu dicek |
-| [Database Schema](./database-schema.mdx) | Developer dan maintainer | Struktur spreadsheet Registry dan cabang, setiap sheet, kolom, dan cara membacanya |
+Pilih jalur sesuai kebutuhan:
 
-## Akses di aplikasi
+| Bagian | Mulai di sini |
+| --- | --- |
+| Belajar dasar | [Instalasi](./tutorials/installation) · [Mulai cepat](./tutorials/quick-start) |
+| Menyelesaikan tugas | [Autentikasi](./guides/authentication) · [Deployment](./guides/deployment) |
+| Referensi teknis | [Endpoint API](./reference/api-endpoints) · [Konfigurasi](./reference/configuration) |
+| Memahami konsep | [Arsitektur](./explanation/architecture) |
+| Operasional | [Pemecahan masalah](./support/troubleshooting) · [Changelog](./support/changelog) |
 
-Panduan pengguna tersedia langsung di aplikasi melalui `/docs`. Halaman itu
-ditulis khusus untuk petugas dan admin. Panduan developer di direktori ini
-tetap menjadi dokumentasi internal repository dan tidak ditampilkan kepada
-pengguna aplikasi. File MDX adalah sumber dokumentasi; halaman `/docs` tidak
-merender file MDX ini secara otomatis.
-
-Untuk keputusan produk dan teknis, tetap baca dokumen acuan di root repository:
+Dokumentasi ini menjelaskan perilaku dan implementasi yang tersedia saat ini.
+Untuk keputusan produk dan teknis, lihat dokumen acuan di root repository:
 `AGENTS.md`, `PRD.md`, `DATABASE_SCHEMA.md`, `TRD.md`, `APP_FLOW.md`,
 `IMPLEMENTATION_PLAN.md`, `TESTING.md`, dan `UI-UX.md`.
 
 <Callout type="info">
-  Spesifikasi menggambarkan target produk; route dan kode saat ini menunjukkan
-  apa yang sudah tersedia. Jika keduanya berbeda, jangan menganggap fitur sudah
-  selesai hanya karena tercantum dalam spesifikasi. Verifikasi implementasi dan
-  konfirmasikan keputusan yang belum jelas sebelum mengubah perilaku.
+  Spesifikasi dapat menjelaskan target yang belum tersedia. Verifikasi route,
+  handler, dan skema aktual sebelum menganggap suatu fitur sudah diterapkan.
 </Callout>
 
 ## Simulator Checklist Interaktif

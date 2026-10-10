@@ -1,0 +1,30 @@
+---
+title: Pemecahan Masalah
+description: Pemeriksaan awal untuk masalah penggunaan dan deployment.
+---
+
+# Pemecahan Masalah
+
+Gunakan tabel ini untuk pemeriksaan awal. Jangan menyalin PIN atau secret ke
+laporan masalah.
+
+| Gejala | Pemeriksaan |
+| --- | --- |
+| Tidak dapat login | Periksa username, PIN, status akun di sheet `Users`, dan koneksi aplikasi ke Registry. |
+| Sesi berakhir atau permintaan kembali ke login | Login kembali. Pastikan cookie diizinkan dan waktu perangkat tidak menyimpang jauh. |
+| Data cabang tidak terlihat | Pastikan cabang aktif, memiliki spreadsheet yang benar, dan service account mendapat akses. |
+| Gagal membuka atau bergabung shift | Periksa koneksi, akses cabang, dan apakah shift yang sama sudah dibuka. |
+| Checklist atau handover gagal disimpan | Periksa jaringan lalu muat ulang status sebelum mengulangi aksi. Hindari pengiriman berulang tanpa memastikan hasil. |
+| Foto tidak tampil | Periksa akses Drive, `GOOGLE_DRIVE_FOLDER_ID`, status unggah, dan respons route foto. |
+| Gagal deploy atau server error | Periksa log deployment tanpa membagikan nilai environment; verifikasi environment wajib dan hasil build. |
+| Admin tidak dapat mengubah pengaturan | Pastikan sesi memakai akun admin dan aksi sensitif memenuhi konfirmasi yang diminta. |
+
+## Informasi untuk laporan masalah
+
+Sertakan URL halaman (tanpa token berbagi), waktu kejadian, jenis perangkat dan
+browser, langkah untuk mengulang, serta pesan error yang sudah disensor.
+Jangan sertakan PIN, cookie, token sesi, private key, ID sensitif, atau isi
+`.env`.
+
+Untuk masalah data, jangan mengedit atau menghapus baris secara manual sebelum
+memastikan dampaknya pada aplikasi dan audit log.

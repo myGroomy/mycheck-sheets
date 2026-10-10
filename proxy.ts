@@ -23,6 +23,7 @@ export function proxy(req: NextRequest) {
   const isPublic =
     pathname === '/' ||
     pathname === '/docs' ||
+    pathname.startsWith('/docs/') ||
     PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 
   if (isPublic) {

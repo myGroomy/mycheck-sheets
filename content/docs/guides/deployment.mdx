@@ -1,0 +1,45 @@
+---
+title: Deployment
+description: Menyiapkan environment dan menerbitkan aplikasi mycheck.
+---
+
+# Deployment
+
+mycheck adalah satu project Next.js dan dapat dibangun untuk deployment pada
+satu project Vercel. Deploy hanya setelah environment dan akses Google
+disiapkan.
+
+## Sebelum deploy
+
+1. Pastikan branch yang akan dipublikasikan sudah ditinjau.
+2. Isi environment production pada platform hosting; jangan mengunggah file
+   `.env` ke repository.
+3. Pastikan service account production memiliki akses editor hanya ke
+   spreadsheet Registry dan cabang yang diperlukan.
+4. Pastikan ID Registry dan folder Drive mengarah ke lingkungan yang benar.
+5. Pastikan Google Sheets API serta Drive API aktif.
+
+## Build
+
+Perintah build yang digunakan repository:
+
+```bash
+npm run build
+```
+
+Skrip menjalankan `next build --webpack`. Pastikan build lokal berhasil sebelum
+deploy. Setelah deployment, uji login, akses cabang, operasi shift, foto, dan
+laporan pada akun uji yang sesuai.
+
+## Pemeriksaan pascadeploy
+
+- Buka `/docs` dan beberapa halaman di setiap kategori.
+- Uji endpoint `/api/health` untuk melihat pemeriksaan dependensi yang
+  disediakan aplikasi.
+- Uji alur login dan logout, lalu verifikasi endpoint terlindungi menolak
+  permintaan tanpa sesi.
+- Pastikan unggah dan baca foto menggunakan route aplikasi, bukan tautan Drive
+  langsung.
+
+Jangan menaruh kredensial di variabel `NEXT_PUBLIC_*`, kode browser, atau log
+build. Rotasi kredensial jika pernah terekspos.

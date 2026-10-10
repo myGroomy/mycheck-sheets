@@ -1,0 +1,42 @@
+---
+title: Konfigurasi
+description: Environment dan akses Google yang digunakan mycheck.
+---
+
+# Konfigurasi
+
+Variabel environment dibaca di server. Simpan nilainya pada environment lokal
+atau platform deployment, bukan di source code maupun browser.
+
+## Variabel utama
+
+| Variabel | Wajib | Kegunaan |
+| --- | --- | --- |
+| `STOKIS_API_KEY` | Ya | Secret HMAC sesi; minimal 32 karakter. |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Ya untuk akses Google | Email service account Sheets dan Drive. |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Ya untuk akses Google | Private key service account. `\\n` literal dinormalisasi saat dibaca. |
+| `REGISTRY_SPREADSHEET_ID` | Ya untuk alur Registry | ID spreadsheet pusat berisi data cabang dan pengguna. |
+| `GOOGLE_DRIVE_FOLDER_ID` | Sesuai pemakaian foto | ID folder Drive untuk penyimpanan foto. |
+| `CRON_SECRET` | Sesuai pemakaian cron | Secret yang diperiksa oleh helper cron. |
+
+Nama environment mengikuti kode saat ini. Periksa `.env.example` dan
+`lib/env.ts` sebelum mengubah konfigurasi; file contoh dapat tertinggal dari
+implementasi.
+
+## Google service account
+
+Aktifkan Google Sheets API dan Google Drive API pada project terkait. Berikan
+akses editor service account pada Registry dan spreadsheet cabang yang
+digunakan. Batasi akses folder Drive sesuai kebutuhan. Jangan pernah
+menambahkan private key ke variabel `NEXT_PUBLIC_*`.
+
+## Spreadsheet
+
+Registry ditentukan oleh `REGISTRY_SPREADSHEET_ID`. Setiap cabang memiliki
+spreadsheet tersendiri yang terdaftar di Registry. Struktur header sheet
+merupakan bagian dari kontrak aplikasi; gunakan `lib/google/branch-schema.ts`
+dan template cabang saat menyiapkan struktur.
+
+Semua environment lokal dapat disiapkan dari `.env.example`, tetapi verifikasi
+setiap nama dengan pemakaian kode aktual. Perubahan nilai production dilakukan
+melalui pengaturan environment platform, lalu deploy ulang bila diperlukan.

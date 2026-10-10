@@ -1,0 +1,97 @@
+---
+title: Endpoint API
+description: Daftar endpoint API mycheck beserta metode dan kegunaannya.
+---
+
+# Endpoint API
+
+Semua path di bawah memakai prefix `/api`. Endpoint terproteksi memerlukan
+cookie sesi yang valid; route admin juga membatasi peran. Hak akses cabang
+tetap divalidasi di server. Route publik dan pemeriksaan operasional ditandai
+terpisah. Rincian payload dapat berubah; handler route adalah sumber kebenaran.
+
+## Sesi dan operasional petugas
+
+| Path | Metode | Akses / fungsi |
+| --- | --- | --- |
+| `/auth/login` | `POST` | Masuk dengan username dan PIN. |
+| `/auth/me` | `GET` | Informasi sesi aktif. |
+| `/auth/change-pin` | `POST` | Mengganti PIN akun. |
+| `/auth/logout` | `POST` | Keluar dari sesi saat ini. |
+| `/auth/logout-all` | `POST` | Keluar dari sesi pengguna. |
+| `/beranda` | `GET` | Data beranda sesuai sesi dan akses cabang. |
+| `/shifts` | `GET` | Daftar shift yang dapat diakses. |
+| `/shifts/open` | `POST` | Membuka shift. |
+| `/shifts/[id]/join` | `POST` | Bergabung ke shift. |
+| `/shifts/[id]/entries` | `POST` | Mengirim aksi checklist. |
+| `/shifts/[id]/progress` | `GET` | Membaca progress shift. |
+| `/shifts/[id]/close` | `POST` | Menutup shift oleh PJ. |
+| `/shifts/[id]/handover` | `POST` | Mengirim handover. |
+| `/shifts/[id]/handover-prev` | `GET` | Membaca handover sebelumnya. |
+| `/handovers/[id]/ack` | `POST` | Mengonfirmasi handover telah dibaca. |
+
+## Incident, laporan, foto, dan notifikasi
+
+| Path | Metode | Akses / fungsi |
+| --- | --- | --- |
+| `/incidents` | `GET`, `POST` | Daftar dan membuat incident. |
+| `/incidents/[id]` | `GET`, `PATCH` | Membaca atau memperbarui status incident. |
+| `/incidents/[id]/notes` | `POST` | Menambahkan catatan incident. |
+| `/reports` | `GET` | Daftar laporan yang dapat diakses. |
+| `/reports/[id]` | `GET` | Detail laporan. |
+| `/public/report/[token]` | `GET` | Membaca laporan melalui token berbagi. |
+| `/photos/upload` | `POST` | Mengunggah foto. |
+| `/photos/[id]` | `GET` | Mengambil foto melalui aplikasi. |
+| `/notifications` | `GET` | Membaca notifikasi. |
+| `/notifications/[id]/read` | `POST` | Menandai notifikasi sudah dibaca. |
+
+## Administrasi
+
+Endpoint di bagian ini memerlukan sesi admin, kecuali akses cabang atau validasi
+aksi tertentu yang membatasi lebih lanjut.
+
+| Path | Metode | Fungsi |
+| --- | --- | --- |
+| `/admin/stats` | `GET` | Statistik dasbor. |
+| `/admin/branches` | `GET`, `POST` | Daftar dan pembuatan cabang. |
+| `/admin/branches/[id]` | `GET`, `PUT`, `DELETE` | Detail dan pengelolaan cabang. |
+| `/admin/branches/[id]/shifts` | `GET`, `POST` | Shift di cabang. |
+| `/admin/branches/[id]/copy-from/[source_id]` | `POST` | Menyalin konfigurasi dari cabang sumber. |
+| `/admin/users` | `GET`, `POST` | Daftar dan pembuatan akun. |
+| `/admin/users/[id]` | `PUT`, `DELETE` | Pengelolaan akun. |
+| `/admin/users/[id]/reset-pin` | `POST` | Reset PIN akun. |
+| `/admin/users/[id]/unlock` | `POST` | Membuka akun yang terkunci. |
+| `/admin/users/[id]/force-logout` | `POST` | Memaksa pengguna keluar. |
+| `/admin/shifts/[id]` | `GET`, `PUT`, `DELETE` | Pengelolaan definisi shift. |
+| `/admin/shifts/[id]/categories` | `GET`, `POST` | Kategori SOP sebuah shift. |
+| `/admin/shifts/[id]/duplicate` | `POST` | Duplikasi definisi shift. |
+| `/admin/shifts/[id]/handover-fields` | `GET`, `POST` | Field handover sebuah shift. |
+| `/admin/shifts/[id]/preview` | `GET` | Pratinjau template shift. |
+| `/admin/sop-categories/[id]` | `GET`, `PUT`, `DELETE` | Pengelolaan kategori SOP. |
+| `/admin/sop-categories/[id]/points` | `GET`, `POST` | Checklist point pada kategori. |
+| `/admin/sop-categories/[id]/duplicate` | `POST` | Duplikasi kategori SOP. |
+| `/admin/checklist-points/[id]` | `GET`, `PUT`, `DELETE` | Pengelolaan checklist point. |
+| `/admin/checklist-points/[id]/duplicate` | `POST` | Duplikasi checklist point. |
+| `/admin/handover-fields/[id]` | `GET`, `PUT`, `DELETE` | Pengelolaan field handover. |
+| `/admin/incident-categories` | `GET`, `POST` | Daftar dan pembuatan kategori incident. |
+| `/admin/incident-categories/[id]` | `PUT`, `DELETE` | Pengelolaan kategori incident. |
+| `/admin/shift-instances` | `GET` | Daftar pelaksanaan shift. |
+| `/admin/shift-instances/[id]` | `PATCH` | Pembaruan instance shift oleh admin. |
+| `/admin/shift-instances/open-on-behalf` | `POST` | Membuka shift atas nama pengguna. |
+| `/admin/reports` | `GET` | Daftar laporan administrasi. |
+| `/admin/reports/[id]/addenda` | `POST` | Menambahkan addendum laporan. |
+| `/admin/reports/[id]/share` | `GET`, `POST` | Melihat dan membuat tautan berbagi. |
+| `/admin/reports/[id]/share/[tokenId]` | `DELETE` | Mencabut tautan berbagi. |
+| `/admin/settings` | `GET`, `PUT` | Membaca dan mengubah pengaturan. |
+| `/admin/audit-log` | `GET` | Membaca audit log. |
+
+## Pemeriksaan sistem
+
+| Path | Metode | Akses / fungsi |
+| --- | --- | --- |
+| `/health` | `GET` | Memeriksa dependensi aplikasi. |
+| `/cron/verify` | `GET` | Endpoint verifikasi untuk pemanggilan terjadwal. |
+
+Gunakan route handler terkait untuk memeriksa bentuk request/response, validasi,
+kode status, dan otorisasi terbaru. Jangan menganggap path admin dapat diakses
+hanya karena tombolnya terlihat atau tersembunyi di UI.

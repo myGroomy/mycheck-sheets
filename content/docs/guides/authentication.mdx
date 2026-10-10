@@ -1,0 +1,43 @@
+---
+title: Autentikasi
+description: Cara kerja login, sesi, peran, dan akses cabang mycheck.
+---
+
+# Autentikasi
+
+mycheck menggunakan username dan PIN untuk masuk. Identitas dan status akun
+dibaca dari sheet `Users` pada spreadsheet Registry.
+
+## Sesi
+
+Setelah kredensial valid, server menerbitkan cookie `mycheck_session` yang
+ditandatangani dengan HMAC-SHA256. Cookie berlaku selama tujuh hari,
+`HttpOnly`, `SameSite=Strict`, dan hanya memakai flag `Secure` pada production.
+Token yang kedaluwarsa atau tanda tangannya tidak valid ditolak.
+
+Endpoint terkait:
+
+| Endpoint | Tujuan |
+| --- | --- |
+| `POST /api/auth/login` | Memeriksa username dan PIN, lalu membuat sesi. |
+| `GET /api/auth/me` | Mengembalikan informasi sesi saat ini. |
+| `POST /api/auth/change-pin` | Memproses perubahan PIN. |
+| `POST /api/auth/logout` | Mengakhiri sesi browser saat ini. |
+| `POST /api/auth/logout-all` | Meminta pengakhiran sesi pengguna. |
+
+## Peran dan cabang
+
+Peran aplikasi adalah `admin` dan `petugas`. Server harus memeriksa sesi,
+peran, dan akses cabang di setiap endpoint terlindungi; menyembunyikan menu di
+antarmuka bukan pengganti otorisasi API.
+
+PIN disimpan pada sheet `Users` sesuai implementasi saat ini. Jangan menulis
+PIN ke log, audit, dokumentasi, tiket, atau tangkapan layar. Batasi akses edit
+spreadsheet Registry dan gunakan kredensial service account hanya di server.
+
+## Jika tidak dapat masuk
+
+Pastikan username/PIN benar, akun aktif, dan `Users` dapat dibaca oleh service
+account. Pesan akun nonaktif perlu ditangani oleh admin. Lihat
+[Pemecahan Masalah](../support/troubleshooting) untuk pemeriksaan koneksi dan
+konfigurasi.
