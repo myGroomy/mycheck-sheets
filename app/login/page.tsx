@@ -4,10 +4,12 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
   const from = searchParams.get('from') || '/daftar-shift';
 
   const [username, setUsername] = useState('');
@@ -30,33 +32,18 @@ function LoginForm() {
     setError(null);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'fetch',
-        },
-        body: JSON.stringify({ username: username.trim(), pin }),
-      });
-
-      const data = (await res.json()) as {
-        error?: string;
-        user?: { mustChangePin?: boolean; role?: 'admin' | 'petugas' };
-      };
-
-      if (!res.ok) {
-        setError(data.error || 'Login gagal. Periksa username dan PIN Anda.');
+      const result = await login(username.trim(), pin);
+      if (!result.success) {
+        setError(result.error);
         setPin('');
         return;
       }
 
-      if (data.user?.mustChangePin) {
-        router.push(data.user.role === 'admin' ? '/admin' : '/daftar-shift');
+      if (result.mustChangePin) {
+        router.push(result.role === 'admin' ? '/admin' : '/daftar-shift');
       } else {
         router.push(from);
       }
-    } catch {
-      setError('Terjadi kesalahan jaringan. Coba lagi.');
     } finally {
       setLoading(false);
     }

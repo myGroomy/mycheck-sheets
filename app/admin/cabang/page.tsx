@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ResponsiveRecordCards } from '@/components/ui/responsive-record-cards';
 import {
   Table,
   TableBody,
@@ -260,7 +261,68 @@ export default function CabangPage() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <ResponsiveRecordCards
+        loading={loading}
+        emptyMessage="Belum ada cabang"
+        records={filtered.map((b) => ({
+          key: b.id,
+          title: b.name,
+          subtitle: b.code,
+          status: (
+            <Badge variant={b.isActive ? 'default' : 'secondary'}>
+              {b.isActive ? 'Aktif' : 'Nonaktif'}
+            </Badge>
+          ),
+          fields: [
+            { label: 'Alamat', value: b.address || '—' },
+            { label: 'Zona waktu', value: b.timezone },
+            {
+              label: 'Spreadsheet',
+              value: (
+                <LinkableId
+                  value={b.spreadsheetId}
+                  label="Spreadsheet ID"
+                  href={spreadsheetUrl(b.spreadsheetId)}
+                  actionLabel="Buka Spreadsheet"
+                />
+              ),
+            },
+            {
+              label: 'Folder Drive',
+              value: (
+                <LinkableId
+                  value={b.folderDriveId}
+                  label="Folder Drive ID"
+                  href={driveFolderUrl(b.folderDriveId)}
+                  actionLabel="Buka Folder Drive"
+                />
+              ),
+            },
+          ],
+          actions: (
+            <>
+              <Button variant="outline" size="sm" onClick={() => openEdit(b)}>
+                <Pencil className="h-3.5 w-3.5" />Ubah
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => toggleActive(b)}
+                disabled={b.isActive && activeCount <= 1}
+                title={
+                  b.isActive && activeCount <= 1
+                    ? 'Tidak boleh menonaktifkan semua cabang aktif'
+                    : undefined
+                }
+              >
+                {b.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+              </Button>
+            </>
+          ),
+        }))}
+      />
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -432,5 +494,4 @@ export default function CabangPage() {
     </div>
   );
 }
-
 

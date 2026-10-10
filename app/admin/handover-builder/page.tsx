@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { GripVertical, Pencil, Plus, Power } from 'lucide-react';
+import { Check, GripVertical, Pencil, Plus, Power, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -49,6 +50,11 @@ export default function HandoverBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  // Inline editing state
+  const [editingLabel, setEditingLabel] = useState<string | null>(null);
+  const [labelDraft, setLabelDraft] = useState('');
+  const [savingInline, setSavingInline] = useState(false);
 
   useEffect(() => {
     const loadBranches = async () => {
@@ -153,6 +159,42 @@ export default function HandoverBuilderPage() {
     }
   };
 
+  const startEditLabel = (fieldId: string) => {
+    const field = fields.find((f) => f.id === fieldId);
+    if (!field) return;
+    setEditingLabel(fieldId);
+    setLabelDraft(field.label);
+  };
+
+  const saveInlineLabel = async (fieldId: string) => {
+    const trimmed = labelDraft.trim();
+    if (trimmed.length < 2) {
+      toast.error('Label minimal 2 karakter');
+      return;
+    }
+    setSavingInline(true);
+    try {
+      await updateHandoverField(fieldId, { label: trimmed });
+      setEditingLabel(null);
+      toast.success('Label diperbarui');
+      await loadFields(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan label');
+    } finally {
+      setSavingInline(false);
+    }
+  };
+
+  const changeFieldType = async (fieldId: string, newType: HandoverField['fieldType']) => {
+    try {
+      await updateHandoverField(fieldId, { fieldType: newType });
+      toast.success('Tipe isian diubah');
+      await loadFields(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal mengubah tipe isian');
+    }
+  };
+
   const onDrop = (to: number) => {
     if (dragIndex === null || dragIndex === to) {
       setDragIndex(null);
@@ -249,16 +291,65 @@ export default function HandoverBuilderPage() {
                 aria-hidden
               />
               <div className="min-w-[140px] flex-1">
-                <p className="text-sm font-medium">
-                  {index + 1}. {f.label}
-                  {f.isRequired && <span className="text-danger"> *</span>}
-                </p>
-                <p className="text-xs text-ink-muted">
-                  {FIELD_TYPE_LABEL[f.fieldType] ?? f.fieldType}
-                  {f.fieldType === 'pilihan' && f.options
-                    ? ` · ${(Array.isArray(f.options) ? f.options : [f.options]).join(', ')}`
-                    : ''}
-                </p>
+                {editingLabel === f.id ? (
+                  <div className="space-y-1">
+                    <Input
+                      value={labelDraft}
+                      onChange={(e) => setLabelDraft(e.target.value)}
+                      className="h-7 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void saveInlineLabel(f.id);
+                        if (e.key === 'Escape') setEditingLabel(null);
+                      }}
+                    />
+                    <div className="flex gap-1">
+                      <Button size="sm" onClick={() => void saveInlineLabel(f.id)} disabled={savingInline}>
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingLabel(null)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => startEditLabel(f.id)}
+                    className="group flex items-center gap-1 text-left"
+                    title="Klik untuk mengubah label"
+                  >
+                    <span className="text-sm font-medium">
+                      {index + 1}. {f.label}
+                      {f.isRequired && <span className="text-danger"> *</span>}
+                    </span>
+                    <Pencil className="h-3 w-3 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                  </button>
+                )}
+                <div className="mt-1">
+                  <Select
+                    value={f.fieldType}
+                    onValueChange={(v) => void changeFieldType(f.id, v as HandoverField['fieldType'])}
+                  >
+                    <SelectTrigger className="h-6 text-xs">
+                      <SelectValue>
+                        {FIELD_TYPE_LABEL[f.fieldType] ?? f.fieldType}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(FIELD_TYPE_LABEL).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {f.fieldType === 'pilihan' && f.options && (
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      {(Array.isArray(f.options) ? f.options : [f.options]).join(', ')}
+                    </p>
+                  )}
+                </div>
               </div>
               <Badge variant={f.isActive ? 'default' : 'secondary'}>
                 {f.isActive ? 'Aktif' : 'Nonaktif'}
@@ -283,6 +374,61 @@ export default function HandoverBuilderPage() {
               </div>
             </div>
           ))}
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface">
+        <div className="border-b border-border p-3">
+          <p className="text-sm font-semibold">Pratinjau</p>
+          <p className="text-xs text-ink-muted">Form serah terima seperti dilihat petugas</p>
+        </div>
+        {!shiftId ? (
+          <p className="p-4 text-sm text-ink-muted">Pilih shift untuk melihat pratinjau</p>
+        ) : (
+          <div className="space-y-2 p-3">
+            {fields.filter((f) => f.isActive).length === 0 ? (
+              <p className="text-sm text-ink-muted">Belum ada bidang aktif</p>
+            ) : (
+              fields
+                .filter((f) => f.isActive)
+                .map((f) => (
+                  <div key={f.id} className="space-y-1">
+                    <label className="text-xs font-medium">
+                      {f.label}
+                      {f.isRequired && <span className="text-danger"> *</span>}
+                    </label>
+                    {f.fieldType === 'teks' && (
+                      <div className="rounded border border-border bg-background p-2 text-xs text-ink-muted">
+                        Input teks...
+                      </div>
+                    )}
+                    {f.fieldType === 'angka' && (
+                      <div className="rounded border border-border bg-background p-2 text-xs text-ink-muted">
+                        Input angka...
+                      </div>
+                    )}
+                    {f.fieldType === 'pilihan' && (
+                      <div className="flex flex-wrap gap-1">
+                        {(Array.isArray(f.options) ? f.options : [f.options]).map((opt, i) => (
+                          <span
+                            key={i}
+                            className="rounded-full border border-border px-2 py-0.5 text-xs"
+                          >
+                            {opt}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {f.fieldType === 'ya_tidak' && (
+                      <div className="flex gap-2">
+                        <span className="rounded-full border border-border px-2 py-0.5 text-xs">Ya</span>
+                        <span className="rounded-full border border-border px-2 py-0.5 text-xs">Tidak</span>
+                      </div>
+                    )}
+                  </div>
+                ))
+            )}
+          </div>
+        )}
       </div>
 
       <HandoverFieldEditor

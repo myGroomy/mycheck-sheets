@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ResponsiveRecordCards } from '@/components/ui/responsive-record-cards';
 import {
   Select,
   SelectContent,
@@ -277,7 +278,94 @@ export default function IncidentAdminPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <ResponsiveRecordCards
+        loading={loading}
+        emptyMessage="Tidak ada incident yang cocok"
+        records={filtered.map((i) => ({
+          key: i.id,
+          title: i.categoryName || 'Incident',
+          subtitle: i.branchName,
+          status: (
+            <Badge variant={i.status === 'open' ? 'default' : 'secondary'}>
+              {STATUS_LABEL[i.status] ?? i.status}
+            </Badge>
+          ),
+          fields: [
+            {
+              label: 'Isi incident',
+              value: (
+                <div className="space-y-1">
+                  <p className="whitespace-pre-wrap">{i.description}</p>
+                  {i.outsideShift && <Badge variant="secondary">Di luar shift</Badge>}
+                </div>
+              ),
+            },
+            {
+              label: 'Tingkat keparahan',
+              value: i.severity ? <Badge variant="outline">{i.severity}</Badge> : '—',
+            },
+            {
+              label: 'Dilaporkan',
+              value: (
+                <div>
+                  <p>{i.reportedAt.slice(0, 16).replace('T', ' ')}</p>
+                  <p className="text-xs text-ink-light">{i.reportedBy}</p>
+                </div>
+              ),
+            },
+            { label: 'Waktu kejadian', value: i.occurredAt.slice(0, 16).replace('T', ' ') },
+            { label: 'ID cabang', value: i.branchId },
+            { label: 'ID shift', value: i.shiftInstanceId ?? '—' },
+          ],
+          actions: (
+            <>
+              {i.status === 'open' ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busyId === i.id}
+                  onClick={() => setStatus(i, 'selesai')}
+                >
+                  Tandai Selesai
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busyId === i.id}
+                  onClick={() => setStatus(i, 'open')}
+                >
+                  Buka Kembali
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setNoteTarget(i);
+                  setNoteText('');
+                  setNoteError(null);
+                }}
+              >
+                <MessageSquarePlus className="h-3.5 w-3.5" />Catatan
+              </Button>
+              {i.shiftInstanceId && !i.outsideShift && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busyId === i.id}
+                  onClick={() => unlinkShift(i)}
+                  title="Lepas tautan shift incident berdiri sendiri"
+                >
+                  <Link2Off className="h-3.5 w-3.5" />Lepas shift
+                </Button>
+              )}
+            </>
+          ),
+        }))}
+      />
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
         <Table>
           <TableHeader>
             <TableRow>

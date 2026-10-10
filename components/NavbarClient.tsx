@@ -78,7 +78,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
   const { user, logout, loading } = useAuth();
   // Saat SSR, `user` belum ada → pakai initialRole. Setelah hydration, pakai
   // data asli dari AuthContext.
-  const role: UserRole = user?.role === 'admin' ? 'admin' : initialRole;
+  const role: UserRole = user?.role ?? initialRole;
 
   const [moreOpen, setMoreOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);

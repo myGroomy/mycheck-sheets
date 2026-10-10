@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ResponsiveRecordCards } from '@/components/ui/responsive-record-cards';
 import {
   Select,
   SelectContent,
@@ -70,6 +71,32 @@ function buildQuery(f: FilterState, cursor: number | null): string {
   if (f.to) params.set('to', `${f.to}T23:59:59`);
   if (cursor !== null) params.set('cursor', String(cursor));
   return `/api/admin/audit-log?${params.toString()}`;
+}
+
+function AuditLogDetails({ row }: { row: AuditLogRow }) {
+  return (
+    <>
+      {row.reason && (
+        <p className="mb-2 text-xs">
+          <span className="font-semibold">Alasan:</span> {row.reason}
+        </p>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase text-ink-muted">Sebelum</p>
+          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-[11px]">
+            {row.before !== null ? JSON.stringify(row.before, null, 2) : '—'}
+          </pre>
+        </div>
+        <div>
+          <p className="mb-1 text-[11px] font-semibold uppercase text-ink-muted">Sesudah</p>
+          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-[11px]">
+            {row.after !== null ? JSON.stringify(row.after, null, 2) : '—'}
+          </pre>
+        </div>
+      </div>
+    </>
+  );
 }
 
 export default function AuditLogPage() {
@@ -228,7 +255,62 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <ResponsiveRecordCards
+        loading={loading}
+        emptyMessage="Tidak ada data"
+        records={logs.map((row) => ({
+          key: row.id,
+          title: row.action,
+          subtitle: row.objectType
+            ? `${row.objectType}${row.objectId ? `:${row.objectId.slice(-8)}` : ''}`
+            : 'Objek tidak tersedia',
+          status: (
+            <Badge variant="secondary" className="font-mono text-[10px]">
+              #{row.seq}
+            </Badge>
+          ),
+          fields: [
+            {
+              label: 'Waktu',
+              value: new Date(row.at).toLocaleString('id-ID'),
+            },
+            {
+              label: 'Pelaku',
+              value: (
+                <div>
+                  <p>{row.actorName ?? '—'}</p>
+                  {row.actorUsername && (
+                    <p className="font-mono text-xs text-ink-light">{row.actorUsername}</p>
+                  )}
+                </div>
+              ),
+            },
+            { label: 'Cabang', value: row.branchName ?? '—' },
+            { label: 'ID pelaku', value: row.actorId ?? '—' },
+            { label: 'ID cabang', value: row.branchId ?? '—' },
+            { label: 'ID objek', value: row.objectId ?? '—' },
+          ],
+          actions: (
+            <Button
+              variant="outline"
+              size="sm"
+              aria-expanded={expandedId === row.id}
+              onClick={() => setExpandedId(expandedId === row.id ? null : row.id)}
+            >
+              {expandedId === row.id ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+              {expandedId === row.id ? 'Tutup detail' : 'Buka detail'}
+            </Button>
+          ),
+          details:
+            expandedId === row.id ? <AuditLogDetails row={row} /> : undefined,
+        }))}
+      />
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -340,4 +422,3 @@ export default function AuditLogPage() {
     </div>
   );
 }
-

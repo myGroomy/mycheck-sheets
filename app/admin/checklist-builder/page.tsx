@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { ExternalLink, Pencil } from 'lucide-react';
+import { Check, ExternalLink, Pencil, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import {
   CategoryTree,
   type CategoryWithPoints,
@@ -90,6 +91,13 @@ export default function ChecklistBuilderPage() {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Inline editing state
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingInstruction, setEditingInstruction] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [instructionDraft, setInstructionDraft] = useState('');
+  const [savingInline, setSavingInline] = useState(false);
 
   useEffect(() => {
     const loadBranches = async () => {
@@ -292,6 +300,69 @@ export default function ChecklistBuilderPage() {
     }
   };
 
+  // Inline editing helpers
+  const startEditTitle = () => {
+    if (!selectedPoint) return;
+    setTitleDraft(selectedPoint.title);
+    setEditingTitle(true);
+  };
+
+  const startEditInstruction = () => {
+    if (!selectedPoint) return;
+    setInstructionDraft(selectedPoint.instruction ?? '');
+    setEditingInstruction(true);
+  };
+
+  const saveInlineTitle = async () => {
+    if (!selectedPoint) return;
+    const trimmed = titleDraft.trim();
+    if (trimmed.length < 2) {
+      toast.error('Judul minimal 2 karakter');
+      return;
+    }
+    setSavingInline(true);
+    try {
+      await updatePoint(selectedPoint.id, { title: trimmed });
+      setEditingTitle(false);
+      toast.success('Judul diperbarui');
+      await loadTree(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan judul');
+    } finally {
+      setSavingInline(false);
+    }
+  };
+
+  const saveInlineInstruction = async () => {
+    if (!selectedPoint) return;
+    const trimmed = instructionDraft.trim();
+    setSavingInline(true);
+    try {
+      await updatePoint(selectedPoint.id, { instruction: trimmed === '' ? null : trimmed });
+      setEditingInstruction(false);
+      toast.success('Petunjuk diperbarui');
+      await loadTree(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan petunjuk');
+    } finally {
+      setSavingInline(false);
+    }
+  };
+
+  const changeInputType = async (newType: string) => {
+    if (!selectedPoint) return;
+    setBusyId(selectedPoint.id);
+    try {
+      await updatePoint(selectedPoint.id, { inputType: newType as ChecklistPoint['inputType'] });
+      toast.success('Tipe input diubah');
+      await loadTree(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal mengubah tipe input');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const selectedPoint = categories
     .flatMap((c) => c.points)
     .find((p) => p.id === selectedPointId) ?? null;
@@ -314,7 +385,7 @@ export default function ChecklistBuilderPage() {
 
       <TemplateNotice />
 
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px]">
+      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px_280px]">
         <section className="space-y-2" aria-label="Pilih cabang dan shift">
           <h2 className="text-sm font-semibold">1. Cabang &amp; Shift</h2>
           <div className="space-y-1">
@@ -419,19 +490,95 @@ export default function ChecklistBuilderPage() {
           {selectedPoint && (
             <div className="space-y-3 rounded-lg border border-border bg-surface p-3">
               <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold">{selectedPoint.title}</p>
-                  <p className="text-xs text-ink-muted">
-                    {INPUT_TYPE_LABEL[selectedPoint.inputType] ?? selectedPoint.inputType}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  {editingTitle ? (
+                    <div className="space-y-2">
+                      <Input
+                        value={titleDraft}
+                        onChange={(e) => setTitleDraft(e.target.value)}
+                        className="text-sm font-semibold"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') void saveInlineTitle();
+                          if (e.key === 'Escape') setEditingTitle(false);
+                        }}
+                      />
+                      <div className="flex gap-1">
+                        <Button size="sm" onClick={() => void saveInlineTitle()} disabled={savingInline}>
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingTitle(false)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={startEditTitle}
+                      className="group flex items-center gap-1 text-left"
+                      title="Klik untuk mengubah judul"
+                    >
+                      <span className="text-sm font-semibold">{selectedPoint.title}</span>
+                      <Pencil className="h-3 w-3 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                    </button>
+                  )}
+                  <div className="mt-1">
+                    <Select
+                      value={selectedPoint.inputType}
+                      onValueChange={(v) => void changeInputType(v)}
+                    >
+                      <SelectTrigger className="h-7 text-xs">
+                        <SelectValue>
+                          {INPUT_TYPE_LABEL[selectedPoint.inputType] ?? selectedPoint.inputType}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(INPUT_TYPE_LABEL).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <Badge variant={selectedPoint.isActive ? 'default' : 'secondary'}>
                   {selectedPoint.isActive ? 'Aktif' : 'Nonaktif'}
                 </Badge>
               </div>
-              {selectedPoint.instruction && (
-                <p className="text-sm text-ink-muted">{selectedPoint.instruction}</p>
+
+              {editingInstruction ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={instructionDraft}
+                    onChange={(e) => setInstructionDraft(e.target.value)}
+                    rows={3}
+                    autoFocus
+                  />
+                  <div className="flex gap-1">
+                    <Button size="sm" onClick={() => void saveInlineInstruction()} disabled={savingInline}>
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingInstruction(false)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEditInstruction}
+                  className="group flex items-start gap-1 text-left"
+                  title="Klik untuk mengubah petunjuk"
+                >
+                  {selectedPoint.instruction && (
+                    <span className="text-sm text-ink-muted">{selectedPoint.instruction}</span>
+                  )}
+                  <Pencil className="h-3 w-3 shrink-0 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                </button>
               )}
+
               <dl className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
                 <dt className="text-ink-muted">Target</dt>
                 <dd>{selectedPoint.targetTime ?? '-'}</dd>
@@ -455,10 +602,55 @@ export default function ChecklistBuilderPage() {
                 }}
               >
                 <Pencil className="h-3.5 w-3.5" />
-                Ubah item
+                Ubah lengkap
               </Button>
             </div>
           )}
+        </section>
+
+        <section className="space-y-2" aria-label="Pratinjau langsung">
+          <h2 className="text-sm font-semibold">4. Pratinjau</h2>
+          <div className="rounded-lg border border-border bg-surface p-3">
+            {!shiftId ? (
+              <p className="text-sm text-ink-muted">Pilih shift untuk melihat pratinjau</p>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-ink-muted">
+                  Template seperti dilihat petugas:
+                </p>
+                {categories.length === 0 ? (
+                  <p className="text-sm text-ink-muted">Belum ada konten</p>
+                ) : (
+                  <div className="space-y-2">
+                    {categories
+                      .filter((c) => c.isActive)
+                      .map((cat) => (
+                        <div key={cat.id} className="space-y-1">
+                          <p className="text-xs font-semibold text-primary">{cat.name}</p>
+                          <ul className="space-y-0.5">
+                            {cat.points
+                              .filter((p) => p.isActive)
+                              .map((point) => (
+                                <li key={point.id} className="text-xs text-ink-muted">
+                                  <span className="mr-1">
+                                    {point.inputType === 'centang' && '☐'}
+                                    {point.inputType === 'foto' && '📷'}
+                                    {point.inputType === 'teks' && '📝'}
+                                    {point.inputType === 'angka' && '🔢'}
+                                    {point.inputType === 'ok_tidak_ok' && '✓/✗'}
+                                  </span>
+                                  {point.title}
+                                  {point.isRequired && <span className="text-danger"> *</span>}
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </section>
       </div>
 

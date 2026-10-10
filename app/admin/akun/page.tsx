@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ResponsiveRecordCards } from '@/components/ui/responsive-record-cards';
 import {
   Select,
   SelectContent,
@@ -302,7 +303,87 @@ export default function AkunPage() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <ResponsiveRecordCards
+        loading={loading}
+        emptyMessage="Belum ada akun"
+        records={users.map((u) => ({
+          key: u.id,
+          title: u.name,
+          subtitle: `@${u.username}`,
+          status: !u.isActive ? (
+            <Badge variant="secondary">Nonaktif</Badge>
+          ) : isLocked(u) ? (
+            <Badge variant="destructive">Terkunci</Badge>
+          ) : (
+            <Badge>Aktif</Badge>
+          ),
+          fields: [
+            {
+              label: 'Peran',
+              value: (
+                <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
+                  {u.role === 'admin' ? 'Admin' : 'Petugas'}
+                </Badge>
+              ),
+            },
+            {
+              label: 'Akses cabang',
+              value: u.branches.length > 0 ? u.branches.map((b) => b.name).join(', ') : '—',
+            },
+            {
+              label: 'Status PIN',
+              value: u.mustChangePin ? 'Belum ganti PIN' : 'PIN sudah diperbarui',
+            },
+            {
+              label: 'Login terakhir',
+              value: u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('id-ID') : 'Belum pernah',
+            },
+          ],
+          actions: (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">Aksi<ChevronDown className="h-3.5 w-3.5" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openEdit(u)}>
+                  <Pencil className="mr-2 h-4 w-4" />Ubah nama / peran / akses
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setJobError(null); setJob({ kind: 'reset-pin', user: u }); }}>
+                  <KeyRound className="mr-2 h-4 w-4" />Reset PIN
+                </DropdownMenuItem>
+                {isLocked(u) && (
+                  <DropdownMenuItem onClick={() => { setJobError(null); setJob({ kind: 'unlock', user: u }); }}>
+                    <LockOpen className="mr-2 h-4 w-4" />Buka kunci akun
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => { setJobError(null); setJob({ kind: 'force-logout', user: u }); }}>
+                  <LogOut className="mr-2 h-4 w-4" />Paksa logout semua sesi
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setJobError(null);
+                    setJob({
+                      kind: 'user-update',
+                      user: u,
+                      payload: { isActive: !u.isActive },
+                      impact: u.isActive
+                        ? `${u.name} tidak akan bisa login lagi dan seluruh sesinya otomatis tidak berlaku. Riwayat tetap tersimpan.`
+                        : `${u.name} dapat login kembali.`,
+                      successMsg: u.isActive ? `${u.name} dinonaktifkan` : `${u.name} diaktifkan`,
+                    });
+                  }}
+                  className="text-error focus:text-error"
+                >
+                  <UserX className="mr-2 h-4 w-4" />{u.isActive ? 'Nonaktifkan akun' : 'Aktifkan akun'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ),
+        }))}
+      />
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -575,5 +656,4 @@ export default function AkunPage() {
     </div>
   );
 }
-
 

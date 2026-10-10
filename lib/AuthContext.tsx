@@ -14,12 +14,17 @@ interface User {
   nama: string;
   role: UserRole;
   cabangId: string;
+  mustChangePin: boolean;
 }
+
+type LoginResult =
+  | { success: true; role: UserRole; mustChangePin: boolean }
+  | { success: false; error: string };
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, pin: string) => Promise<{ success: boolean; error?: string }>;
+  login: (username: string, pin: string) => Promise<LoginResult>;
   logout: () => void;
   hasAnyRole: (roles: UserRole[]) => boolean;
   isAdmin: boolean;
@@ -32,7 +37,7 @@ function extractUser(json: unknown): User | null {
   if (!json || typeof json !== 'object') return null;
   const obj = json as Record<string, unknown>;
   const data = (obj.data ?? obj.user ?? null) as
-    | (User & { mustChangePin?: boolean })
+    | User
     | null;
   if (!data || typeof data !== 'object') return null;
   return {
@@ -40,6 +45,7 @@ function extractUser(json: unknown): User | null {
     nama: String(data.nama ?? ''),
     role: data.role === 'admin' ? 'admin' : 'petugas',
     cabangId: String(data.cabangId ?? ''),
+    mustChangePin: data.mustChangePin === true,
   };
 }
 
@@ -59,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (username: string, pin: string) => {
+  const login = async (username: string, pin: string): Promise<LoginResult> => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -70,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const u = extractUser(data);
       if (res.ok && u) {
         setUser(u);
-        return { success: true };
+        return { success: true, role: u.role, mustChangePin: u.mustChangePin };
       }
       const errMsg =
         (data?.error?.message as string | undefined) ??

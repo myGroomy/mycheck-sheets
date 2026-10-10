@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ResponsiveRecordCards } from '@/components/ui/responsive-record-cards';
 import {
   Select,
   SelectContent,
@@ -295,7 +296,90 @@ export default function OperasiShiftPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <ResponsiveRecordCards
+        loading={loading}
+        emptyMessage={`Tidak ada shift ${STATUS_LABEL[statusFilter].toLowerCase()}`}
+        records={filtered.map((i) => {
+          const canOperate = i.status === 'berjalan';
+          return {
+            key: i.id,
+            title: i.shiftName,
+            subtitle: `${i.branchName}${i.isTest ? ' · Uji' : ''}`,
+            status: (
+              <div className="flex flex-wrap justify-end gap-1">
+                <Badge
+                  variant={
+                    i.status === 'berjalan'
+                      ? 'default'
+                      : i.status === 'void'
+                        ? 'secondary'
+                        : 'outline'
+                  }
+                >
+                  {i.closeType === 'paksa' ? 'Ditutup paksa' : STATUS_LABEL[i.status] ?? i.status}
+                </Badge>
+                {i.isIncomplete && <Badge variant="outline">Tidak lengkap</Badge>}
+              </div>
+            ),
+            fields: [
+              { label: 'Tanggal', value: i.shiftDate },
+              { label: 'Penanggung jawab', value: i.pjUserId || '—' },
+              { label: 'Dibuka oleh', value: i.openedBy || '—' },
+              {
+                label: 'Waktu dibuka',
+                value: i.openedAt ? new Date(i.openedAt).toLocaleString('id-ID') : '—',
+              },
+              { label: 'ID cabang', value: i.branchId },
+              { label: 'ID shift', value: i.id },
+            ],
+            actions: (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!canOperate}
+                  onClick={() => openOp(i, 'force_close')}
+                  title={
+                    canOperate
+                      ? 'Tutup shift tanpa syarat checklist'
+                      : 'Hanya shift berjalan yang bisa ditutup paksa'
+                  }
+                >
+                  <XCircle className="h-3.5 w-3.5" />Tutup Paksa
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!canOperate}
+                  onClick={() => openOp(i, 'change_pj')}
+                  title={
+                    canOperate
+                      ? 'Pindahkan tanggung jawab ke petugas lain'
+                      : 'Hanya shift berjalan yang bisa PJ-nya diganti'
+                  }
+                >
+                  <UserCog className="h-3.5 w-3.5" />Ganti PJ
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!canOperate}
+                  onClick={() => openOp(i, 'void')}
+                  title={
+                    canOperate
+                      ? 'Batalkan shift yang dibuka tidak sengaja'
+                      : 'Shift yang sudah ditutup dikoreksi lewat addendum'
+                  }
+                >
+                  <BanIcon className="h-3.5 w-3.5" />Void
+                </Button>
+              </>
+            ),
+          };
+        })}
+      />
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
         <Table>
           <TableHeader>
             <TableRow>
