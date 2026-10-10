@@ -1,0 +1,319 @@
+# Database Schema — mycheck
+
+<Callout type="warning">
+  mycheck **tidak menggunakan SQL database**. Data disimpan di **Google Sheets**
+  yang diakses via API sebagai service account. Tidak ada migration, tidak ada
+  ORM, tidak ada transaksi. Sumber kebenaran struktur adalah spreadsheet
+  `Template_cabang_mycheck`; definisi kolom di kode ada di
+  `lib/google/branch-schema.ts`.
+</Callout>
+
+## Konsep Inti
+
+**Cabang = spreadsheet.** Tidak ada tabel `branches` dan tidak ada kolom
+`branch_id`. Satu spreadsheet per cabang, jadi sudah secara implisit berada di
+spreadsheet yang benar.
+
+Ada dua spreadsheet yang berbeda sifat:
+
+| | **Registry** | **Spreadsheet cabang** |
+|---|---|---|
+| Jumlah | 1 (global) | 1 per cabang |
+| Isi | cabang, user, setting global, share token | template shift + data operasional cabang |
+| Konvensi kolom | **PascalCase** (`Cabang_ID`, `Nama_Cabang`) | **snake_case** (`shift_date`, `created_at`) |
+| Env | `REGISTRY_SPREADSHEET_ID` | kolom `Spreadsheet_ID` di Registry |
+
+Konvensi nama berbeda antara Registry (PascalCase, mengikuti stokis) dan
+spreadsheet cabang (snake_case). Ini disengaja — jangan disamakan.
+
+---
+
+## 1. Registry
+
+Satu spreadsheet global untuk semua cabang.
+
+### Sheet `Daftar_Cabang`
+
+Daftar semua cabang yang terdaftar.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `Cabang_ID` | string | PK. Sama dengan `Kode`. |
+| `Nama_Cabang` | string | Tampil di UI. |
+| `Kode` | string | Kode unik cabang. |
+| `Timezone` | string | IANA, mis. `Asia/Jakarta`. Menentukan tanggal shift. |
+| `Spreadsheet_ID` | string | ID spreadsheet cabang. Kosong = cabang nonaktif. |
+| `Folder_Drive_ID` | string | Folder Drive untuk unggah foto. |
+| `Aktif` | bool | Hanya cabang aktif yang bisa diakses. |
+
+<Callout type="info">
+  Cabang dibuat **nonaktif**. Wajib diisi `Spreadsheet_ID` dulu sebelum bisa
+  diaktifkan — API menolak mengaktifkan cabang tanpa spreadsheet.
+</Callout>
+
+### Sheet `Users`
+
+Semua pengguna (admin & petugas).
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `User_ID` | string | PK, format `U-<timestamp>`. |
+| `Username` | string | Unik, dipakai sebagai identitas sesi. |
+| `PIN` | string | **Plaintext** (6 digit). Pinjaman keamanan yang disepakati. |
+| `Nama` | string | Nama tampilan. |
+| `Role` | string | `admin` \| `petugas`. |
+| `Cabang_ID` | string | ID cabang dipisah koma. **Kosong untuk admin** (admin akses semua). |
+| `Aktif` | bool | |
+| `Must_Change_Pin` | bool | Diset `TRUE` saat admin reset PIN user. |
+| `Created_At` | string | ISO UTC. |
+
+<Callout type="warning">
+  Tidak ada tabel `user_branch_access` — akses cabang disimpan di kolom
+  `Cabang_ID`. Tidak ada `pin_fail_attempts` (tidak ada lockout/rate limiting).
+</Callout>
+
+### Sheet `Settings_Global`
+
+`Key` | `Value`. Tipe (`int`/`bool`/`string`/`text`) **tidak** disimpan di sheet —
+katalognya ada di kode: `lib/admin/settings-catalog.ts`. Ini konsekuensi sheet
+yang hanya punya dua kolom.
+
+### Sheet `Share_Tokens`
+
+Token laporan publik. Kolom: `id`, `report_id`, `branch_id`, `token`,
+`created_by`, `created_at`, `expires_at`, `revoked_at`, `access_count`,
+`last_accessed_at`, `share_note`, `visibility`.
+
+<Callout type="info">
+  Token disimpan apa adanya (bukan hash) agar route publik bisa mencarinya dengan
+  satu pembacaan sheet.
+</Callout>
+
+### Sheet `Template_Referensi`
+
+`Template_Spreadsheet_ID` — pointer ke template master.
+
+---
+
+## 2. Spreadsheet Cabang
+
+Satu spreadsheet per cabang.
+
+### 2.1 Sheet Konfigurasi (statis)
+
+| Sheet | Fungsi | Kolom inti |
+|---|---|---|
+| `ShiftDefinitions` | Definisi shift | `id`, `name`, `start_time`, `end_time`, `crosses_midnight`, `sort_order`, `is_active`, `created_at`, `updated_at`, `version` |
+| `SopCategories` | Kategori SOP per shift | `id`, `shift_definition_id`, `name`, `sort_order`, `is_active`, `created_at`, `updated_at`, `version` |
+| `ChecklistPoints` | Item checklist per kategori | `id`, `sop_category_id`, `title`, `instruction`, `input_type`, `is_required`, `target_time`, `tolerance_minutes`, `active_days`, `number_min`, `number_max`, `sort_order`, `is_active`, `created_at`, `updated_at`, `version` |
+| `HandoverFields` | Field serah terima per shift | `id`, `shift_definition_id`, `label`, `field_type`, `options`, `is_required`, `sort_order`, `is_active`, `created_at`, `updated_at`, `version` |
+| `IncidentCategories` | Kategori incident | `id`, `name`, `sort_order`, `is_active`, `created_at`, `updated_at` |
+| `Notifications` | Notifikasi per cabang | `id`, `user_id`, `type`, `title`, `body`, `link`, `is_read`, `created_at` |
+| `_meta` | Key/value per cabang | `key`, `value` (mis. `tolerance_default_minutes`, `version`) |
+
+### 2.2 Sheet Operasional (statis)
+
+| Sheet | Keterangan |
+|---|---|
+| `ShiftInstances` | Inti. Punya `tab_month` yang menentukan tab bulanan mana yang dipakai instance tersebut. Kolom: `id`, `shift_definition_id`, `shift_date`, `tab_month`, `status`, `pj_user_id`, `opened_by`, `opened_at`, `opened_outside_hours`, `closed_at`, `closed_by`, `close_type`, `force_close_reason`, `is_incomplete`, `no_incident_confirmed`, `void_reason`, `void_by`, `void_at`, `is_test`, `snapshot_encoding`, `template_snapshot`, `snapshot_hash`, `created_at`, `updated_at`, `version` |
+| `Participants` | `id`, `shift_instance_id`, `user_id`, `first_action_at`, `first_action_type`, `created_at` |
+| `Reports` | `id`, `shift_instance_id`, `report_number`, `generated_by`, `generated_at`, `is_locked`, `summary_stats`, `content_hash`, `unlock_count`, `last_unlocked_at`, `last_unlocked_by`, `created_at`, `updated_at`, `version` |
+| `Addenda` | `id`, `report_id`, `author_id`, `note`, `created_at` |
+| `Summary` | Agregat harian per shift definition. Kolom: `id`, `summary_date`, `shift_definition_id`, `shifts_total`, `shifts_closed_normal`, `shifts_closed_forced`, `shift_void`, `required_total`, `required_done`, `required_skipped`, `timed_on_time`, `timed_early`, `timed_late`, `incidents_total`, `incidents_open`, `incidents_by_category`, `handovers_read`, `participants_count`, `computed_at` |
+| `Snapshots` | Potongan snapshot bila terlalu besar untuk satu sel. Kolom: `id`, `shift_instance_id`, `part_no`, `chunk`, `created_at` |
+| `IncidentIndex` | Indeks ringan: satu baris per incident (`incident_id`, `tab_month`, `status`, `category_id`, `shift_instance_id`, `outside_shift`, `reported_at`, `is_test`, `updated_at`) untuk mempercepat daftar |
+
+### 2.3 Sheet Bulanan (transaksional)
+
+Berformat `<Nama>_<YYYY-MM>`, dipisah per bulan agar tidak meledak ukurannya.
+Tab dibuat otomatis oleh kode saat pertama dipakai (`ensureMonthlySheet`).
+
+| Sheet bulanan | Keterangan |
+|---|---|
+| `Entries_<bulan>` | Jawaban checklist per point. Kolom: `id`, `shift_instance_id`, `point_ref`, `state`, `value`, `out_of_range`, `photo_ids`, `completed_by`, `completed_at`, `timing_label`, `timing_delta_minutes`, `skip_reason`, `created_at`, `updated_at`, `version` |
+| `EntryLogs_<bulan>` | Log tiap aksi + `client_action_id` (idempotency). Kolom: `id`, `shift_instance_id`, `entry_id`, `point_ref`, `action`, `outcome`, `user_id`, `winner_user_id`, `prev_state`, `new_state`, `value`, `note`, `client_action_id`, `client_at`, `at`, `created_at` |
+| `Handovers_<bulan>` | Isi serah terima. Kolom: `id`, `shift_instance_id`, `values`, `free_text`, `photo_ids`, `submitted_by`, `submitted_at`, `created_at`, `updated_at` |
+| `HandoverAcks_<bulan>` | Konfirmasi sudah membaca handover. Kolom: `id`, `handover_id`, `reading_shift_instance_id`, `user_id`, `read_at`, `created_at` |
+| `Incidents_<bulan>` | Laporan incident. Kolom: `id`, `shift_instance_id`, `tab_month`, `category_id`, `description`, `occurred_at`, `reported_by`, `reported_at`, `status`, `outside_shift`, `link_source`, `linked_by`, `linked_at`, `source_entry_id`, `severity`, `status_changed_by`, `status_changed_at`, `is_test`, `created_at`, `updated_at`, `version` |
+| `IncidentNotes_<bulan>` | Catatan koreksi incident (BR-41). Kolom: `id`, `incident_id`, `author_id`, `author_role`, `note`, `created_at` |
+| `Photos_<bulan>` | Metadata foto. Kolom: `id`, `shift_instance_id`, `owner_type`, `owner_id`, `storage`, `file_ref`, `mime`, `size_bytes`, `width`, `height`, `sort_order`, `status`, `uploaded_by`, `uploaded_at`, `purged_at`, `created_at` |
+| `AuditLog_<bulan>` | Audit append-only + hash chain (`seq`, `prev_hash`, `hash`) |
+
+<Callout type="warning">
+  Tab mana yang dipakai sebuah shift ditentukan oleh `ShiftInstances.tab_month`.
+  Sheet default Google (`Sheet1`) **wajib** dihapus — script setup sudah
+  melakukannya.
+</Callout>
+
+---
+
+## 3. Cara Membaca Data
+
+Aplikasi membaca data lewat **`lib/store.ts`** (filter/list/insert/update) yang
+berada di atas **`lib/google/sheets.ts`**. Aturan penting:
+
+<Callout type="warning">
+  **`valueInputOption: 'RAW'` wajib** untuk semua tulisan. Dengan
+  `USER_ENTERED`, Sheets mengubah `"2026-10-08"` menjadi `46303` dan `"true"`
+  menjadi boolean — merusak `shift_date`, `tab_month`, dan nilai centang.
+</Callout>
+
+### Aturan Wajib Dijaga
+
+1. **Baca/tulis berdasarkan nama kolom**, bukan urutan. Header sheet adalah skema.
+2. **Boolean** ditulis sebagai string `'TRUE'`/`FALSE'`, dibaca lewat `asBool()`.
+3. **Tidak ada transaksi.** Operasi lintas sheet tidak atomik. Kalau sebagian
+   gagal, lakukan kompensasi atau kembalikan seperti semula.
+4. **Tidak ada unique index.** BR-01 (satu shift per definisi+tanggal) dijaga
+   pengecekan aplikasi sebelum insert — pada request paralel masih mungkin ada
+   race (dulu dijaga advisory lock).
+5. **Tidak ada row lock.** BR-12 (aksi pertama menang) dijaga pengecekan state
+   sebelum update.
+6. **Hapus baris secara fisik** hanya boleh untuk operasi admin yang memang
+   perlu menghapus konfigurasi. Lifecycle bisnis (shift, incident, laporan)
+   **tidak** menghapus baris — hanya ubah status.
+7. **Waktu** disimpan sebagai string ISO UTC. Tampil sesuai zona waktu cabang.
+8. **ID** memakai ULID, dibuat di aplikasi dengan `ulid`.
+9. **Idempotency**: setiap aksi dari klien membawa `client_action_id`, dicek di
+   `EntryLogs.client_action_id` sebelum menulis.
+10. **Semua operasi baca Sheet itu mahal** (1 panggilan API). Pakai cache TTL
+    (`lib/google/cache.ts`) dan `values.batchGet` (`filterRowsMulti`) bila
+    membaca >1 sheet.
+11. **Mutasi ke Registry/Users wajib** memanggil `resetRegistryCache()` /
+    `resetUsersCache()`.
+12. **Verifikasi PIN admin** (`lib/admin/sensitive-action.ts`) **wajib** membaca
+    sheet langsung, bukan cache — supaya PIN yang baru di-reset tidak kedaluwarsa.
+
+### Contoh Kode
+
+```typescript
+// lib/store.ts — Lapisan akses data berbasis Google Sheets
+import { listRows, filterRows, findRow, insertRow } from '@/lib/store';
+
+// Baca semua baris dari sebuah sheet
+const shifts = await listRows(spreadsheetId, 'ShiftInstances');
+
+// Filter dengan predicate
+const activeShifts = await filterRows(spreadsheetId, 'ShiftInstances', (row) =>
+  row.status === 'open'
+);
+
+// Cari satu baris berdasarkan kolom
+const user = await findRow(spreadsheetId, 'Users', 'Username', 'budi');
+
+// Insert baris baru (valueInputOption: 'RAW' diterapkan di sheets.ts)
+await insertRow(spreadsheetId, 'ShiftInstances', {
+  id: ulid(),
+  shift_definition_id: 'shift_pagi',
+  shift_date: '2026-10-08',
+  tab_month: '2026-10',
+  status: 'open',
+});
+```
+
+### Sheet Explorer Interaktif
+
+Pilih sheet di bawah ini untuk melihat struktur kolom dan fungsinya:
+
+```jsx
+const SHEET_DATA = {
+  ShiftDefinitions: {
+    kategori: "Konfigurasi",
+    deskripsi: "Definisi shift (Pagi, Siang, Malam)",
+    kolom: ["id", "name", "start_time", "end_time", "crosses_midnight", "sort_order", "is_active", "version"],
+  },
+  SopCategories: {
+    kategori: "Konfigurasi",
+    deskripsi: "Kategori SOP per shift",
+    kolom: ["id", "shift_definition_id", "name", "sort_order", "is_active"],
+  },
+  ChecklistPoints: {
+    kategori: "Konfigurasi",
+    deskripsi: "Item checklist per kategori SOP",
+    kolom: ["id", "sop_category_id", "title", "instruction", "input_type", "is_required", "target_time", "tolerance_minutes", "sort_order", "is_active"],
+  },
+  ShiftInstances: {
+    kategori: "Operasional",
+    deskripsi: "Inti — data shift yang berjalan",
+    kolom: ["id", "shift_definition_id", "shift_date", "tab_month", "status", "pj_user_id", "opened_by", "opened_at", "closed_at", "closed_by", "close_type", "is_test", "template_snapshot"],
+  },
+  Entries: {
+    kategori: "Bulanan",
+    deskripsi: "Jawaban checklist per point (tab bulanan)",
+    kolom: ["id", "shift_instance_id", "point_ref", "state", "value", "completed_by", "completed_at", "skip_reason"],
+  },
+  Incidents: {
+    kategori: "Bulanan",
+    deskripsi: "Laporan incident (tab bulanan)",
+    kolom: ["id", "shift_instance_id", "category_id", "description", "occurred_at", "reported_by", "reported_at", "status", "severity"],
+  },
+  AuditLog: {
+    kategori: "Bulanan",
+    deskripsi: "Audit append-only + hash chain (tab bulanan)",
+    kolom: ["id", "seq", "at", "actor_id", "action", "object_type", "object_id", "before", "after", "reason", "prev_hash", "hash"],
+  },
+};
+
+function SheetExplorer() {
+  const [selected, setSelected] = React.useState(null);
+  const sheet = selected ? SHEET_DATA[selected] : null;
+
+  return (
+    <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
+      <p className="text-sm font-semibold text-gray-700">Sheet Explorer — klik untuk detail</p>
+      <div className="flex flex-wrap gap-2">
+        {Object.keys(SHEET_DATA).map((name) => (
+          <button
+            key={name}
+            onClick={() => setSelected(name === selected ? null : name)}
+            className={`text-xs px-3 py-1.5 rounded-full border ${
+              selected === name
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-700 border-gray-300 hover:border-blue-400"
+            }`}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+      {sheet && (
+        <div className="text-sm space-y-2">
+          <p><span className="font-medium">Kategori:</span> {sheet.kategori}</p>
+          <p><span className="font-medium">Fungsi:</span> {sheet.deskripsi}</p>
+          <div>
+            <p className="font-medium mb-1">Kolom:</p>
+            <div className="flex flex-wrap gap-1">
+              {sheet.kolom.map((k) => (
+                <code key={k} className="text-xs bg-gray-200 px-1.5 py-0.5 rounded">{k}</code>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+<SheetExplorer />
+```
+
+---
+
+## 4. Snapshot & Audit
+
+- **Snapshot template** disimpan sebagai JSON di `ShiftInstances.template_snapshot`
+  (`snapshot_encoding` = `json`). Perubahan template setelah shift dibuka tidak
+  memengaruhi shift yang sedang berjalan (BR-05).
+- **Hash chain audit** dihitung di dalam satu tab bulanan, jadi chain **di-reset
+  setiap ganti bulan** — bukan global seperti di PostgreSQL. Ini perbedaan yang
+  diterima, bukan bug.
+
+---
+
+## 5. Menambah Kolom
+
+1. Ubah header di Registry atau di seluruh spreadsheet cabang.
+2. Update `lib/google/branch-schema.ts` (`STATIC_SHEETS` atau `MONTHLY_SHEETS`).
+3. Update pemanggilnya di `lib/store.ts` / `lib/admin/template-service.ts`.
+4. Tidak ada migrasi — tapi **penyesuaian** ke spreadsheet cabang lama wajib
+   dilakukan manual, karena kode tidak menambah kolom yang belum ada.

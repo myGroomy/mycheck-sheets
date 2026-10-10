@@ -1,4 +1,4 @@
-# Dokumentasi checklist-shift
+# Dokumentasi mycheck
 
 Dokumentasi ini dibagi untuk pengguna aplikasi dan developer yang akan
 melanjutkan pengembangan.
@@ -7,6 +7,7 @@ melanjutkan pengembangan.
 | --- | --- | --- |
 | [Panduan Pengguna](./panduan-pengguna.mdx) | Petugas dan admin cabang | Login, siklus shift, checklist, incident, laporan, dan pengaturan admin |
 | [Panduan Developer](./panduan-developer.mdx) | Developer dan maintainer | Struktur repo, arsitektur, setup lokal, aturan perubahan, validasi, dan hal yang perlu dicek |
+| [Database Schema](./database-schema.mdx) | Developer dan maintainer | Struktur spreadsheet Registry dan cabang, setiap sheet, kolom, dan cara membacanya |
 
 ## Akses di aplikasi
 
@@ -20,7 +21,66 @@ Untuk keputusan produk dan teknis, tetap baca dokumen acuan di root repository:
 `AGENTS.md`, `PRD.md`, `DATABASE_SCHEMA.md`, `TRD.md`, `APP_FLOW.md`,
 `IMPLEMENTATION_PLAN.md`, `TESTING.md`, dan `UI-UX.md`.
 
-Spesifikasi menggambarkan target produk; route dan kode saat ini menunjukkan
-apa yang sudah tersedia. Jika keduanya berbeda, jangan menganggap fitur sudah
-selesai hanya karena tercantum dalam spesifikasi. Verifikasi implementasi dan
-konfirmasikan keputusan yang belum jelas sebelum mengubah perilaku.
+<Callout type="info">
+  Spesifikasi menggambarkan target produk; route dan kode saat ini menunjukkan
+  apa yang sudah tersedia. Jika keduanya berbeda, jangan menganggap fitur sudah
+  selesai hanya karena tercantum dalam spesifikasi. Verifikasi implementasi dan
+  konfirmasikan keputusan yang belum jelas sebelum mengubah perilaku.
+</Callout>
+
+## Simulator Checklist Interaktif
+
+Komponen ini mendemonstrasikan cara kerja aksi checklist di mycheck — centang item, skip dengan alasan, atau isi nilai bebas.
+
+```jsx
+function ChecklistSimulator() {
+  const [items, setItems] = React.useState([
+    { id: 1, title: "Cek suhu freezer", type: "checkbox", state: "pending", value: "" },
+    { id: 2, title: "Jumlah porsi siap saji", type: "number", state: "pending", value: "" },
+    { id: 3, title: "Bersihkan area dapur", type: "checkbox", state: "pending", value: "" },
+  ]);
+
+  function updateItem(id, updates) {
+    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  }
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
+      <p className="text-sm font-semibold text-gray-700">Simulasi Item Checklist</p>
+      {items.map((item) => (
+        <div key={item.id} className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={item.state === "done"}
+            onChange={(e) => updateItem(item.id, { state: e.target.checked ? "done" : "pending" })}
+            className="w-4 h-4"
+          />
+          <span className={item.state === "done" ? "line-through text-gray-400" : ""}>
+            {item.title}
+          </span>
+          {item.type === "number" && (
+            <input
+              type="number"
+              placeholder="isi angka"
+              value={item.value}
+              onChange={(e) => updateItem(item.id, { value: e.target.value, state: e.target.value ? "done" : "pending" })}
+              className="border rounded px-2 py-1 text-xs w-24"
+            />
+          )}
+          {item.state === "done" && (
+            <span className="text-green-600 text-xs">Selesai</span>
+          )}
+        </div>
+      ))}
+      <button
+        onClick={() => setItems((prev) => prev.map((i) => ({ ...i, state: "pending", value: "" })))}
+        className="text-xs text-blue-600 underline"
+      >
+        Reset semua
+      </button>
+    </div>
+  );
+}
+
+<ChecklistSimulator />
+```

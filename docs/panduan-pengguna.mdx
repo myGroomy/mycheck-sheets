@@ -1,10 +1,9 @@
 # Panduan Pengguna
 
-Panduan ringkas untuk petugas dan admin yang menggunakan checklist-shift.
-Aplikasi digunakan melalui browser sebagai PWA dan antarmukanya berbahasa
-Indonesia.
+Panduan ringkas untuk petugas dan admin yang menggunakan mycheck. Aplikasi
+digunakan melalui browser sebagai PWA dan antarmukanya berbahasa Indonesia.
 
-## Mulai menggunakan aplikasi
+## Mulai Menggunakan Aplikasi
 
 1. Buka alamat aplikasi yang diberikan admin.
 2. Pilih **Masuk**, lalu isi username dan PIN 6 digit.
@@ -12,15 +11,16 @@ Indonesia.
    dapat membuka kunci atau mereset PIN.
 4. Setelah login, gunakan navigasi sesuai perangkat:
    - **HP/tablet kecil:** bilah navigasi di bagian bawah.
-   - **Desktop/tablet lebar:** tombol menu ☰ pada header membuka navigasi
-     samping.
+   - **Desktop/tablet lebar:** tombol menu pada header membuka navigasi samping.
 
-Jangan membagikan PIN kepada orang lain. PIN digunakan untuk login dan untuk
-mengonfirmasi penutupan shift oleh PJ.
+<Callout type="warning">
+  Jangan membagikan PIN kepada orang lain. PIN digunakan untuk login dan untuk
+  mengonfirmasi penutupan shift oleh PJ.
+</Callout>
 
 ## Petugas
 
-### Beranda dan shift
+### Beranda dan Shift
 
 Beranda menampilkan cabang yang dapat diakses dan definisi shift yang tersedia.
 Jika akun memiliki akses ke lebih dari satu cabang, pilih shift pada cabang
@@ -34,7 +34,7 @@ yang benar.
 - Satu pelaksanaan shift dibagikan oleh semua pesertanya; checklist bukan
   salinan pribadi.
 
-### Mengerjakan checklist
+### Mengerjakan Checklist
 
 Pada halaman shift, item dikelompokkan menurut kategori SOP. Ikuti instruksi
 setiap item dan gunakan kontrol yang tersedia, misalnya centang, jawaban
@@ -52,7 +52,7 @@ Ya/Tidak, angka, teks, atau foto.
 - Aksi tulis membutuhkan koneksi internet. Jika gagal, baca pesannya lalu
   coba ulang saat koneksi pulih.
 
-### Menutup shift (khusus PJ)
+### Menutup Shift (khusus PJ)
 
 Tombol **Tutup Shift** hanya tersedia untuk PJ.
 
@@ -64,9 +64,11 @@ Tombol **Tutup Shift** hanya tersedia untuk PJ.
 3. **Konfirmasi penutupan:** masukkan **PIN akun PJ sendiri**, yaitu PIN yang
    digunakan untuk login. Ini bukan PIN baru dan bukan PIN admin lain.
 
-Setelah penutupan berhasil, shift dan checklist dikunci, lalu laporan dibuat.
-Koreksi laporan dilakukan sebagai addendum melalui alur admin, bukan dengan
-mengedit shift yang sudah ditutup.
+<Callout type="info">
+  Setelah penutupan berhasil, shift dan checklist dikunci, lalu laporan dibuat.
+  Koreksi laporan dilakukan sebagai addendum melalui alur admin, bukan dengan
+  mengedit shift yang sudah ditutup.
+</Callout>
 
 ### Incident
 
@@ -98,21 +100,25 @@ Halaman admin tersedia bagi akun berperan admin. Menu admin berisi:
 - **Pengaturan** dan **Audit Log:** pengaturan aplikasi dan peninjauan riwayat
   aksi.
 
-Akun dapat diberi akses ke lebih dari satu cabang. Perubahan template tidak
-mengubah snapshot template pada shift yang sudah berjalan.
+<Callout type="info">
+  Akun dapat diberi akses ke lebih dari satu cabang. Perubahan template tidak
+  mengubah snapshot template pada shift yang sudah berjalan.
+</Callout>
 
-Aksi admin yang sensitif mungkin meminta alasan dan PIN admin. Nonaktifkan
-akun, reset PIN, atau ubah akses hanya setelah memeriksa dampaknya. Data
-riwayat tidak dihapus permanen.
+<Callout type="warning">
+  Aksi admin yang sensitif mungkin meminta alasan dan PIN admin. Nonaktifkan
+  akun, reset PIN, atau ubah akses hanya setelah memeriksa dampaknya. Data
+  riwayat tidak dihapus permanen.
+</Callout>
 
-## PWA dan koneksi
+## PWA dan Koneksi
 
 Aplikasi dapat ditambahkan ke layar utama dari browser yang mendukung PWA.
 Cache offline hanya untuk shell aplikasi/bacaan tertentu; **jangan mengandalkan
 aplikasi untuk menyimpan perubahan checklist, incident, atau handover tanpa
 koneksi internet**.
 
-## Pemecahan masalah
+## Pemecahan Masalah
 
 | Gejala | Yang dapat dicoba |
 | --- | --- |
@@ -126,3 +132,79 @@ koneksi internet**.
 Untuk melaporkan masalah, sertakan perangkat/browser, halaman, langkah
 reproduksi, waktu kejadian, serta tangkapan layar yang tidak menampilkan PIN
 atau informasi rahasia.
+
+## Simulasi Penutupan Shift
+
+Komponen ini mendemonstrasikan alur validasi sebelum menutup shift — semua item wajib harus selesai atau di-skip dengan alasan.
+
+```jsx
+function ShiftCloseSimulator() {
+  const [items, setItems] = React.useState([
+    { id: 1, title: "Cek suhu freezer", required: true, state: "pending" },
+    { id: 2, title: "Hitung stok bahan", required: true, state: "pending" },
+    { id: 3, title: "Bersihkan meja kerja", required: false, state: "pending" },
+  ]);
+  const [handover, setHandover] = React.useState("");
+
+  const toggle = (id) => {
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? { ...i, state: i.state === "done" ? "pending" : i.state === "skip" ? "pending" : "done" }
+          : i
+      )
+    );
+  };
+
+  const skip = (id) => {
+    setItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, state: "skip" } : i))
+    );
+  };
+
+  const allDone = items
+    .filter((i) => i.required)
+    .every((i) => i.state === "done" || i.state === "skip");
+
+  return (
+    <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
+      <p className="text-sm font-semibold text-gray-700">Simulasi Penutupan Shift</p>
+      {items.map((item) => (
+        <div key={item.id} className="flex items-center gap-2 text-sm">
+          <span className="text-xs text-gray-400">{item.required ? "Wajib" : "Opsional"}</span>
+          <button
+            onClick={() => toggle(item.id)}
+            className={`px-2 py-1 rounded text-xs ${
+              item.state === "done"
+                ? "bg-green-100 text-green-700"
+                : item.state === "skip"
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {item.state === "done" ? "Selesai" : item.state === "skip" ? "Skip" : "Belum"}
+          </button>
+          <span>{item.title}</span>
+          {item.state !== "done" && (
+            <button onClick={() => skip(item.id)} className="text-xs text-yellow-600 underline">
+              Skip
+            </button>
+          )}
+        </div>
+      ))}
+      <textarea
+        placeholder="Isi handover untuk shift berikutnya..."
+        value={handover}
+        onChange={(e) => setHandover(e.target.value)}
+        className="w-full border rounded px-3 py-2 text-sm"
+        rows={2}
+      />
+      <div className={`text-sm font-medium ${allDone ? "text-green-600" : "text-red-500"}`}>
+        {allDone ? "Semua item wajib terisi — siap tutup shift" : "Masih ada item wajib yang belum selesai"}
+      </div>
+    </div>
+  );
+}
+
+<ShiftCloseSimulator />
+```

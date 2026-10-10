@@ -1,206 +1,227 @@
 # Panduan Developer
 
-Panduan onboarding untuk developer yang melanjutkan checklist-shift. Baca
-bersama spesifikasi di root repository; panduan ini merangkum struktur dan
-perilaku implementasi yang ada, bukan menggantikan spesifikasi.
+Panduan onboarding untuk developer yang melanjutkan mycheck. Baca bersama
+spesifikasi di root repository; panduan ini merangkum struktur dan perilaku
+implementasi yang ada, bukan menggantikan spesifikasi.
 
 ## Mulai dari dokumen acuan
 
 Urutan prioritas dan aturan kerja berada di `AGENTS.md`. Dokumen lain:
 
 1. `PRD.md` — perilaku produk dan aturan bisnis.
-2. `DATABASE_SCHEMA.md` — skema PostgreSQL.
+2. `DATABASE_SCHEMA.md` — struktur Google Sheets (Registry + spreadsheet cabang).
 3. `TRD.md` — keputusan arsitektur dan teknis.
 4. `APP_FLOW.md` — layar dan alur UX.
 5. `IMPLEMENTATION_PLAN.md` — tahapan implementasi.
 6. `TESTING.md` — kriteria verifikasi.
 7. `UI-UX.md` — panduan visual dan responsif.
 
-Spesifikasi saat ini memuat sejumlah layar dan pekerjaan berstatus rencana.
-Sebelum melanjutkannya, periksa route, handler, schema, dan tes yang benar-benar
-ada. Jika dokumen bertentangan dengan implementasi atau instruksi kerja,
-hentikan perubahan terkait dan minta keputusan; jangan menyimpulkan sendiri.
+<Callout type="warning">
+  Spesifikasi saat ini memuat sejumlah layar dan pekerjaan berstatus rencana.
+  Sebelum melanjutkannya, periksa route, handler, schema, dan tes yang benar-benar
+  ada. Jika dokumen bertentangan dengan implementasi atau instruksi kerja,
+  hentikan perubahan terkait dan minta keputusan; jangan menyimpulkan sendiri.
+</Callout>
 
-## Arsitektur dan struktur repository
+## Arsitektur dan Struktur Repository
 
-Monorepo menggunakan npm workspaces:
+Single project Next.js di root repo. **Bukan monorepo.**
 
 ```text
-apps/web/
-  app/                 Next.js App Router pages, layouts, dan API routes
-  components/          UI petugas, admin, incident, report, dan komponen bersama
-  lib/                 autentikasi, database, storage, waktu, audit, dan helper
-  drizzle/
-    schema.ts          skema Drizzle yang dipakai aplikasi
-    migrations/        migrasi database
-    seed.ts            seed awal legacy; hanya untuk konteks lokal yang aman
-    seed-realistic-demo.ts  fixture demo multi-cabang; cek isi/efek sebelum jalan
-  public/              aset PWA
-packages/shared/
-  src/                 tipe dan validasi Zod bersama
-docs/                  panduan MDX sumber; belum menjadi halaman aplikasi
+mycheck/
+  app/                    # Next.js App Router — pages, layouts, API routes
+  components/             # UI petugas, admin, incident, report, komponen bersama
+  lib/
+    google/               # Google Sheets API client, branch-schema, cache
+    store.ts              # Lapisan akses data (filter/list/insert/update)
+    session.ts            # Cookie HMAC-SHA256 session management
+    api-auth.ts           # Helper otorisasi untuk API route
+    page-auth.ts          # Helper otorisasi untuk Server Component
+    admin/                # Template service, sensitive action, settings catalog
+    ...
+  scripts/                # Setup registry, branch, seed admin
+  docs/                   # Dokumentasi MDX (file ini)
+  public/                 # Aset PWA
 ```
 
-Tidak ada `apps/api` atau service API terpisah. API berada pada
-`apps/web/app/api/**/route.ts`. Data browser melewati Next.js server/API; akses
-langsung browser ke PostgreSQL atau Supabase service-role tidak diperbolehkan.
+Tidak ada `apps/` atau `packages/`. API berada pada
+`app/api/**/route.ts`. Data browser melewati Next.js server/API; akses
+langsung browser ke Google Sheets tidak diperbolehkan.
 
-### Bagian implementasi penting
+### Bagian Implementasi Penting
 
 | Area | Lokasi utama |
 | --- | --- |
-| Layout umum, login, beranda | `apps/web/app/layout.tsx`, `app/login/page.tsx`, `app/page.tsx` |
-| Guard autentikasi | `apps/web/lib/auth/session.ts`, `guard.ts`, `middleware.ts` |
-| API autentikasi | `apps/web/app/api/auth/**` |
-| Shift, checklist, progress, penutupan | `apps/web/app/api/shifts/**` |
-| Incident, laporan, foto | `apps/web/app/api/incidents/**`, `api/reports/**`, `api/photos/**` |
-| API admin | `apps/web/app/api/admin/**` |
-| UI petugas/admin | `apps/web/components/shift/**`, `components/admin/**` |
-| Skema PostgreSQL | `apps/web/drizzle/schema.ts` |
-| Kontrak validasi bersama | `packages/shared/src/**` |
+| Layout umum, login, beranda | `app/layout.tsx`, `app/login/page.tsx`, `app/page.tsx` |
+| Guard autentikasi | `lib/session.ts`, `lib/api-auth.ts`, `lib/page-auth.ts` |
+| API autentikasi | `app/api/auth/**` |
+| Shift, checklist, progress, penutupan | `app/api/shifts/**` |
+| Incident, laporan, foto | `app/api/incidents/**`, `api/reports/**`, `api/photos/**` |
+| API admin | `app/api/admin/**` |
+| UI petugas/admin | `components/shift/**`, `components/admin/**` |
+| Skema spreadsheet (kolom) | `lib/google/branch-schema.ts` |
+| Akses data (Google Sheets) | `lib/store.ts` |
 
-## Setup lokal
+## Setup Lokal
 
-Gunakan Node.js yang kompatibel dengan Next.js 14 dan npm:
+Gunakan Node.js 22.x dan npm:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Aplikasi web berjalan pada port 3000 secara default. Siapkan environment lokal
+Aplikasi berjalan pada port 3000 secara default. Siapkan environment lokal
 terlebih dahulu; jangan menaruh nilai rahasia di source code, issue, log,
 screenshot, atau file yang dikomit.
 
-Environment yang digunakan kode:
+### Environment
 
 | Variabel | Pemakaian |
 | --- | --- |
-| `DATABASE_URL` | Wajib untuk Drizzle/PostgreSQL. Gunakan project database uji, bukan produksi. |
-| `SESSION_SECRET` | Wajib untuk penandatanganan token sesi. |
-| `PIN_PEPPER` | Wajib untuk hashing dan verifikasi PIN. |
-| `SUPABASE_URL` | URL project Supabase untuk operasi Storage. |
-| `SUPABASE_SERVICE_ROLE_KEY` | Akses server ke Storage; jangan pernah kirim ke client. |
-| `GOOGLE_SA_EMAIL`, `GOOGLE_SA_PRIVATE_KEY`, `GOOGLE_DRIVE_ARCHIVE_FOLDER_ID` | Akses arsip Google Drive bila alur arsip dijalankan. |
-| `CRON_SECRET` | Otorisasi endpoint cron bila endpoint tersebut digunakan. |
+| `REGISTRY_SPREADSHEET_ID` | ID spreadsheet Registry (global). |
+| `GOOGLE_SA_EMAIL` | Email service account Google. |
+| `GOOGLE_SA_PRIVATE_KEY` | Private key service account (newline escaped). |
+| `GOOGLE_DRIVE_FOLDER_ID` | ID folder Google Drive untuk storage foto. |
+| `SESSION_SECRET` | Secret untuk HMAC-SHA256 session token. |
+| `PIN_PEPPER` | Pepper untuk verifikasi PIN (disimpan di sheet, bukan hash). |
+| `CRON_SECRET` | Otorisasi endpoint cron bila digunakan. |
 
-`.env.example` adalah titik awal, tetapi saat panduan ini ditulis ia tidak
-mencantumkan `DATABASE_URL` walaupun konfigurasi database mewajibkannya. Ada
-juga ketidaksesuaian nama folder Drive: template memuat `GOOGLE_DRIVE_FOLDER_ID`,
-sedangkan helper Drive membaca `GOOGLE_DRIVE_ARCHIVE_FOLDER_ID`. Verifikasi
-nama variabel terhadap pemanggil aktual sebelum menyiapkan deployment; jangan
-menyalin rahasia atau menggunakan nilai lokal tanpa memahami targetnya.
+<Callout type="warning">
+  Jangan menampilkan atau mengirim isi `.env`, `.env.local`, secret sesi,
+  pepper PIN, atau private key ke layanan eksternal. Jangan pernah menempatkan
+  rahasia di kode klien, log, atau respons.
+</Callout>
 
-Jangan menampilkan atau mengirim isi `.env`, `.env.local`, kunci Supabase,
-pepper PIN, secret sesi, atau private key ke layanan eksternal.
+### Perintah Kerja
 
-## Perintah kerja dan verifikasi
-
-Dari root repository:
+Dari root repo:
 
 ```bash
-npm run lint
-npm run typecheck
-npm run build
+npm run dev              # Dev server (port 3000)
+npm run build            # Production build
+npm run typecheck        # TypeScript check
+npm run lint             # Oxlint
+npm run setup:registry   # Inisialisasi Registry spreadsheet
+npm run setup:branch     # Daftarkan cabang baru
+npm run seed:admin       # Buat admin pertama
 ```
 
-Untuk schema/migrasi Drizzle, jalankan dari `apps/web` agar config dan path
-schema benar:
+Untuk mendaftarkan cabang:
 
 ```bash
-cd apps/web
-npx drizzle-kit generate
-npx drizzle-kit push
+npm run setup:branch -- <Cabang_ID> <Nama> <Spreadsheet_ID> [Timezone] [Kode]
 ```
 
-`push` mengubah schema database: gunakan hanya database development/uji yang
-telah dikonfirmasi. Jangan menjalankan migrasi atau seed pada production.
-Periksa SQL migration dan dampak terlebih dahulu; migrasi production memakai
-proses rilis yang disetujui tim.
+Contoh:
 
-Tes keamanan autentikasi sederhana tersedia di
-`apps/web/lib/auth/__tests__/auth.test.ts`, tetapi root `package.json` belum
-menyediakan script `test`. `TESTING.md` berisi skenario otomatis dan manual,
-termasuk uji konkurensi dua akun. Jangan melaporkan kriteria manual sebagai
-lulus tanpa benar-benar menjalankannya.
+```bash
+npm run setup:branch -- CAB01 Cabang_Jakarta 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms Asia/Jakarta JKT
+```
 
-## Pola implementasi
+## Aturan Data (Google Sheets)
 
-### API dan autentikasi
+<Callout type="warning">
+  **`valueInputOption: 'RAW'` wajib** untuk semua tulisan. Dengan
+  `USER_ENTERED`, Sheets mengurai `"2026-10-08"` menjadi serial angka `46303`
+  dan `"true"` menjadi boolean — merusak `shift_date`, `tab_month`, dan nilai
+  centang.
+</Callout>
 
-- API terlindungi menggunakan helper `withAuth`; cek role dengan
-  `requireRole` dan akses cabang dengan `requireBranchAccess` di server.
+Aturan wajib saat bekerja dengan Google Sheets:
+
+1. **Baca/tulis berdasarkan nama kolom** lewat `lib/store.ts`, bukan urutan.
+2. **Boolean** ditulis sebagai string `'TRUE'`/`'FALSE'` — dibaca lewat `asBool()`.
+3. **Tidak ada transaksi.** Operasi lintas sheet tidak atomik — lakukan
+   compensating action bila gagal.
+4. **Tidak ada unique index.** BR-01 (satu shift per definisi+tanggal) dijaga
+   pengecekan aplikasi sebelum insert.
+5. **Tidak ada row lock.** BR-12 (aksi pertama menang) dijaga pengecekan state
+   sebelum update.
+6. **Tidak ada penghapusan baris bisnis.** Hanya ubah status/is_active/void.
+7. **Waktu** disimpan sebagai string ISO UTC. Tampil sesuai zona waktu cabang.
+8. **ID** memakai ULID, dibuat di aplikasi dengan `ulid`.
+9. **Idempotency**: setiap aksi dari klien membawa `client_action_id`, dicek di
+   `EntryLogs.client_action_id` sebelum menulis.
+10. **Baca Sheet itu mahal.** Pakai cache TTL (`lib/google/cache.ts`) dan
+    `values.batchGet` (`filterRowsMulti`) bila membaca >1 sheet.
+11. **Mutasi Registry/Users wajib** memanggil `resetRegistryCache()` /
+    `resetUsersCache()`.
+12. **Verifikasi PIN admin wajib** membaca sheet langsung, bukan cache.
+
+### Contoh Akses Data
+
+```typescript
+import { listRows, filterRows, findRow, insertRow } from '@/lib/store';
+
+// Baca semua baris
+const shifts = await listRows(spreadsheetId, 'ShiftInstances');
+
+// Filter dengan predicate
+const open = await filterRows(spreadsheetId, 'ShiftInstances', (r) => r.status === 'open');
+
+// Cari satu baris
+const user = await findRow(spreadsheetId, 'Users', 'Username', 'budi');
+
+// Insert (valueInputOption: 'RAW' diterapkan di sheets.ts)
+await insertRow(spreadsheetId, 'ShiftInstances', {
+  id: ulid(),
+  shift_definition_id: 'shift_pagi',
+  shift_date: '2026-10-08',
+  tab_month: '2026-10',
+  status: 'open',
+});
+```
+
+## Pola Implementasi
+
+### API dan Autentikasi
+
+- API terlindungi menggunakan helper di `lib/api-auth.ts`; cek role dan akses
+  cabang di server pada **setiap** request.
 - UI yang menyembunyikan tombol bukan pengganti otorisasi server.
-- Validasi input klien/server mengikuti schema Zod di `packages/shared` atau
-  validator lokal yang sudah dipakai route terkait.
-- Mutation request dari client mengikuti pola header `X-Requested-With`.
-- Pesan error kepada pengguna harus aman dan tidak memaparkan detail database,
-  Storage, Google, PIN, atau hash.
+- Validasi input mengikuti schema Zod.
+- Cookie sesi: HttpOnly, Secure, SameSite=Lax. Pasang CSRF (custom header
+  `X-Requested-With`).
+- Pesan error kepada pengguna tidak membocorkan detail database/Google.
 
-### Database dan integritas data
+### Audit Log
 
-- Gunakan Drizzle ORM dan nama kolom/field; jangan bergantung pada urutan kolom.
-- ID baru menggunakan ULID. Simpan waktu `TIMESTAMPTZ` sebagai UTC dan
-  tampilkan sesuai zona waktu cabang.
-- Bungkus satu aksi tulis dalam `db.transaction(...)`.
-- Jangan menghapus baris: gunakan status void atau `is_active = false`.
-- Perubahan schema harus append-only lewat migration baru; koordinasikan
-  perubahan schema Drizzle dan kontrak Zod.
-- Shift menyimpan snapshot template saat dibuka. Template yang diedit hanya
-  berlaku untuk shift baru.
-- BR-01: partial unique index dan PostgreSQL advisory lock; jika lock gagal,
-  tutup operasi dengan aman.
-- BR-12: gunakan pola row lock/transaction agar aksi pertama pada item menang.
-- Aksi checklist membawa `client_action_id` untuk idempotency.
-- Audit log append-only; mutation sensitif ditulis bersama perubahan terkait.
+- Audit log append-only dengan hash chain, ditulis ke tab bulanan
+  `AuditLog_<YYYY-MM>`.
+- Hash chain di-reset per tab bulan (bukan global).
+- Aksi sensitif admin wajib alasan + konfirmasi PIN dan tercatat di audit log.
 
-### Cache dan data operasional
+## Fitur yang Tersedia
 
-Ikuti pola API/client yang sudah ada dan bedakan data baca dari mutation.
-Jangan menambahkan cache untuk data yang perlu diperiksa segar tanpa memahami
-isolasi pengguna/cabang, `Cache-Control`, invalidasi setelah mutation, dan
-frekuensi polling. Progress shift memiliki polling client; hindari memicu
-request paralel berulang dari interval, focus, visibility, dan callback aksi.
-
-## Fitur yang tampak pada implementasi saat ini
-
-- Login username + PIN enam angka, cookie sesi, dan validasi sesi server.
+- Login username + PIN 6 digit, cookie sesi HMAC-SHA256, validasi sesi server.
 - Beranda petugas dengan daftar cabang/shift yang dapat diakses.
-- Buka/gabung shift, checklist bersama, progress dan peserta, serta penutupan
-  shift oleh PJ dengan PIN.
+- Buka/gabung shift, checklist bersama, progress dan peserta, penutupan shift
+  oleh PJ dengan PIN.
 - Incident: daftar, pembuatan dengan foto, detail dan catatan lanjutan.
 - Laporan shift dan halaman laporan publik `/r/[token]`.
 - Panel admin untuk cabang, akun, shift/template, kategori incident, laporan,
   pengaturan, dan audit log.
-- Navigasi petugas menggunakan bottom bar di mobile serta menu hamburger
-  desktop pada layar yang memasang `PetugasNav`.
 
-Tabel di atas adalah orientasi, bukan jaminan bahwa seluruh perilaku PRD sudah
-selesai. Periksa setiap route dan jalankan pengujian terkait sebelum
-memperluasnya.
+<Callout type="info">
+  Daftar di atas adalah orientasi, bukan jaminan bahwa seluruh perilaku PRD sudah
+  selesai. Periksa setiap route dan jalankan pengujian terkait sebelum
+  memperluasnya.
+</Callout>
 
-## Hal yang perlu diverifikasi oleh developer berikutnya
-
-Ini adalah catatan implementasi untuk diteliti, bukan keputusan produk:
+## Hal yang Perlu Diverifikasi oleh Developer Berikutnya
 
 1. **Paksa ganti PIN:** route `/ganti-pin` tersedia, tetapi verifikasi bahwa
-   login dengan `mustChangePin` benar-benar mengarahkan dan membatasi pengguna
-   ke alur tersebut sebelum menyatakan kebijakan ini ditegakkan.
-2. **Environment template:** selaraskan `.env.example` dengan variabel yang
-   dibaca runtime (lihat tabel setup), tanpa pernah menambahkan nilai secret.
-3. **Polling progress:** ukur endpoint `/api/shifts/[id]/progress` dengan
+   login dengan `mustChangePin` benar-benar mengarahkan dan membatasi pengguna.
+2. **Polling progress:** ukur endpoint `/api/shifts/[id]/progress` dengan
    beberapa client. Pastikan fokus/visibility/interval dan refresh setelah aksi
    tidak menumpuk request.
-4. **Uji lintas role/cabang:** uji akses API langsung, bukan hanya tampilan UI.
+3. **Uji lintas role/cabang:** uji akses API langsung, bukan hanya tampilan UI.
    Uji aksi bersamaan BR-01 dan BR-12 memakai dua akun/permintaan paralel.
-5. **Kesesuaian spesifikasi:** bandingkan fitur yang akan dikerjakan dengan
+4. **Kesesuaian spesifikasi:** bandingkan fitur yang akan dikerjakan dengan
    status di `IMPLEMENTATION_PLAN.md`, kode saat ini, dan `TESTING.md`.
 
-Jangan menambahkan dependency, route, atau fitur produk yang tidak diminta.
-Untuk keputusan terbuka (misalnya pilihan UX yang ditandai di `APP_FLOW.md`),
-mintalah keputusan sebelum implementasi.
-
-## Checklist sebelum mengirim perubahan
+## Checklist Sebelum Mengirim Perubahan
 
 - [ ] Baca aturan `AGENTS.md` dan spesifikasi relevan.
 - [ ] Batasi perubahan pada satu fase/tujuan; sebutkan asumsi dan file yang
