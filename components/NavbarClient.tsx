@@ -19,7 +19,6 @@ import {
   ListChecks,
   AlertTriangle,
   Settings,
-  Home,
   LogOut,
   Menu,
   X,
@@ -40,7 +39,6 @@ interface NavItem {
 
 // Item inti petugas (muncul di bar bawah HP, dan di header tablet/desktop).
 const PETUGAS_CORE: NavItem[] = [
-  { name: 'Beranda', href: '/', icon: Home },
   { name: 'Checklist', href: '/daftar-shift', icon: ClipboardCheck },
   { name: 'Incident', href: '/incident', icon: AlertTriangle },
   { name: 'Laporan', href: '/report', icon: FileText },
