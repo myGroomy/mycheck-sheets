@@ -426,7 +426,7 @@ async function main() {
 
   // Check existing shifts
   const existingIds = await getExistingShiftIds();
-  console.log(`  ${existingIds.length} existing shift instances`);
+  console.log(`  ${existingIds.size} existing shift instances`);
 
   // Generate new shift instances
   console.log('Generating shift instances...');
