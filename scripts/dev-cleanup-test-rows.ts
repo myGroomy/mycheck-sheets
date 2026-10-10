@@ -1,4 +1,4 @@
-// scripts/dev-cleanup-test-rows.ts (dev-only) — hapus baris test dari template
+// scripts/dev-cleanup-test-rows.ts (dev-only) hapus baris test dari template
 import { google } from 'googleapis';
 
 const TPL = '1tUJKzGknSbzSLGH29esPT7yttMC9nt2iY7pP8b4nWiY';

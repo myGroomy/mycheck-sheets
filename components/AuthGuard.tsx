@@ -3,7 +3,7 @@
 // components/AuthGuard.tsx
 // Adaptasi pola STOKIS. Perbedaan penting dari versi STOKIS: MYCHECK memakai
 // server-side auth (requireUser/requireAdmin di layout server component), jadi
-// AuthGuard ini TIDAK mem-block render dengan spinner — semua halaman sudah
+// AuthGuard ini TIDAK mem-block render dengan spinner semua halaman sudah
 // di-render di server. Yang saya ambil adalah logika redirect-nya:
 //   - user tidak login → arahkan ke /login
 //   - sudah login tapi buka /login → arahkan ke beranda sesuai role

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Skeleton — placeholder abu berdenyut (animate-pulse) untuk state loading.
+ * Skeleton placeholder abu berdenyut (animate-pulse) untuk state loading.
  * Dipakai di dalam komponen client & `loading.tsx` (streaming App Router)
  * agar konten "terlihat" seketika tanpa layout shift saat data tiba.
  *

@@ -1,4 +1,4 @@
-// app/api/admin/shift-instances/route.ts — daftar shift instance lintas cabang
+// app/api/admin/shift-instances/route.ts daftar shift instance lintas cabang
 // untuk modul admin "Operasi Shift" (ADM-OP-01).
 import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../lib/api-auth';
@@ -10,7 +10,7 @@ withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  // Default 'berjalan' — ADM-OP-01 hanya meminta shift yang sedang berjalan.
+  // Default 'berjalan' ADM-OP-01 hanya meminta shift yang sedang berjalan.
   const status = new URL(_req.url).searchParams.get('status') ?? 'berjalan';
   const allowed = ['berjalan', 'ditutup', 'void'];
   if (!allowed.includes(status)) {

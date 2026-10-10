@@ -2,7 +2,7 @@
 
 // components/NavbarClient.tsx
 // Isi Navbar. `initialRole` berasal dari server (session cookie) supaya SSR
-// merender item yang sesuai role — tanpa menunggu fetch /api/auth/me di
+// merender item yang sesuai role tanpa menunggu fetch /api/auth/me di
 // client. Begitu useAuth() ter-resolve, role otomatis memakai data asli.
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -120,7 +120,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href="/" prefetch={false} className="text-sm font-bold tracking-tight text-ink">
-            checklist-shift
+            MyCheck
           </Link>
 
           <nav className="hidden items-center gap-0.5 md:flex" aria-label="Navigasi utama">

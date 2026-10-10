@@ -3,7 +3,7 @@ import { findTokenByValue, isTokenActive, rowNumberOfToken, updateShareTokenCell
 import { buildPublicReportDetail } from '../../../../../lib/report-detail';
 
 /**
- * Laporan publik via share token — TANPA autentikasi.
+ * Laporan publik via share token TANPA autentikasi.
  * Token itu sendiri adalah kredensial: validitas dicek di sheet
  * `Share_Tokens` (Registry).
  */

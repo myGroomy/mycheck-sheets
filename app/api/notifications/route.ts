@@ -1,4 +1,4 @@
-// app/api/notifications/route.ts — Phase 4 (Sheets).
+// app/api/notifications/route.ts Phase 4 (Sheets).
 // GET 50 notifikasi terbaru user dari sheet statis Notifications per cabang.
 import { NextResponse } from 'next/server';
 import { withAuth } from '../../../lib/api-auth';

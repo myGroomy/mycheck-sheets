@@ -1,4 +1,4 @@
-// app/api/admin/incident-categories/route.ts — Phase 4 (Sheets).
+// app/api/admin/incident-categories/route.ts Phase 4 (Sheets).
 // GET: gabungan kategori semua cabang (beserta branchId). POST: buat di cabang target.
 import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../lib/api-auth';

@@ -1,4 +1,4 @@
-// app/api/admin/shift-instances/[id]/route.ts — aksi admin atas satu shift
+// app/api/admin/shift-instances/[id]/route.ts aksi admin atas satu shift
 // instance: tutup paksa (ADM-OP-02), ganti PJ (ADM-OP-03), void (ADM-OP-05).
 //
 // Ketiganya aksi sensitif: wajib alasan + konfirmasi PIN (ADM-SEC-01) dan

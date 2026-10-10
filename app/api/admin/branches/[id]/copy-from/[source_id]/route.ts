@@ -9,7 +9,7 @@ import { ulid } from 'ulid';
  * Salin template (shift definitions + kategori + points + handover fields)
  * dari spreadsheet cabang sumber ke spreadsheet cabang tujuan.
  *
- * Hanya sheet konfigurasi yang disalin — data operasional (shift instance,
+ * Hanya sheet konfigurasi yang disalin data operasional (shift instance,
  * entries, reports) tidak ikut.
  */
 export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -146,7 +146,7 @@ withAuth(async (_req, ctx, _session) => {
       await copyTs('IncidentCategories', sourceCats);
     }
   } catch {
-    // sheet kategori belum ada di sumber — abaikan
+    // sheet kategori belum ada di sumber abaikan
   }
 
   return NextResponse.json({

@@ -170,7 +170,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
       
       <header className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Checklist-shift</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">MyCheck</p>
           <h1 className="mt-1 text-2xl font-bold text-ink">Halo, {userName}</h1>
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-border bg-canvas px-3 py-2 text-sm text-ink-muted">

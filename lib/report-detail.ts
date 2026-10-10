@@ -1,5 +1,5 @@
 // lib/report-detail.ts
-// Satu sumber data untuk detail laporan — dipakai oleh API route
+// Satu sumber data untuk detail laporan dipakai oleh API route
 // (`/api/reports/[id]`, `/api/public/report/[token]`) dan halaman publik
 // (`/r/[token]`) supaya logika Sheets tidak terduplikasi.
 
@@ -152,7 +152,7 @@ export async function buildReportDetail(
       };
     });
 
-  // Incident — kategori per cabang
+  // Incident kategori per cabang
   let categoryNames = new Map<string, string>();
   try {
     const cats = await filterRows(spreadsheetId, 'IncidentCategories', () => true);

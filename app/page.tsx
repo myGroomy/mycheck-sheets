@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { LandingPage } from '@/components/landing-page';
 import { getUser } from '@/lib/page-auth';
 
-// `/` tidak lagi dipakai petugas — mereka langsung masuk ke checklist.
+// `/` tidak lagi dipakai petugas mereka langsung masuk ke checklist.
 // Admin tetap ke `/admin`, tamu tetap melihat landing page.
 export default async function Home() {
   const ctx = await getUser();

@@ -37,7 +37,7 @@ interface SensitiveActionDialogProps {
   /**
    * Wajib konfirmasi PIN. Default true karena hampir semua aksi sensitif
    * memerlukannya (ADM-SEC-01). Dikecualikan: "buka shift atas nama"
-   * (ADM-OP-04) — PRD tidak memasukkan aksi itu ke daftar aksi sensitif.
+   * (ADM-OP-04) PRD tidak memasukkan aksi itu ke daftar aksi sensitif.
    */
   requirePin?: boolean;
   /** Field tambahan di atas input alasan (mis. pemilih petugas untuk Ganti PJ). */

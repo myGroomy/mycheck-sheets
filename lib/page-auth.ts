@@ -81,7 +81,7 @@ export async function requireAdmin(): Promise<AuthContext> {
   return ctx;
 }
 
-/** Sesi opsional — return null bila tidak login (tanpa redirect). */
+/** Sesi opsional return null bila tidak login (tanpa redirect). */
 export async function getUser(): Promise<AuthContext | null> {
   return buildContext();
 }

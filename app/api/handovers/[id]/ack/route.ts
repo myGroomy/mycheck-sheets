@@ -1,4 +1,4 @@
-// app/api/handovers/[id]/ack/route.ts — Phase 4 (Sheets).
+// app/api/handovers/[id]/ack/route.ts Phase 4 (Sheets).
 // Tandai handover shift sebelumnya sebagai sudah dibaca (idempotent).
 import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';

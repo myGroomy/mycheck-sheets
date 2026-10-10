@@ -1,10 +1,10 @@
-# Plan Performance Parity — `/mycheck` → kecepatan seperti `/stokis`
+# Plan Performance Parity `/mycheck` → kecepatan seperti `/stokis`
 
 > **Tujuan:** Menaikkan performa & pengalaman loading `/mycheck` agar setara `/stokis`
 > dengan **mempertahankan** sistem UI Radix + shadcn + token warna custom
 > (`canvas`/`ink`/`surface`). **TIDAK** migrasi ke DaisyUI.
 >
-> **Strategi:** Performance parity — Next 16 + React 19 + Turbopack + Tailwind 4
+> **Strategi:** Performance parity Next 16 + React 19 + Turbopack + Tailwind 4
 > (sumber ~90% kecepatan STOKIS) + loading UI (skeleton/spinner).
 
 ---
@@ -38,9 +38,9 @@ bukan layer data. Rencana ini mempertahankan keunggulan cache tersebut.
 
 ## Rencana Bertahap
 
-### Fase 1 — Upgrade Framework Inti ✅ SELESAI (dampak kecepatan terbesar)
+### Fase 1 Upgrade Framework Inti ✅ SELESAI (dampak kecepatan terbesar)
 
-**Status: DONE** — `npm install` sukses (added 68 / removed 101 / changed 100). `tsc --noEmit` exit 0.
+**Status: DONE** `npm install` sukses (added 68 / removed 101 / changed 100). `tsc --noEmit` exit 0.
 
 Versi terpasang: next 16.4.0, react/react-dom 19.3.0, typescript 7.0.2, zod 4.6.5,
 googleapis 182.0.0, eslint 9.39.5, tw-animate-css 1.4.0.
@@ -64,9 +64,9 @@ Yang dikerjakan:
 - `scripts.build` → `next build --webpack` (samakan STOKIS, stabil produksi).
 - Turbopack otomatis aktif untuk `next dev` (Next 16).
 
-### Fase 2 — Migrasi Tailwind 3 → 4 (pertahankan token custom) ✅ SELESAI
+### Fase 2 Migrasi Tailwind 3 → 4 (pertahankan token custom) ✅ SELESAI
 
-**Status: DONE** — `npm run build` sukses (Compiled successfully, TS 2.5s, 45 static pages).
+**Status: DONE** `npm run build` sukses (Compiled successfully, TS 2.5s, 45 static pages).
 Tailwind 4 compile bersih, tidak ada className hilang (token dipetakan ke `@theme`).
 
 Yang dikerjakan:
@@ -86,9 +86,9 @@ Yang dikerjakan:
 Next 16 juga otomatis mengubah `tsconfig.json` (`jsx: react-jsx`, tambah `.next/dev/types`).
 
 
-### Fase 3 — Perbaikan Breaking Changes (WAJIB build hijau) ✅ SELESAI
+### Fase 3 Perbaikan Breaking Changes (WAJIB build hijau) ✅ SELESAI
 
-**Status: DONE** — `npx tsc --noEmit` exit 0. Sweep menyeluruh: semua breaking change
+**Status: DONE** `npx tsc --noEmit` exit 0. Sweep menyeluruh: semua breaking change
 Next 15/16 + zod 4 + React 19 tertangani.
 
 Hasil sweep & verifikasi:
@@ -96,7 +96,7 @@ Hasil sweep & verifikasi:
 - `params` → `Promise` + `await`: **DONE** untuk `report/[id]`, `incident/[id]`,
   `api/public/report/[token]` (Fase 2). Sweep ulang: **tidak ada** `params: {` sync tersisa.
 - `headers()`: tidak dipakai di codebase → N/A.
-- `searchParams` server component: hanya `login/page.tsx` (client) — sudah dibungkus
+- `searchParams` server component: hanya `login/page.tsx` (client) sudah dibungkus
   `<Suspense>` (wajib Next 15+). ✓
 - **zod 4**: tidak ada API breaking (`z.record`, `.email()`, `.url()`, `z.coerce`,
   `z.nativeEnum`, `errorMap`) di codebase. Semua pakai `z.object/z.enum/z.string()...`
@@ -108,34 +108,34 @@ Catatan (Fase 5): `middleware.ts` deprecated di Next 16 (sarankan rename → `pr
 Fungsi tetap jalan (build sukses, `ƒ Proxy (Middleware)`).
 
 
-### Fase 4 — Loading UI (Skeleton + Spinner) ✅ SELESAI
+### Fase 4 Loading UI (Skeleton + Spinner) ✅ SELESAI
 
-**Status: DONE** — `tsc --noEmit` exit 0, `npm run build` sukses. Chunk `loading`
+**Status: DONE** `tsc --noEmit` exit 0, `npm run build` sukses. Chunk `loading`
 ter-generate untuk root/report/daftar-shift/incident/shift[id]; skeleton class
 (`animate-pulse`, `bg-ink/10`) ter-compile ke CSS.
 
 Yang dikerjakan:
-- Baru `components/ui/skeleton.tsx` — primitif `<Skeleton>` (animate-pulse, a11y hidden).
-- Baru `components/ui/skeletons.tsx` — layout skeleton siap-pakai:
+- Baru `components/ui/skeleton.tsx` primitif `<Skeleton>` (animate-pulse, a11y hidden).
+- Baru `components/ui/skeletons.tsx` layout skeleton siap-pakai:
   `SkeletonHeader`, `SkeletonStatGrid`, `SkeletonList`, `SkeletonLine`.
   Bentuk meniru konten asli → tanpa layout shift.
-- `components/ui/spinner.tsx` — tambah `role="status"` + `aria-label="Memuat"` (a11y).
+- `components/ui/spinner.tsx` tambah `role="status"` + `aria-label="Memuat"` (a11y).
 - `loading.tsx` streaming per route: `app/loading.tsx` (root), `app/report`,
   `app/daftar-shift`, `app/incident`, `app/shift/[id]`. Server Component tetap SSR,
   tapi shell + skeleton terkirim duluan → perceived load instan seperti STOKIS.
-- `PetugasHome` — loading state spinner penuh → diganti skeleton (header+stat+list).
+- `PetugasHome` loading state spinner penuh → diganti skeleton (header+stat+list).
 
 
-### Fase 5 — Linting & Verifikasi ✅ SELESAI (FASE TERAKHIR)
+### Fase 5 Linting & Verifikasi ✅ SELESAI (FASE TERAKHIR)
 
-**Status: DONE** — `npm run lint` (oxlint) exit 0 (7 warnings, 0 errors, 80ms/185 files).
+**Status: DONE** `npm run lint` (oxlint) exit 0 (7 warnings, 0 errors, 80ms/185 files).
 `npm run build` sukses (45/45 pages), warning `middleware deprecated` HILANG, route summary
 menampilkan `ƒ Proxy (Middleware)`.
 
 Yang dikerjakan:
 - **Linting → oxlint** (samakan STOKIS). Temuan: `typescript-eslint` belum support
   TypeScript 7.0, jadi ESLint type-aware GAGAL load dengan TS 7. STOKIS memakai `oxlint`
-  (linter Rust berbasis AST, tidak butuh TS compiler) — diadopsi. Hapus `eslint` +
+  (linter Rust berbasis AST, tidak butuh TS compiler) diadopsi. Hapus `eslint` +
   `eslint-config-next` dari devDeps (removed 291 pkg). Script `lint`: `next lint` → `oxlint`.
 - **`middleware.ts` → `proxy.ts`** (Next 16 rename resmi). Fungsi `middleware` → `proxy`,
   logika & matcher identik. Warning deprecated hilang.
@@ -147,7 +147,7 @@ Yang dikerjakan:
 
 ---
 
-## ✅ RINGKASAN AKHIR — Semua 5 Fase Selesai
+## ✅ RINGKASAN AKHIR Semua 5 Fase Selesai
 
 | Fase | Isi | Status |
 |---|---|---|
@@ -163,9 +163,9 @@ TANPA mengubah sistem UI Radix + shadcn + token warna custom.
 
 ---
 
-## 🧹 Pembersihan Data (di luar 5 fase) — Panel "Peringatan" & Cabang CBG01
+## 🧹 Pembersihan Data (di luar 5 fase) Panel "Peringatan" & Cabang CBG01
 
-**Masalah 1 — Panel "Peringatan" menampilkan shift basi.**
+**Masalah 1 Panel "Peringatan" menampilkan shift basi.**
 - Diagnosis (baca Registry langsung, bypass cache): sheet `Daftar_Cabang` hanya
   berisi `CBGBDG01` ("Cabang Pusat"), TAPI spreadsheet cabang itu sheet
   `ShiftInstances` masih menyimpan **49 baris data test**, **13 berstatus
@@ -175,7 +175,7 @@ TANPA mengubah sistem UI Radix + shadcn + token warna custom.
   `apply` untuk eksekusi) meng-void 13 baris `berjalan` (set `status=void` +
   `void_reason/void_by/void_at`). Terverifikasi: **sisa `berjalan` = 0**.
 
-**Masalah 2 — Cabang "CBG01" masih muncul (dibahas terpisah).**
+**Masalah 2 Cabang "CBG01" masih muncul (dibahas terpisah).**
 - Diagnosis: `Daftar_Cabang` bersih (hanya `CBGBDG01`), TAPI 9 user di sheet
   `Users` masih ber-`Cabang_ID="CBG01BDG, CBG02CMH"` → jadi sumber `session.cabangId`
   (cookie 7 hari) untuk petugas. Belum ditindaklanjuti (menunggu keputusan user).

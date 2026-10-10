@@ -52,7 +52,7 @@ withAuth(async (_req, ctx, _session) => {
   const response = NextResponse.json({
     report: {
       ...detail.report,
-      // Kolom arsip PDF tidak ada di template — null agar frontend aman
+      // Kolom arsip PDF tidak ada di template null agar frontend aman
       archive_pdf_drive_url: null,
       archived_photo_count: null,
     },

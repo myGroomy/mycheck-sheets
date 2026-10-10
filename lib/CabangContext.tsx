@@ -3,7 +3,7 @@
 // lib/CabangContext.tsx
 // Pola disamakan dengan STOKIS: daftar cabang diambil sekali lalu dibagikan
 // lewat context. Sebelumnya tiap halaman fetch /api/shifts ulang untuk daftar
-// cabang yang sama — menyebabkan bacaan sheet berulang.
+// cabang yang sama menyebabkan bacaan sheet berulang.
 
 import React, {
   createContext,

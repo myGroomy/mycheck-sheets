@@ -2,8 +2,8 @@
 // Verifikasi PIN admin untuk aksi sensitif (ubah peran / nonaktifkan akun /
 // hapus config). Versi Google Sheets: PIN plaintext pada sheet Registry.Users.
 //
-// Sengaja membaca sheet langsung lewat readSheetDataFresh — bukan readSheetData
-// yang ber-cache — supaya PIN yang baru saja di-reset tidak ikut kedaluwarsa.
+// Sengaja membaca sheet langsung lewat readSheetDataFresh bukan readSheetData
+// yang ber-cache supaya PIN yang baru saja di-reset tidak ikut kedaluwarsa.
 // Jadi semua jalur autentikasi (login, ganti PIN, verifikasi PIN admin) wajib
 // pakai readSheetDataFresh, tidak boleh readSheetData.
 
@@ -53,7 +53,7 @@ export async function verifyAdminPin(
   return null;
 }
 
-/** Jumlah admin aktif — dipakai untuk mencegah admin terakhir dinonaktifkan. */
+/** Jumlah admin aktif dipakai untuk mencegah admin terakhir dinonaktifkan. */
 export async function countActiveAdmins(excludeUserId?: string): Promise<number> {
   const users = await listAllUsers();
   return users.filter(

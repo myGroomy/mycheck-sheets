@@ -1,6 +1,6 @@
 'use client';
 
-// app/admin/operasi-shift/page.tsx — ADM-OP-01..05.
+// app/admin/operasi-shift/page.tsx ADM-OP-01..05.
 // Daftar shift lintas cabang + aksi: tutup paksa, ganti PJ, void, buka atas nama.
 
 import { useCallback, useEffect, useState } from 'react';
@@ -99,7 +99,7 @@ const ACTION_META: Record<
     confirm: 'Void',
     icon: Ban,
     impact:
-      'Shift dibatalkan. Data tidak dihapus (BR-40) dan tidak dihitung di statistik. Shift yang sudah tertutup tidak bisa di-void — koreksinya lewat addendum.',
+      'Shift dibatalkan. Data tidak dihapus (BR-40) dan tidak dihitung di statistik. Shift yang sudah tertutup tidak bisa di-void koreksinya lewat addendum.',
   },
 };
 
@@ -414,7 +414,7 @@ export default function OperasiShiftPage() {
         onOpenChange={(o) => !o && setOpTarget(null)}
         title={
           opAction === 'change_pj' && opTarget
-            ? `${meta.title} — ${opTarget.shiftName}`
+            ? `${meta.title} ${opTarget.shiftName}`
             : meta.title
         }
         impact={meta.impact}
@@ -448,7 +448,7 @@ export default function OperasiShiftPage() {
         onSubmit={submitOp}
       />
 
-      {/* Buka atas nama — alasan wajib, TANPA PIN (ADM-OP-04) */}
+      {/* Buka atas nama alasan wajib, TANPA PIN (ADM-OP-04) */}
       <Dialog open={onBehalfOpen} onOpenChange={setOnBehalfOpen}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
           <DialogHeader>

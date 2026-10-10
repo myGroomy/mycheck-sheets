@@ -1,5 +1,5 @@
 // lib/db/snapshot.ts
-// Build template snapshot — versi Google Sheets, sesuai Template_cabang_mycheck.
+// Build template snapshot versi Google Sheets, sesuai Template_cabang_mycheck.
 import { createHash } from 'crypto';
 import { asBool, asNum, asStr, filterRows, listRows } from '../store';
 
@@ -33,7 +33,7 @@ export interface Snapshot {
 }
 
 /**
- * Hash snapshot template — dipakai untuk mendeteksi perubahan template setelah
+ * Hash snapshot template dipakai untuk mendeteksi perubahan template setelah
  * shift dibuka (BR-05: shift memakai snapshot saat dibuka).
  */
 export function hashSnapshot(snapshot: Snapshot): string {

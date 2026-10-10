@@ -9,7 +9,7 @@ import { listMonthlyRows, asStr } from '../../../../lib/store';
  *
  * Foto disimpan di Drive milik service account sehingga tidak bisa dibuat
  * publik. Alih-alih signed URL, route ini mem-proxy byte dari Drive setelah
- * memeriksa hak akses — URL tetap berada di balik autentikasi.
+ * memeriksa hak akses URL tetap berada di balik autentikasi.
  */
 export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

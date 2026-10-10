@@ -1,4 +1,4 @@
-# PRD — checklist-shift
+# PRD MyCheck
 
 **Versi:** 1.0 (full fitur, tanpa fase MVP)
 **Status:** Draf untuk implementasi
@@ -9,7 +9,7 @@
 
 ## 1. Ringkasan
 
-**checklist-shift** adalah aplikasi untuk memastikan prosedur operasional tiap shift di outlet F&amp;B dijalankan dan terdokumentasi. Petugas mengerjakan checklist bersama-sama, melaporkan kejadian (incident), menulis serah terima (handover) ke shift berikutnya, lalu menutup shift sehingga laporan shift terbentuk otomatis dan terkunci. Admin mengatur seluruh konfigurasi (cabang, akun, shift, checklist, handover, kategori) dan menangani situasi luar biasa.
+**MyCheck** adalah aplikasi untuk memastikan prosedur operasional tiap shift di outlet F&amp;B dijalankan dan terdokumentasi. Petugas mengerjakan checklist bersama-sama, melaporkan kejadian (incident), menulis serah terima (handover) ke shift berikutnya, lalu menutup shift sehingga laporan shift terbentuk otomatis dan terkunci. Admin mengatur seluruh konfigurasi (cabang, akun, shift, checklist, handover, kategori) dan menangani situasi luar biasa.
 
 Aplikasi ini **tidak** memiliki fitur penjadwalan petugas. Siapa yang bekerja pada suatu shift ditentukan dari siapa yang benar-benar bergabung dan beraksi.
 
@@ -200,7 +200,7 @@ flowchart TD
 
 ---
 
-## 6. Spesifikasi Fitur — Petugas
+## 6. Spesifikasi Fitur Petugas
 
 ### 6.1 Autentikasi dan Sesi (AUTH)
 
@@ -328,7 +328,7 @@ Tujuan: sekali lihat, orang tahu *"hari ini checklist-nya begini, dan incident-n
 
 ---
 
-## 7. Spesifikasi Fitur — Admin
+## 7. Spesifikasi Fitur Admin
 
 Admin memiliki akses penuh ke semua cabang dan modul berikut. Admin juga dapat memakai seluruh fitur petugas.
 
@@ -677,7 +677,7 @@ Hal yang sengaja belum ditetapkan di dokumen ini:
 
 ---
 
-## 15. Lampiran — Matriks Izin
+## 15. Lampiran Matriks Izin
 
 
 | Aksi                                                      | Petugas                    | Admin                                  |

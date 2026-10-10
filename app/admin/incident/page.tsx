@@ -1,6 +1,6 @@
 'use client';
 
-// app/admin/incident/page.tsx — ADM-IN-01..04.
+// app/admin/incident/page.tsx ADM-IN-01..04.
 // Tabel incident lintas cabang + filter kategori/status/cabang/tanggal,
 // ubah status, tambah catatan admin, dan tautkan ke shift.
 
@@ -180,7 +180,7 @@ export default function IncidentAdminPage() {
       <div>
         <h1 className="text-xl font-bold">Incident</h1>
         <p className="text-xs text-ink-muted">
-          Daftar incident lintas cabang — {openCount} masih open dari {filtered.length} tampil
+          Daftar incident lintas cabang {openCount} masih open dari {filtered.length} tampil
         </p>
       </div>
 
@@ -371,7 +371,7 @@ export default function IncidentAdminPage() {
                         size="sm"
                         disabled={busyId === i.id}
                         onClick={() => unlinkShift(i)}
-                        title="Lepas tautan shift — incident berdiri sendiri"
+                        title="Lepas tautan shift incident berdiri sendiri"
                       >
                         <Link2Off className="h-3.5 w-3.5" />
                         Lepas
@@ -387,7 +387,7 @@ export default function IncidentAdminPage() {
 
       {/* Isi asli incident tidak dapat diedit (BR-41); koreksi lewat catatan. */}
       <p className="text-[11px] text-ink-light">
-        Isi asli incident tidak dapat diubah — koreksi dan catatan(admin) ditulis sebagai catatan
+        Isi asli incident tidak dapat diubah koreksi dan catatan(admin) ditulis sebagai catatan
         tambahan. Tautan ke shift diatur dari halaman detail incident.
       </p>
 

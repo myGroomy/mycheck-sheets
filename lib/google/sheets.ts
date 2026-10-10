@@ -1,5 +1,5 @@
 // lib/google/sheets.ts
-// Operasi CRUD dasar Google Sheets API v4 — pengganti fungsi helper GAS
+// Operasi CRUD dasar Google Sheets API v4 pengganti fungsi helper GAS
 // seperti sheetToObjects_, appendRow, setValues, getLastRow, getRange.
 
 import { getSheetsClient } from './client';
@@ -62,7 +62,7 @@ async function readSheetDataCached(
   try {
     return await promise;
   } catch (error) {
-    // Jangan tahan hasil gagal — request berikutnya harus mencoba lagi.
+    // Jangan tahan hasil gagal request berikutnya harus mencoba lagi.
     if (readCache.get(key)?.promise === promise) readCache.delete(key);
     throw error;
   }
@@ -102,7 +102,7 @@ export async function readSheetData(
 }
 
 /**
- * Baca DARI LUAR cache — selalu memanggil API.
+ * Baca DARI LUAR cache selalu memanggil API.
  *
  * Wajib dipakai untuk operasi sensitif yang tidak boleh melihat data basi,
  * terutama verifikasi PIN admin: kalau PIN baru saja di-reset, verifikasi
@@ -253,7 +253,7 @@ export function toCellValue(value: unknown): string {
 /**
  * Tulis banyak sel sekaligus dalam SATU request (multi-range batch update).
  * Dipakai untuk memperbarui beberapa kolom pada satu baris tanpa boros
- * kuota API — satu panggilan HTTP, bukan satu per kolom.
+ * kuota API satu panggilan HTTP, bukan satu per kolom.
  */
 export async function writeCells(
   spreadsheetId: string,

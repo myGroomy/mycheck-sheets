@@ -1,4 +1,4 @@
-# Database Schema — mycheck
+# Database Schema mycheck
 
 <Callout type="warning">
   mycheck **tidak menggunakan SQL database**. Data disimpan di **Google Sheets**
@@ -24,7 +24,7 @@ Ada dua spreadsheet yang berbeda sifat:
 | Env | `REGISTRY_SPREADSHEET_ID` | kolom `Spreadsheet_ID` di Registry |
 
 Konvensi nama berbeda antara Registry (PascalCase, mengikuti stokis) dan
-spreadsheet cabang (snake_case). Ini disengaja — jangan disamakan.
+spreadsheet cabang (snake_case). Ini disengaja jangan disamakan.
 
 ---
 
@@ -48,7 +48,7 @@ Daftar semua cabang yang terdaftar.
 
 <Callout type="info">
   Cabang dibuat **nonaktif**. Wajib diisi `Spreadsheet_ID` dulu sebelum bisa
-  diaktifkan — API menolak mengaktifkan cabang tanpa spreadsheet.
+  diaktifkan API menolak mengaktifkan cabang tanpa spreadsheet.
 </Callout>
 
 ### Sheet `Users`
@@ -68,7 +68,7 @@ Semua pengguna (admin & petugas).
 | `Created_At` | string | ISO UTC. |
 
 <Callout type="warning">
-  Tidak ada tabel `user_branch_access` — akses cabang disimpan di kolom
+  Tidak ada tabel `user_branch_access` akses cabang disimpan di kolom
   `Cabang_ID`. Tidak ada `pin_fail_attempts` (tidak ada lockout/rate limiting).
 </Callout>
 
@@ -91,7 +91,7 @@ Token laporan publik. Kolom: `id`, `report_id`, `branch_id`, `token`,
 
 ### Sheet `Template_Referensi`
 
-`Template_Spreadsheet_ID` — pointer ke template master.
+`Template_Spreadsheet_ID` pointer ke template master.
 
 ---
 
@@ -141,7 +141,7 @@ Tab dibuat otomatis oleh kode saat pertama dipakai (`ensureMonthlySheet`).
 
 <Callout type="warning">
   Tab mana yang dipakai sebuah shift ditentukan oleh `ShiftInstances.tab_month`.
-  Sheet default Google (`Sheet1`) **wajib** dihapus — script setup sudah
+  Sheet default Google (`Sheet1`) **wajib** dihapus script setup sudah
   melakukannya.
 </Callout>
 
@@ -155,7 +155,7 @@ berada di atas **`lib/google/sheets.ts`**. Aturan penting:
 <Callout type="warning">
   **`valueInputOption: 'RAW'` wajib** untuk semua tulisan. Dengan
   `USER_ENTERED`, Sheets mengubah `"2026-10-08"` menjadi `46303` dan `"true"`
-  menjadi boolean — merusak `shift_date`, `tab_month`, dan nilai centang.
+  menjadi boolean merusak `shift_date`, `tab_month`, dan nilai centang.
 </Callout>
 
 ### Aturan Wajib Dijaga
@@ -165,13 +165,13 @@ berada di atas **`lib/google/sheets.ts`**. Aturan penting:
 3. **Tidak ada transaksi.** Operasi lintas sheet tidak atomik. Kalau sebagian
    gagal, lakukan kompensasi atau kembalikan seperti semula.
 4. **Tidak ada unique index.** BR-01 (satu shift per definisi+tanggal) dijaga
-   pengecekan aplikasi sebelum insert — pada request paralel masih mungkin ada
+   pengecekan aplikasi sebelum insert pada request paralel masih mungkin ada
    race (dulu dijaga advisory lock).
 5. **Tidak ada row lock.** BR-12 (aksi pertama menang) dijaga pengecekan state
    sebelum update.
 6. **Hapus baris secara fisik** hanya boleh untuk operasi admin yang memang
    perlu menghapus konfigurasi. Lifecycle bisnis (shift, incident, laporan)
-   **tidak** menghapus baris — hanya ubah status.
+   **tidak** menghapus baris hanya ubah status.
 7. **Waktu** disimpan sebagai string ISO UTC. Tampil sesuai zona waktu cabang.
 8. **ID** memakai ULID, dibuat di aplikasi dengan `ulid`.
 9. **Idempotency**: setiap aksi dari klien membawa `client_action_id`, dicek di
@@ -182,12 +182,12 @@ berada di atas **`lib/google/sheets.ts`**. Aturan penting:
 11. **Mutasi ke Registry/Users wajib** memanggil `resetRegistryCache()` /
     `resetUsersCache()`.
 12. **Verifikasi PIN admin** (`lib/admin/sensitive-action.ts`) **wajib** membaca
-    sheet langsung, bukan cache — supaya PIN yang baru di-reset tidak kedaluwarsa.
+    sheet langsung, bukan cache supaya PIN yang baru di-reset tidak kedaluwarsa.
 
 ### Contoh Kode
 
 ```typescript
-// lib/store.ts — Lapisan akses data berbasis Google Sheets
+// lib/store.ts Lapisan akses data berbasis Google Sheets
 import { listRows, filterRows, findRow, insertRow } from '@/lib/store';
 
 // Baca semua baris dari sebuah sheet
@@ -234,7 +234,7 @@ const SHEET_DATA = {
   },
   ShiftInstances: {
     kategori: "Operasional",
-    deskripsi: "Inti — data shift yang berjalan",
+    deskripsi: "Inti data shift yang berjalan",
     kolom: ["id", "shift_definition_id", "shift_date", "tab_month", "status", "pj_user_id", "opened_by", "opened_at", "closed_at", "closed_by", "close_type", "is_test", "template_snapshot"],
   },
   Entries: {
@@ -260,7 +260,7 @@ function SheetExplorer() {
 
   return (
     <div className="border rounded-lg p-4 bg-gray-50 space-y-3">
-      <p className="text-sm font-semibold text-gray-700">Sheet Explorer — klik untuk detail</p>
+      <p className="text-sm font-semibold text-gray-700">Sheet Explorer klik untuk detail</p>
       <div className="flex flex-wrap gap-2">
         {Object.keys(SHEET_DATA).map((name) => (
           <button
@@ -305,7 +305,7 @@ function SheetExplorer() {
   (`snapshot_encoding` = `json`). Perubahan template setelah shift dibuka tidak
   memengaruhi shift yang sedang berjalan (BR-05).
 - **Hash chain audit** dihitung di dalam satu tab bulanan, jadi chain **di-reset
-  setiap ganti bulan** — bukan global seperti di PostgreSQL. Ini perbedaan yang
+  setiap ganti bulan** bukan global seperti di PostgreSQL. Ini perbedaan yang
   diterima, bukan bug.
 
 ---
@@ -315,5 +315,5 @@ function SheetExplorer() {
 1. Ubah header di Registry atau di seluruh spreadsheet cabang.
 2. Update `lib/google/branch-schema.ts` (`STATIC_SHEETS` atau `MONTHLY_SHEETS`).
 3. Update pemanggilnya di `lib/store.ts` / `lib/admin/template-service.ts`.
-4. Tidak ada migrasi — tapi **penyesuaian** ke spreadsheet cabang lama wajib
+4. Tidak ada migrasi tapi **penyesuaian** ke spreadsheet cabang lama wajib
    dilakukan manual, karena kode tidak menambah kolom yang belum ada.

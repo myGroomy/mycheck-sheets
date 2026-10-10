@@ -1,4 +1,4 @@
-# REFACTOR.md — mycheck → Google Sheets Backend
+# REFACTOR.md mycheck → Google Sheets Backend
 
 > **Goal:** Full refactor mycheck backend from PostgreSQL/Supabase to Google Sheets API, mirroring stokis architecture for maximum performance.
 
@@ -53,9 +53,9 @@
 
 mycheck saat ini menggunakan struktur **monorepo** dengan `apps/web` sebagai sub-project terpisah. Ini menyebabkan:
 
-- **Dualisme `.env`** — `mycheck/.env` (tidak dibaca Next.js) vs `mycheck/apps/web/.env` (yang sebenarnya dibaca)
-- **Redundansi config** — `package.json`, `next.config.js`, `tsconfig.json` terduplikasi
-- **Confusing imports** — path resolution berbeda antara root dan app level
+- **Dualisme `.env`** `mycheck/.env` (tidak dibaca Next.js) vs `mycheck/apps/web/.env` (yang sebenarnya dibaca)
+- **Redundansi config** `package.json`, `next.config.js`, `tsconfig.json` terduplikasi
+- **Confusing imports** path resolution berbeda antara root dan app level
 
 ### 2.2 Solusi: Flatten to Single Project
 
@@ -84,7 +84,7 @@ mycheck/
 └── pnpm-workspace.yaml
 ```
 
-#### After (Flat — Mirror stokis)
+#### After (Flat Mirror stokis)
 ```
 mycheck/
 ├── .env                    ← SATU-SATUNYA env file
@@ -113,9 +113,9 @@ mycheck/
 | `apps/web/.env` | `.env` | Move |
 | `apps/web/.env.example` | `.env.example` | Move |
 | `apps/web/.env.local` | `.env.local` | Move |
-| `packages/shared/` | — | Delete (tidak digunakan) |
-| `pnpm-workspace.yaml` | — | Delete (tidak perlu) |
-| Root `package.json` | — | Delete (merge dengan apps/web) |
+| `packages/shared/` | | Delete (tidak digunakan) |
+| `pnpm-workspace.yaml` | | Delete (tidak perlu) |
+| Root `package.json` | | Delete (merge dengan apps/web) |
 
 ### 2.4 Steps to Restructure
 
@@ -141,13 +141,13 @@ mycheck/
    rm package.json  # root workspace package.json
    ```
 
-3. **Update `tsconfig.json`** — remove path aliases untuk `packages/shared`
+3. **Update `tsconfig.json`** remove path aliases untuk `packages/shared`
 
-4. **Update `next.config.ts`** — pastikan semua path benar
+4. **Update `next.config.ts`** pastikan semua path benar
 
-5. **Update `package.json`** — pastikan semua dependencies benar
+5. **Update `package.json`** pastikan semua dependencies benar
 
-6. **Test** — pastikan aplikasi berjalan dengan baik
+6. **Test** pastikan aplikasi berjalan dengan baik
 
 ### 2.5 Benefits
 
@@ -521,9 +521,9 @@ Client → Next.js API → Middleware (HMAC cookie + Branch check)
 - [ ] Delete `packages/` directory
 - [ ] Delete `pnpm-workspace.yaml`
 - [ ] Delete root `package.json` (workspace)
-- [ ] Update `tsconfig.json` — remove path aliases
-- [ ] Update `next.config.ts` — ensure paths correct
-- [ ] Test — ensure app runs correctly
+- [ ] Update `tsconfig.json` remove path aliases
+- [ ] Update `next.config.ts` ensure paths correct
+- [ ] Test ensure app runs correctly
 
 **Deliverable:** Flat structure identical to stokis
 
@@ -537,18 +537,18 @@ Client → Next.js API → Middleware (HMAC cookie + Branch check)
 - [ ] Create per-branch spreadsheet template
 - [ ] Copy `lib/google/client.ts`, `lib/google/sheets.ts`, `lib/google/registry.ts` from stokis
 - [ ] Copy `lib/session.ts`, `lib/auth.ts` from stokis
-- [ ] Update `middleware.ts` — simplify to HMAC cookie check
-- [ ] Update `app/api/auth/login/route.ts` — plaintext PIN + HMAC cookie
-- [ ] Update `app/api/auth/logout/route.ts` — clear cookie
-- [ ] Update `app/api/auth/me/route.ts` — HMAC verify + cache
-- [ ] Update `package.json` — remove old deps, add new deps
-- [ ] Update `next.config.ts` — add security headers
+- [ ] Update `middleware.ts` simplify to HMAC cookie check
+- [ ] Update `app/api/auth/login/route.ts` plaintext PIN + HMAC cookie
+- [ ] Update `app/api/auth/logout/route.ts` clear cookie
+- [ ] Update `app/api/auth/me/route.ts` HMAC verify + cache
+- [ ] Update `package.json` remove old deps, add new deps
+- [ ] Update `next.config.ts` add security headers
 
 **Deliverable:** Login/logout works with Google Sheets backend
 
 ---
 
-### Phase 2: Core CRUD (Days 4-7) — ✅ DONE
+### Phase 2: Core CRUD (Days 4-7) ✅ DONE
 
 **Goal:** Shift management + Entries + Handover
 
@@ -556,65 +556,65 @@ Note: implementasi tidak memakai `lib/domain/*-service.ts`; logika tetap berada
 di route handler dengan lapisan akses data terpusat di `lib/store.ts`
 (cocok dengan pola stokis).
 
-- [x] `lib/google/branch-schema.ts` — header persis sama dengan `Template_cabang_mycheck`
-- [x] `lib/store.ts` — CRUD + `ensureMonthlySheet` / `listMonthlyRows` untuk tab bulanan
-- [x] `lib/db/snapshot.ts` — build snapshot dari `ShiftDefinitions` + `SopCategories` + `ChecklistPoints` + `HandoverFields`, toleransi dari `_meta`
-- [x] `lib/db/audit.ts` — audit log hash-chain ke tab `AuditLog_<YYYY-MM>`
-- [x] `lib/instance-resolver.ts` — resolusi instance + `tabMonth`
-- [x] `app/api/shifts/route.ts` — list definisi shift + status hari ini
-- [x] `app/api/shifts/open/route.ts` — buka shift (isi `tab_month` + `snapshot_encoding` + snapshot JSON)
-- [x] `app/api/shifts/[id]/join/route.ts` — gabung shift
-- [x] `app/api/shifts/[id]/entries/route.ts` — aksi checklist + idempotency + BR-12
-- [x] `app/api/shifts/[id]/progress/route.ts` — progress per kategori + peserta
-- [x] `app/api/shifts/[id]/handover/route.ts` — simpan handover
-- [x] `app/api/shifts/[id]/handover-prev/route.ts` — baca handover shift sebelumnya
-- [x] `app/api/shifts/[id]/close/route.ts` — tutup shift (verifikasi PIN) + buat report
+- [x] `lib/google/branch-schema.ts` header persis sama dengan `Template_cabang_mycheck`
+- [x] `lib/store.ts` CRUD + `ensureMonthlySheet` / `listMonthlyRows` untuk tab bulanan
+- [x] `lib/db/snapshot.ts` build snapshot dari `ShiftDefinitions` + `SopCategories` + `ChecklistPoints` + `HandoverFields`, toleransi dari `_meta`
+- [x] `lib/db/audit.ts` audit log hash-chain ke tab `AuditLog_<YYYY-MM>`
+- [x] `lib/instance-resolver.ts` resolusi instance + `tabMonth`
+- [x] `app/api/shifts/route.ts` list definisi shift + status hari ini
+- [x] `app/api/shifts/open/route.ts` buka shift (isi `tab_month` + `snapshot_encoding` + snapshot JSON)
+- [x] `app/api/shifts/[id]/join/route.ts` gabung shift
+- [x] `app/api/shifts/[id]/entries/route.ts` aksi checklist + idempotency + BR-12
+- [x] `app/api/shifts/[id]/progress/route.ts` progress per kategori + peserta
+- [x] `app/api/shifts/[id]/handover/route.ts` simpan handover
+- [x] `app/api/shifts/[id]/handover-prev/route.ts` baca handover shift sebelumnya
+- [x] `app/api/shifts/[id]/close/route.ts` tutup shift (verifikasi PIN) + buat report
 
-**Deliverable:** ✅ Full shift lifecycle works — terverifikasi end-to-end
+**Deliverable:** ✅ Full shift lifecycle works terverifikasi end-to-end
 (login → list shift → open → join → entries → progress → handover → close)
 terhadap `Template_cabang_mycheck`, lalu seluruh data test dihapus kembali.
 
 **Catatan teknis penting (temuan saat implementasi):**
 - Semua tulisan Sheets **wajib** `valueInputOption: 'RAW'`. Dengan `USER_ENTERED`,
   Google Sheets mengurai `"2026-10-08"` menjadi serial `46303` dan
-  `"true"` menjadi boolean `TRUE` — merusak `shift_date`, `tab_month`, dan nilai centang.
+  `"true"` menjadi boolean `TRUE` merusak `shift_date`, `tab_month`, dan nilai centang.
 - `updateRow` memakai `values.batchUpdate` multi-range (1 panggilan API untuk
   semua kolom yang diubah), bukan satu panggilan per kolom.
 - `ShiftInstances.tab_month` wajib diisi saat membuka shift; seluruh data
   transaksional (Entries/EntryLogs/Handovers/AuditLog) tinggal di tab bulanan
   instance tersebut. `tabMonthOf()` jatuh ke `shift_date` lalu ke bulan berjalan.
-- Hash chain audit di-reset per tab bulanan (bukan global) — perbedaan yang
+- Hash chain audit di-reset per tab bulanan (bukan global) perbedaan yang
   diterima terhadap desain PostgreSQL.
 
 ---
 
-### Phase 3: Admin & Reports (Days 8-10) — ✅ DONE
+### Phase 3: Admin & Reports (Days 8-10) ✅ DONE
 
 **Goal:** Admin management + Report generation
 
 **Lapisan servis (bukan `lib/domain/*`):**
-- [x] `lib/google/registry-admin.ts` — CRUD `Daftar_Cabang` + `Users` di Registry (PascalCase)
-- [x] `lib/google/settings-admin.ts` — CRUD `Settings_Global` + `_meta` per cabang
-- [x] `lib/google/share-tokens.ts` — CRUD share token di sheet `Share_Tokens` (Registry)
-- [x] `lib/admin/template-service.ts` — CRUD konfigurasi template cabang
-- [x] `lib/admin/resolve-config.ts` — cari cabang pemilik sebuah ID config
-- [x] `lib/admin/settings-catalog.ts` — katalog key + `value_type` (Settings_Global hanya Key|Value)
-- [x] `lib/admin/sensitive-action.ts` — verifikasi PIN admin (versi Sheets)
+- [x] `lib/google/registry-admin.ts` CRUD `Daftar_Cabang` + `Users` di Registry (PascalCase)
+- [x] `lib/google/settings-admin.ts` CRUD `Settings_Global` + `_meta` per cabang
+- [x] `lib/google/share-tokens.ts` CRUD share token di sheet `Share_Tokens` (Registry)
+- [x] `lib/admin/template-service.ts` CRUD konfigurasi template cabang
+- [x] `lib/admin/resolve-config.ts` cari cabang pemilik sebuah ID config
+- [x] `lib/admin/settings-catalog.ts` katalog key + `value_type` (Settings_Global hanya Key|Value)
+- [x] `lib/admin/sensitive-action.ts` verifikasi PIN admin (versi Sheets)
 
 **Routes:**
-- [x] `app/api/admin/branches/*` — CRUD cabang + daftar shift per cabang + copy-from
-- [x] `app/api/admin/users/*` — CRUD user, reset-pin, unlock, force-logout
-- [x] `app/api/admin/shifts/*` — CRUD definisi shift, duplicate, categories, handover-fields, preview
-- [x] `app/api/admin/sop-categories/*` — CRUD kategori, duplicate, points
-- [x] `app/api/admin/checklist-points/*` — CRUD point + duplicate
-- [x] `app/api/admin/handover-fields/[id]/route.ts` — CRUD bidang handover
-- [x] `app/api/admin/settings/route.ts` — pengaturan global
-- [x] `app/api/admin/stats/route.ts` — statistik lintas cabang
-- [x] `app/api/admin/audit-log/route.ts` — audit log (gabungan tab bulanan)
-- [x] `app/api/admin/reports/*` — daftar laporan, addenda, share token
-- [x] `app/api/reports/*` — daftar laporan petugas + detail laporan
-- [x] `app/api/public/report/[token]/route.ts` — laporan publik via token (tanpa auth)
-- [x] `app/api/photos/upload` + `app/api/photos/[id]` — Drive upload & proxy akses
+- [x] `app/api/admin/branches/*` CRUD cabang + daftar shift per cabang + copy-from
+- [x] `app/api/admin/users/*` CRUD user, reset-pin, unlock, force-logout
+- [x] `app/api/admin/shifts/*` CRUD definisi shift, duplicate, categories, handover-fields, preview
+- [x] `app/api/admin/sop-categories/*` CRUD kategori, duplicate, points
+- [x] `app/api/admin/checklist-points/*` CRUD point + duplicate
+- [x] `app/api/admin/handover-fields/[id]/route.ts` CRUD bidang handover
+- [x] `app/api/admin/settings/route.ts` pengaturan global
+- [x] `app/api/admin/stats/route.ts` statistik lintas cabang
+- [x] `app/api/admin/audit-log/route.ts` audit log (gabungan tab bulanan)
+- [x] `app/api/admin/reports/*` daftar laporan, addenda, share token
+- [x] `app/api/reports/*` daftar laporan petugas + detail laporan
+- [x] `app/api/public/report/[token]/route.ts` laporan publik via token (tanpa auth)
+- [x] `app/api/photos/upload` + `app/api/photos/[id]` Drive upload & proxy akses
 
 **Deliverable:** ✅ Terverifikasi end-to-end terhadap `Template_cabang_mycheck`
 sebagai CBG01. Semua baris/setting/token test dibersihkan kembali.
@@ -626,7 +626,7 @@ sebagai CBG01. Semua baris/setting/token test dibersihkan kembali.
 - `Settings_Global` + sheet `Share_Tokens` baru dibuat di Registry.
 - Branch dibuat **nonaktif** sampai `Spreadsheet_ID` diisi, lalu bisa diaktifkan.
 - Hapus shift/kategori/point diblokir bila punya anak atau sudah dipakai instance.
-- Foto tidak memakai signed URL (file milik service account) — di-proxy lewat
+- Foto tidak memakai signed URL (file milik service account) di-proxy lewat
   route terautentikasi agar URL tetap tertutup.
 - Kolom arsip PDF (`archive_pdf_*`) tidak ada di template → dikembalikan `null`.
 
@@ -637,7 +637,7 @@ sebagai CBG01. Semua baris/setting/token test dibersihkan kembali.
 
 ---
 
-### Phase 4: Remaining Features (Days 11-12) — ✅ DONE
+### Phase 4: Remaining Features (Days 11-12) ✅ DONE
 
 **Goal:** Incidents + Notifications + Audit
 
@@ -647,28 +647,28 @@ di route handler dengan lapisan akses data terpusat di `lib/store.ts` +
 `lib/db/audit.ts` sudah versi Sheets (`appendAuditLogFor`), jadi tidak perlu
 `audit-service.ts` baru.
 
-- [x] `lib/google/branch-schema.ts` — sheet statis baru `IncidentCategories`
+- [x] `lib/google/branch-schema.ts` sheet statis baru `IncidentCategories`
   + `lib/admin/template-service.ts` CRUD kategori per cabang
-- [x] `lib/incidents.ts` — helper Phase 4: `findIncidentAcrossBranches`
+- [x] `lib/incidents.ts` helper Phase 4: `findIncidentAcrossBranches`
   (IncidentIndex + fallback tab bulanan 3 bulan), `updateIncidentRow`
   (+sinkron index), `categoryNameMap`/`listActiveCategoriesAcrossBranches`,
   `userNameMap`, `pushNotification` (fan-out ke `Notifications` cabang),
   `upsertIncidentIndex`, `ensureIncidentTabs`
-- [x] `lib/admin/resolve-config.ts` — `locateIncidentCategory`
-- [x] `app/api/incidents/route.ts` — GET daftar (union kategori + index/fallback,
+- [x] `lib/admin/resolve-config.ts` `locateIncidentCategory`
+- [x] `app/api/incidents/route.ts` GET daftar (union kategori + index/fallback,
   limit 100) + POST buat (jendela 4 jam via `incident_link_window_hours`,
   outside_shift, severity, audit, notifikasi best-effort)
-- [x] `app/api/incidents/[id]/route.ts` — GET detail + notes + photos;
+- [x] `app/api/incidents/[id]/route.ts` GET detail + notes + photos;
   PATCH (admin) ubah status open↔selesai (IN-04) + audit + notifikasi
-- [x] `app/api/incidents/[id]/notes/route.ts` — POST catatan (maks 2000, IN-06) + audit
-- [x] `app/api/notifications/route.ts` — GET 50 terbaru lintas cabang
-- [x] `app/api/notifications/[id]/read/route.ts` — POST tandai dibaca (idempotent)
-- [x] `app/api/handovers/[id]/ack/route.ts` — POST ack idempotent + audit
-- [x] `app/api/admin/incident-categories/*` — migrasi dari Drizzle ke Sheets
+- [x] `app/api/incidents/[id]/notes/route.ts` POST catatan (maks 2000, IN-06) + audit
+- [x] `app/api/notifications/route.ts` GET 50 terbaru lintas cabang
+- [x] `app/api/notifications/[id]/read/route.ts` POST tandai dibaca (idempotent)
+- [x] `app/api/handovers/[id]/ack/route.ts` POST ack idempotent + audit
+- [x] `app/api/admin/incident-categories/*` migrasi dari Drizzle ke Sheets
   (GET union + branchId, POST per cabang, PUT, DELETE dengan guard dipakai)
-- [x] `app/api/admin/branches/[id]/copy-from/[source_id]/route.ts` — salin
+- [x] `app/api/admin/branches/[id]/copy-from/[source_id]/route.ts` salin
   `IncidentCategories` bila target masih kosong
-- [x] `app/api/reports/[id]/route.ts` — isi `categoryName` dari
+- [x] `app/api/reports/[id]/route.ts` isi `categoryName` dari
   `IncidentCategories` (sebelumnya `null` placeholder Phase 2)
 
 **Deliverable:** ✅ Feature parity petugas untuk incident/notifikasi/ack —
@@ -680,14 +680,14 @@ CBG01) + pembersihan data test masih perlu dijalankan manual.
 - Notifikasi per cabang (fan-out saat create/status change), bukan tabel global.
 - `IncidentIndex` statis mempercepat daftar; baris lama tanpa index tetap
   ditemukan via fallback scan 3 bulan terakhir.
-- `PATCH /api/incidents/[id]` (admin) adalah endpoint baru — tidak ada di
-  backend lama — untuk memenuhi PRD IN-04 (status oleh admin).
+- `PATCH /api/incidents/[id]` (admin) adalah endpoint baru tidak ada di
+  backend lama untuk memenuhi PRD IN-04 (status oleh admin).
 - `DELETE /api/admin/incident-categories/[id]` adalah endpoint baru dengan
   guard 409 bila kategori sudah dipakai incident.
 
 **Di luar lingkup Phase 4 (legacy yang tersisa, bukan rute Phase 4):**
 - ~~`app/admin/page.tsx` + `app/r/[token]/page.tsx` masih memakai Drizzle
-  langsung~~ — ✅ **selesai di sesi lanjutan**, lihat "Perbaikan config & UI" di bawah.
+  langsung~~ ✅ **selesai di sesi lanjutan**, lihat "Perbaikan config & UI" di bawah.
 
 ### Perbaikan config & UI (sesi lanjutan Phase 4)
 
@@ -695,17 +695,17 @@ CBG01) + pembersihan data test masih perlu dijalankan manual.
 Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 `lib/db/index.ts` melempar error saat import (`DATABASE_URL` sudah dihapus dari `.env`).
 
-- [x] `tsconfig.json` — kembalikan alias `"@/*": ["./*"]`, tambahkan `DOM` +
+- [x] `tsconfig.json` kembalikan alias `"@/*": ["./*"]`, tambahkan `DOM` +
   `DOM.Iterable`, buang `@shared/*` yang menunjuk `packages/` yang sudah dihapus,
   exclude `apps` (duplikat) dan `drizzle` (yatim). **791 → 0 error.**
-- [x] `lib/page-auth.ts` — auth Server Component (`requireUser` / `requireAdmin` /
+- [x] `lib/page-auth.ts` auth Server Component (`requireUser` / `requireAdmin` /
   `getUser`) berbasis HMAC session `mycheck_session`, cermin `lib/api-auth.ts`
 - [x] 9 halaman dipindah dari `lib/_deprecated-auth/*` ke `lib/page-auth.ts`
-- [x] `lib/report-detail.ts` — detail laporan jadi satu sumber untuk
+- [x] `lib/report-detail.ts` detail laporan jadi satu sumber untuk
   `/api/reports/[id]`, `/api/public/report/[token]`, dan `app/r/[token]`
-- [x] `lib/admin/stats-service.ts` — statistik dasbor jadi satu sumber untuk
+- [x] `lib/admin/stats-service.ts` statistik dasbor jadi satu sumber untuk
   `/api/admin/stats` dan `app/admin/page.tsx`
-- [x] `app/r/[token]/page.tsx` + `app/admin/page.tsx` — Drizzle diganti Sheets
+- [x] `app/r/[token]/page.tsx` + `app/admin/page.tsx` Drizzle diganti Sheets
 - [x] Hapus 11 file mati: `lib/db/{index,lock,idempotency,transaction}.ts`,
   `lib/storage/`, `lib/_deprecated-auth/` (backup: `/tmp/opencode/removed`)
 - [x] Sheet `IncidentCategories` ditambahkan ke template + 2 kategori lama di-seed
@@ -725,19 +725,19 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 - [Otomatis] Data test dihapus: `Incidents_2026-10` 14 baris, `ShiftInstances` 49 baris (sesuai semula)
 
 **Sisa legacy yang YATIM (menunggu persetujuan hapus):**
-- `drizzle/` — `schema.ts`, 1 migration, 2 seed script. Dependensi PG sudah
+- `drizzle/` `schema.ts`, 1 migration, 2 seed script. Dependensi PG sudah
   dihapus dari `package.json` sehingga mustahil dijalankan lagi.
-- `apps/web/` — duplikat 158 file dari struktur sebelum Phase 0. `package.json`
+- `apps/web/` duplikat 158 file dari struktur sebelum Phase 0. `package.json`
   masih menunjuk `apps/web` sebagai workspace untuk script `dev`/`build`/`lint`.
 
 ---
 
-### Phase 5: Optimization & Cleanup (Days 13-14) — ✅ DONE
+### Phase 5: Optimization & Cleanup (Days 13-14) ✅ DONE
 
 **Goal:** Production-ready, optimized mycheck
 
 **Cache:**
-- [x] `lib/google/cache.ts` — utilitas TTL + single-flight (`ttlCache`, `memoize`)
+- [x] `lib/google/cache.ts` utilitas TTL + single-flight (`ttlCache`, `memoize`)
 - [x] `getCabangList()` + `resolveCabang()` di-cache 60 detik (sebelumnya cache
       per-proses tanpa batas waktu → data edit manual di Sheets tidak pernah
       terbaca ulang)
@@ -749,7 +749,7 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 
 **Batching:**
 - [x] `readSheetsBatch()` di `lib/google/sheets.ts` (`values.batchGet`)
-- [x] `filterRowsMulti()` di `lib/store.ts` — baca N sheet statis dalam 1 panggilan
+- [x] `filterRowsMulti()` di `lib/store.ts` baca N sheet statis dalam 1 panggilan
 - [x] `lib/admin/stats-service.ts` memakainya: 3 pembacaan sheet → 1 panggilan
       (hasil `/api/admin/stats` diverifikasi identik)
 
@@ -761,7 +761,7 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 - [x] `lib/drive/` (duplikat `lib/google/client.ts` dengan env var lama +
       `throw` di level modul) dihapus → `photos/upload` pakai `getDriveClient()`
 - [x] `lib/auth.ts` (duplikat `withAuth`) dihapus → `change-pin` pindah ke `lib/api-auth.ts`
-- [x] Label "v2.0 — Supabase PostgreSQL" di halaman login → "Google Sheets"
+- [x] Label "v2.0 Supabase PostgreSQL" di halaman login → "Google Sheets"
 - [x] `.env.example` ditulis ulang (masih mendokumentasikan Supabase/PIN)
 
 **Dokumentasi:**
@@ -788,7 +788,7 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 - `npm run build` di mesin RAM < 4GB perlu `NODE_OPTIONS=--max-old-space-size=3072`.
 - Race condition pada BR-01/BR-12 masih mungkin terjadi pada request benar-benar
   paralel (tidak ada unique index / row lock di Sheets).
-- Warning `Found lockfile missing swc dependencies` dari Next 14 — build tetap jalan.
+- Warning `Found lockfile missing swc dependencies` dari Next 14 build tetap jalan.
 
 **Deliverable:** ✅ Production-ready
 
@@ -830,7 +830,7 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 ### Rollback Steps
 1. If critical bug found, revert to `myGroomy/mycheck-sheets` repo
 2. Redeploy old code from backup repo
-3. Data is in Google Sheets — no migration needed back
+3. Data is in Google Sheets no migration needed back
 
 ### Data Safety
 - All data stored in Google Sheets (exportable to CSV)
@@ -882,9 +882,9 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 
 ## 14. Notes
 
-- **Data is dummy** — no migration needed, start fresh
-- **Security downgrade acceptable** — plaintext PIN, no CSRF, no rate limiting
-- **Backup exists** — `myGroomy/mycheck-sheets` repo
+- **Data is dummy** no migration needed, start fresh
+- **Security downgrade acceptable** plaintext PIN, no CSRF, no rate limiting
+- **Backup exists** `myGroomy/mycheck-sheets` repo
 - **Target:** 100% dependency parity with stokis
 - **Goal:** Maximum performance, minimum complexity
 

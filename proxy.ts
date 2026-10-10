@@ -6,6 +6,7 @@ const PUBLIC_PATHS = [
   '/login',
   '/api/auth/login',
   '/api/health',
+  '/api/search',
   '/api/public',
   '/r',
   '/_next',
@@ -14,9 +15,17 @@ const PUBLIC_PATHS = [
   '/icons',
 ];
 
+const PUBLIC_ASSETS = [
+  '/icon-192.png',
+  '/icon-512.png',
+  '/icon.svg',
+  '/favicon-32.png',
+  '/apple-touch-icon.png',
+];
+
 // Next.js 16: konvensi `middleware` diganti nama menjadi `proxy`
 // (lihat https://nextjs.org/docs/app/api-reference/file-conventions/proxy).
-// Logika tidak berubah — hanya nama file & fungsi.
+// Logika tidak berubah hanya nama file & fungsi.
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -24,6 +33,7 @@ export function proxy(req: NextRequest) {
     pathname === '/' ||
     pathname === '/docs' ||
     pathname.startsWith('/docs/') ||
+    PUBLIC_ASSETS.includes(pathname) ||
     PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 
   if (isPublic) {

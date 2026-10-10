@@ -1,5 +1,5 @@
 // lib/db/audit.ts
-// Append audit log dengan hash chain — VERSION Google Sheets + tab bulanan.
+// Append audit log dengan hash chain VERSION Google Sheets + tab bulanan.
 import { createHash } from 'crypto';
 import { ulid } from 'ulid';
 import { ensureMonthlySheet, insertRow, listMonthlyRows, asStr } from '../store';

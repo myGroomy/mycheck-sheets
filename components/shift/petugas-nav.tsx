@@ -85,7 +85,7 @@ export function PetugasNav() {
           </SheetContent>
         </Sheet>
         <Link href="/" className="text-sm font-bold text-ink">
-          checklist-shift
+          MyCheck
         </Link>
         <span className="ml-auto text-xs text-ink-muted">
           {LINKS.find((link) => isActive(pathname, link.href))?.label}

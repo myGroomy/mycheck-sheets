@@ -1,5 +1,5 @@
 // lib/store.ts
-// Lapisan akses data berbasis Google Sheets — pengganti lib/db (Drizzle/Postgres).
+// Lapisan akses data berbasis Google Sheets pengganti lib/db (Drizzle/Postgres).
 
 import { getSheetsClient } from './google/client';
 import {
@@ -99,7 +99,7 @@ export async function insertRow(spreadsheetId: string, sheet: string, obj: Recor
   await appendRows(spreadsheetId, sheet, [rowFromObject(sheet, obj)]);
 }
 
-/** Perbarui kolom terpilih pada satu baris — satu panggilan API untuk semua kolom. */
+/** Perbarui kolom terpilih pada satu baris satu panggilan API untuk semua kolom. */
 export async function updateRow(spreadsheetId: string, sheet: string, rowNumber: number, updates: Record<string, unknown>): Promise<void> {
   const headers = getHeaders(sheet);
   const cells = Object.entries(updates).map(([key, value]) => {

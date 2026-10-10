@@ -1,5 +1,5 @@
 // lib/google/branch-schema.ts
-// Skema sheet untuk spreadsheet per-cabang — MIRROR dari Template_cabang_mycheck.
+// Skema sheet untuk spreadsheet per-cabang MIRROR dari Template_cabang_mycheck.
 // Sheet statis (config) + sheet bulanan (transaksional, _YYYY-MM).
 
 export const STATIC_SHEETS: Record<string, string[]> = {

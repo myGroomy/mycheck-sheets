@@ -146,7 +146,7 @@ export default function AuditLogPage() {
       <div>
         <h1 className="text-xl font-bold">Audit Log</h1>
         <p className="text-xs text-ink-muted">
-          Append-only dan berantai hash — hanya bisa dibaca, tidak bisa diubah
+          Append-only dan berantai hash hanya bisa dibaca, tidak bisa diubah
         </p>
       </div>
 

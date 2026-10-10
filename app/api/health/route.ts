@@ -3,7 +3,7 @@ import { getSheetsClient, getDriveClient } from '@/lib/google/client';
 
 /**
  * Health check: Registry spreadsheet (data) + Drive (storage foto).
- * Tidak butuh autentikasi — hanya melaporkan ok/error.
+ * Tidak butuh autentikasi hanya melaporkan ok/error.
  */
 export async function GET() {
   const startedAt = Date.now();

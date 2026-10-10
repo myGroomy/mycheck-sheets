@@ -2,7 +2,7 @@
 // CRUD template cabang (ShiftDefinitions, SopCategories, ChecklistPoints,
 // HandoverFields) pada spreadsheet cabang. Semua kolom snake_case.
 //
-// Catatan penting: sheet config di spreadsheet cabang bersifat "flat" — ID
+// Catatan penting: sheet config di spreadsheet cabang bersifat "flat" ID
 // shift definition menjadi penanda cabang secara implisit, jadi tidak ada
 // kolom branch_id (cabang = spreadsheet).
 

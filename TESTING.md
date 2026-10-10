@@ -1,4 +1,4 @@
-# Testing Guide — checklist-shift
+# Testing Guide MyCheck
 
 ## 1. Tujuan
 Memastikan alur shift berjalan benar, gagal dengan aman, data antar cabang terisolasi, dan guard konsistensi tetap tegak di atas Google Sheets.

@@ -1,6 +1,6 @@
 {
-  "name": "checklist-shift",
-  "short_name": "checklist",
+  "name": "MyCheck",
+  "short_name": "MyCheck",
   "description": "PWA untuk SOP shift karyawan F&B",
   "start_url": "/",
   "display": "standalone",

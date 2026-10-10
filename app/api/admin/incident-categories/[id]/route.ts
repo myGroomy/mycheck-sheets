@@ -1,4 +1,4 @@
-// app/api/admin/incident-categories/[id]/route.ts — Phase 4 (Sheets).
+// app/api/admin/incident-categories/[id]/route.ts Phase 4 (Sheets).
 import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { locateIncidentCategory } from '../../../../../lib/admin/resolve-config';

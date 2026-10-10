@@ -1,10 +1,10 @@
 'use client';
 
-// components/shift/petugas-home.tsx — Beranda untuk petugas (Opsi 4).
+// components/shift/petugas-home.tsx Beranda untuk petugas (Opsi 4).
 // Sapaan -> ringkasan shift hari ini -> incident/item belum selesai ->
 // notifikasi -> jalan pintas -> profil singkat.
 //
-// Sekarang memakai /api/beranda (satu panggilan) — menggantikan 4 panggilan
+// Sekarang memakai /api/beranda (satu panggilan) menggantikan 4 panggilan
 // terpisah ke /api/shifts, /api/incidents, /api/notifications,
 // dan /api/shifts/[id]/progress.
 
@@ -201,7 +201,7 @@ export function PetugasHome({
       {/* Sapaan */}
       <header className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
-          Checklist-shift
+          MyCheck
         </p>
         <h1 className="mt-1 text-2xl font-bold text-ink">Halo, {userName}</h1>
         <p className="mt-1 text-sm text-ink-muted">{formatTanggal(serverTime)}</p>

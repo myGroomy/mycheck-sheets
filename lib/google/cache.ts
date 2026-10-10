@@ -6,7 +6,7 @@
 // berubah, jadi aman disimpan sebentar.
 //
 // Catatan: cache ini per-instance serverless, jadi tidak konsisten lintas
-// region — itu trade-off yang diterima. Setiap mutasi lokal invalidate cache.
+// region itu trade-off yang diterima. Setiap mutasi lokal invalidate cache.
 
 /** Default 60 detik: memangkas panggilan API tanpa staleness yang terasa. */
 const DEFAULT_TTL_MS = 60_000;
@@ -61,7 +61,7 @@ export function memoize<T>(fn: () => Promise<T>, ttlMs: number = DEFAULT_TTL_MS)
     try {
       return await pending;
     } catch (error) {
-      // Jangan menyimpan promise yang gagal — biarkan request berikutnya mencoba lagi.
+      // Jangan menyimpan promise yang gagal biarkan request berikutnya mencoba lagi.
       if (entry && entry.value === pending) entry = null;
       throw error;
     }

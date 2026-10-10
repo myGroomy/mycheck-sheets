@@ -8,13 +8,13 @@ implementasi yang ada, bukan menggantikan spesifikasi.
 
 Urutan prioritas dan aturan kerja berada di `AGENTS.md`. Dokumen lain:
 
-1. `PRD.md` — perilaku produk dan aturan bisnis.
-2. `DATABASE_SCHEMA.md` — struktur Google Sheets (Registry + spreadsheet cabang).
-3. `TRD.md` — keputusan arsitektur dan teknis.
-4. `APP_FLOW.md` — layar dan alur UX.
-5. `IMPLEMENTATION_PLAN.md` — tahapan implementasi.
-6. `TESTING.md` — kriteria verifikasi.
-7. `UI-UX.md` — panduan visual dan responsif.
+1. `PRD.md` perilaku produk dan aturan bisnis.
+2. `DATABASE_SCHEMA.md` struktur Google Sheets (Registry + spreadsheet cabang).
+3. `TRD.md` keputusan arsitektur dan teknis.
+4. `APP_FLOW.md` layar dan alur UX.
+5. `IMPLEMENTATION_PLAN.md` tahapan implementasi.
+6. `TESTING.md` kriteria verifikasi.
+7. `UI-UX.md` panduan visual dan responsif.
 
 <Callout type="warning">
   Spesifikasi saat ini memuat sejumlah layar dan pekerjaan berstatus rencana.
@@ -29,7 +29,7 @@ Single project Next.js di root repo. **Bukan monorepo.**
 
 ```text
 mycheck/
-  app/                    # Next.js App Router — pages, layouts, API routes
+  app/                    # Next.js App Router pages, layouts, API routes
   components/             # UI petugas, admin, incident, report, komponen bersama
   lib/
     google/               # Google Sheets API client, branch-schema, cache
@@ -124,15 +124,15 @@ npm run setup:branch -- CAB01 Cabang_Jakarta 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74
 <Callout type="warning">
   **`valueInputOption: 'RAW'` wajib** untuk semua tulisan. Dengan
   `USER_ENTERED`, Sheets mengurai `"2026-10-08"` menjadi serial angka `46303`
-  dan `"true"` menjadi boolean — merusak `shift_date`, `tab_month`, dan nilai
+  dan `"true"` menjadi boolean merusak `shift_date`, `tab_month`, dan nilai
   centang.
 </Callout>
 
 Aturan wajib saat bekerja dengan Google Sheets:
 
 1. **Baca/tulis berdasarkan nama kolom** lewat `lib/store.ts`, bukan urutan.
-2. **Boolean** ditulis sebagai string `'TRUE'`/`'FALSE'` — dibaca lewat `asBool()`.
-3. **Tidak ada transaksi.** Operasi lintas sheet tidak atomik — lakukan
+2. **Boolean** ditulis sebagai string `'TRUE'`/`'FALSE'` dibaca lewat `asBool()`.
+3. **Tidak ada transaksi.** Operasi lintas sheet tidak atomik lakukan
    compensating action bila gagal.
 4. **Tidak ada unique index.** BR-01 (satu shift per definisi+tanggal) dijaga
    pengecekan aplikasi sebelum insert.

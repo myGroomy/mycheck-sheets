@@ -1,5 +1,5 @@
 // lib/domain/shift-service.ts
-// Domain service untuk operasi shift — menggabungkan logika dari lib/admin/shift-operations.ts
+// Domain service untuk operasi shift menggabungkan logika dari lib/admin/shift-operations.ts
 // dan route handler agar API routes menjadi tipis (hanya parsing + pemanggilan service).
 
 import { ulid } from 'ulid';

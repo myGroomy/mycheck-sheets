@@ -1,4 +1,4 @@
-# [AGENTS.md](http://AGENTS.md) — checklist-shift
+# [AGENTS.md](http://AGENTS.md) MyCheck
 
 PWA mobile-first (Bahasa Indonesia) untuk SOP shift karyawan F&amp;B. Dokumen ini aturan kerja untuk AI coding agent.
 
@@ -40,9 +40,9 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 
 - **Single project Next.js** (App Router, TypeScript, Tailwind, shadcn/ui, Lucide) di root repo. Tidak ada monorepo, tidak ada `apps/`, tidak ada `packages/`.
 - **Data: Google Sheets API**, accessed sebagai service account. Tidak ada database SQL.
-  - **Registry** (`REGISTRY_SPREADSHEET_ID`) — satu spreadsheet pusat, sheet ber-PascalCase:
+  - **Registry** (`REGISTRY_SPREADSHEET_ID`) satu spreadsheet pusat, sheet ber-PascalCase:
     `Daftar_Cabang`, `Settings_Global`, `Users`, `Share_Tokens`, `Template_Referensi`.
-  - **Spreadsheet per cabang** — satu spreadsheet per cabang (cabang = spreadsheet, jadi tidak ada kolom `branch_id`). Sheet ber-camelCase, kolom snake_case. Sheet config: `ShiftDefinitions`, `SopCategories`, `ChecklistPoints`, `HandoverFields`, `ShiftInstances`, `Participants`, `Reports`, `Addenda`, `Summary`, `Snapshots`, `IncidentIndex`, `IncidentCategories`, `Notifications`, `_meta`.
+  - **Spreadsheet per cabang** satu spreadsheet per cabang (cabang = spreadsheet, jadi tidak ada kolom `branch_id`). Sheet ber-camelCase, kolom snake_case. Sheet config: `ShiftDefinitions`, `SopCategories`, `ChecklistPoints`, `HandoverFields`, `ShiftInstances`, `Participants`, `Reports`, `Addenda`, `Summary`, `Snapshots`, `IncidentIndex`, `IncidentCategories`, `Notifications`, `_meta`.
   - Sheet transaksional memakai **tab bulanan** `<Nama>_<YYYY-MM>`: `Entries_*`, `EntryLogs_*`, `Handovers_*`, `HandoverAcks_*`, `Incidents_*`, `IncidentNotes_*`, `Photos_*`, `AuditLog_*`. `ShiftInstances.tab_month` menentukan tab mana yang dipakai sebuah instance.
 - Sumber kebenaran struktur spreadsheet = **`Template_cabang_mycheck`**. Cabang baru = copy template manual di Google Drive, rename, share ke service account, lalu daftarkan `Cabang_ID`-nya di `Daftar_Cabang` (`npm run setup:branch`). Copy via API tidak dipakai (kuota Drive).
 - Akses data: `lib/store.ts` (filter/list/insert/update) di atas `lib/google/sheets.ts`. Template config di `lib/admin/template-service.ts`.
@@ -55,18 +55,18 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 
 ## 5. Aturan Data (Google Sheets)
 
-- Baca/tulis **berdasarkan nama kolom** lewat `lib/store.ts`, bukan urutan. Header sheet adalah skema — ubah `lib/google/branch-schema.ts` bila menambah kolom.
-- **Semua tulis wajib `valueInputOption: 'RAW'`.** Dengan `USER_ENTERED`, Sheets mengurai `"2026-10-08"` menjadi serial angka `46303` dan `"true"` menjadi boolean — merusak `shift_date`, `tab_month`, dan nilai centang.
+- Baca/tulis **berdasarkan nama kolom** lewat `lib/store.ts`, bukan urutan. Header sheet adalah skema ubah `lib/google/branch-schema.ts` bila menambah kolom.
+- **Semua tulis wajib `valueInputOption: 'RAW'`.** Dengan `USER_ENTERED`, Sheets mengurai `"2026-10-08"` menjadi serial angka `46303` dan `"true"` menjadi boolean merusak `shift_date`, `tab_month`, dan nilai centang.
 - Boolean ditulis sebagai string `'TRUE'`/`FALSE` (lihat `toCellValue`).
-- Kolom bool dibaca lewat `asBool()` — jangan bandingkan string langsung.
+- Kolom bool dibaca lewat `asBool()` jangan bandingkan string langsung.
 - DILARANG menghapus baris secara bisnis. Hanya ubah status/is_active/void.
 - Waktu disimpan sebagai string ISO UTC. Tampil sesuai zona waktu cabang.
 - ID memakai ULID, dibuat di aplikasi dengan `ulid`.
-- **Tidak ada transaksi.** operasi multi-sheet tidak atomik — compensating action bila gagal.
+- **Tidak ada transaksi.** operasi multi-sheet tidak atomik compensating action bila gagal.
 - Idempotency: setiap aksi dari klien membawa `client_action_id`, dicek di `EntryLogs.client_action_id` sebelum menulis.
 - **Semua operasi baca Sheet itu mahal** (1 panggilan API). Pakai cache TTL (`lib/google/cache.ts`) dan `values.batchGet` (`filterRowsMulti`) bila membaca >1 sheet.
 - Mutasi ke Registry/Users **wajib** memanggil `resetRegistryCache()` / `resetUsersCache()`.
-- Verifikasi PIN admin (`lib/admin/sensitive-action.ts`) **wajib** membaca sheet langsung, bukan cache — supaya PIN yang baru di-reset tidak kedaluwarsa.
+- Verifikasi PIN admin (`lib/admin/sensitive-action.ts`) **wajib** membaca sheet langsung, bukan cache supaya PIN yang baru di-reset tidak kedaluwarsa.
 
 ## 6. Aturan Bisnis Inti (penegakan + deteksi)
 

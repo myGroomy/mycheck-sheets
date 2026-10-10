@@ -135,7 +135,7 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh items-center justify-center p-4 bg-canvas text-ink">
       <div className="w-full max-w-sm">
-        {/* Kembali ke landing page */}
+        {/* Kembali */}
         <Link
           href="/"
           className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
@@ -152,7 +152,7 @@ export default function LoginPage() {
               <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold">checklist-shift</h1>
+          <h1 className="text-xl font-bold">MyCheck</h1>
           <p className="mt-1 text-xs text-ink-muted">Masuk untuk memulai shift Anda</p>
         </div>
 
@@ -160,7 +160,7 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
 
-        <p className="mt-4 text-center text-xs text-ink-light">v2.0 — Google Sheets</p>
+        <p className="mt-4 text-center text-xs text-ink-light">v2.0 Google Sheets</p>
       </div>
     </main>
   );

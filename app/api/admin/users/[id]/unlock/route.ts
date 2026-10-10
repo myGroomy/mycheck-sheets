@@ -8,7 +8,7 @@ import { listAllUsers } from '../../../../../../lib/google/registry-admin';
  * Buka kunci akun.
  * Catatan: versi Google Sheets tidak menyimpan lockout (rate limiting & tabel
  * pin_fail_attempts dihapus), jadi endpoint ini hanya mengembalikan success
- * agar frontend lama tidak error — mengaktifkan akun nonaktif bila perlu.
+ * agar frontend lama tidak error mengaktifkan akun nonaktif bila perlu.
  */
 export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,6 +45,6 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   return NextResponse.json({
-    message: 'Tidak ada lockout pada versi ini — akun tidak pernah terkunci otomatis.',
+    message: 'Tidak ada lockout pada versi ini akun tidak pernah terkunci otomatis.',
   });
 });

@@ -1,4 +1,4 @@
-# Technical Requirements Document — checklist-shift (v3)
+# Technical Requirements Document MyCheck (v3)
 
 Acuan fungsional: `PRD.md`. Jika konflik, PRD.md berlaku untuk perilaku produk; dokumen ini berlaku untuk keputusan teknis.
 
@@ -7,7 +7,7 @@ Acuan fungsional: `PRD.md`. Jika konflik, PRD.md berlaku untuk perilaku produk; 
 > v2 Substitution PostgreSQL/Supabase + Drizzle. v3 mengembalikan arsitektur
 > **Google Sheets** (seperti stokis). Bagian yang masih menyebut Supabase,
 > PostgreSQL, Drizzle, advisory lock, `packages/shared`, atau signed URL
-> **tidak lagi menggambarkan implementasi** — jangan diikuti.
+> **tidak lagi menggambarkan implementasi** jangan diikuti.
 >
 > Acuan yang benar untuk arsitektur saat ini:
 > - Struktur data → `DATABASE_SCHEMA.md`
@@ -19,15 +19,15 @@ Acuan fungsional: `PRD.md`. Jika konflik, PRD.md berlaku untuk perilaku produk; 
 > |Aspek | v2 (usang) | v3 (sekarang) |
 > |---|---|---|
 > | Database | Supabase PostgreSQL | **Google Sheets API** (Registry + 1 spreadsheet/cabang) |
-> | ORM | Drizzle ORM | **Tidak ada** — `lib/store.ts` |
+> | ORM | Drizzle ORM | **Tidak ada** `lib/store.ts` |
 > | Struktur | 1 DB, cabang via `branch_id` | **Cabang = spreadsheet** |
-> | Transaksi | `db.transaction` | **Tidak ada** — kompensasi manual |
+> | Transaksi | `db.transaction` | **Tidak ada** kompensasi manual |
 > | Sesi | Tabel `sessions` + JWT | **Cookie HMAC-SHA256** (`mycheck_session`) |
 > | PIN | argon2 hash | **Plaintext** (6 digit) |
 > | Lock / rate limit | advisory lock + `pin_fail_attempts` | **Tidak ada** |
 > | Storage foto | Supabase Storage (TTL 7 hari) | **Google Drive** via route proxy |
 > | Monorepo | `apps/web` + `packages/shared` | **Single project** di root |
-> | Sheets bulanan | "tidak relevan" | **Inti** — `Entries_2026-10` dll. |
+> | Sheets bulanan | "tidak relevan" | **Inti** `Entries_2026-10` dll. |
 
 ---
 
@@ -54,7 +54,7 @@ PWA mobile-first (Bahasa Indonesia) untuk memastikan SOP tiap shift outlet F&B d
 |---|---|---|
 | Frontend | Next.js 14+ (App Router) + TypeScript, Tailwind, shadcn/ui, Lucide | Putus |
 | Backend | Next.js API Routes (built-in, monorepo gabung) | Putus |
-| Framework backend terpisah | ~~Hono~~ — **dihapus** | Dihapus |
+| Framework backend terpisah | ~~Hono~~ **dihapus** | Dihapus |
 | Validasi | Zod, skema di `packages/shared` | Putus |
 | Database | **Supabase PostgreSQL** | **Google Sheets API** (Registry + 1 spreadsheet per cabang) |
 | ORM | **Drizzle ORM** | Putus |
@@ -62,18 +62,18 @@ PWA mobile-first (Bahasa Indonesia) untuk memastikan SOP tiap shift outlet F&B d
 | Arsip foto | **Google Drive PDF** mingguan (service account) | Putus |
 | Lock BR-01 & tutup shift | **PostgreSQL advisory lock** (`pg_try_advisory_xact_lock`) | Putus |
 | Lock BR-12 | **`SELECT ... FOR UPDATE`** pada baris `entries` | Putus |
-| Cache | ~~Redis~~ — **dihapus**, query Drizzle langsung (indexed) | Dihapus |
+| Cache | ~~Redis~~ **dihapus**, query Drizzle langsung (indexed) | Dihapus |
 | Sesi | Tabel `sessions` di PostgreSQL + JWT cookie HttpOnly | Putus |
 | Rate limit login | In-memory `Map` per process | Putus |
 | PIN fail counter | Tabel `pin_fail_attempts` di PostgreSQL | Putus |
 | Idempotency aksi | Kolom UNIQUE `client_action_id` di `entry_logs` | Putus |
 | Hash PIN | argon2 + `PIN_PEPPER` | Putus |
-| Offline/PWA | Serwist app shell cache only — ~~Dexie~~ **dihapus** | Putus |
+| Offline/PWA | Serwist app shell cache only ~~Dexie~~ **dihapus** | Putus |
 | Push | web-push (VAPID) + pusat notifikasi berbasis DB | Asumsi |
 | PDF | `@react-pdf/renderer` (server-side, Vercel Function) | Putus |
 | Tema | Minimalist Corporate | Putus |
-| Hosting | Vercel — **satu project** (bukan dua) | Putus |
-| Drive | Service account — hanya untuk arsip PDF (bukan data) | Putus |
+| Hosting | Vercel **satu project** (bukan dua) | Putus |
+| Drive | Service account hanya untuk arsip PDF (bukan data) | Putus |
 
 **Yang dihapus vs TRD v1:**
 
@@ -98,7 +98,7 @@ Browser (PWA)
     |
     ↓ HTTPS (satu origin, /api/* → Next.js API Routes)
 Next.js App Router + API Routes
-    (Vercel — satu project)
+    (Vercel satu project)
     |           |              |
     ↓           ↓              ↓
 Supabase    Supabase       Google Drive
@@ -117,7 +117,7 @@ Cron Jobs:
 
 - Browser memanggil `/api/*` pada domain web Next.js. Tidak ada CORS, tidak ada masalah cookie SameSite lintas domain (iOS).
 - Supabase PostgreSQL diakses dari server-side Next.js via Drizzle ORM menggunakan connection string. **Tidak ada akses langsung dari browser ke Supabase** (menggunakan service role key, bukan anon key).
-- Foto diakses lewat route `/api/photos/[id]` yang memeriksa akses cabang lalu mem-proxy byte dari Drive. Tidak ada signed URL — file milik service account sehingga tidak bisa dibuat publik.
+- Foto diakses lewat route `/api/photos/[id]` yang memeriksa akses cabang lalu mem-proxy byte dari Drive. Tidak ada signed URL file milik service account sehingga tidak bisa dibuat publik.
 
 ---
 
@@ -133,7 +133,7 @@ apps/web/          Next.js (App Router, API Routes, Service Worker)
 packages/shared/   Tipe TypeScript + Zod schemas (kontrak API ↔ UI)
   lib/shared/      Zod schemas per entity
   types/           TypeScript types
-(tidak ada) — skema didefinisikan header sheet, lihat DATABASE_SCHEMA.md
+(tidak ada) skema didefinisikan header sheet, lihat DATABASE_SCHEMA.md
   schema.ts        Definisi semua tabel
   migrations/      SQL migration files
 ```
@@ -151,7 +151,7 @@ Detail lengkap ada di `DATABASE_SCHEMA.md`. Ringkasan:
 - Waktu: TIMESTAMPTZ (UTC). Tampil sesuai timezone cabang.
 - Enum: TEXT dengan CHECK constraint di PostgreSQL, divalidasi Zod di `packages/shared`.
 - `template_snapshot`: JSON di sel Sheets (`snapshot_encoding` = `json`). Batas praktis sel Sheets 50.000 karakter.
-- Tidak ada tab bulanan — gunakan index pada `shift_date` / `reported_at`.
+- Tidak ada tab bulanan gunakan index pada `shift_date` / `reported_at`.
 - Tabel besar (entries, entry_logs, incidents): diindex pada `shift_instance_id` dan `branch_id`.
 - `summary` table: agregat harian diisi cron, dibaca dashboard/statistik.
 
@@ -163,7 +163,7 @@ Detail lengkap ada di `DATABASE_SCHEMA.md`. Ringkasan:
 - **Tidak ada transaksi.** Operasi multi-sheet tidak atomik; bila sebagian gagal, lakukan kompensasi.
 - Lock untuk operasi kritis: advisory lock atau `SELECT FOR UPDATE` (lihat bagian 8).
 - Idempotency: cek `entry_logs.client_action_id UNIQUE` sebelum proses. Jika sudah ada, kembalikan hasil sebelumnya.
-- Tidak ada rowmap cache — `WHERE id = $1` pada table dengan PK TEXT sudah efisien.
+- Tidak ada rowmap cache `WHERE id = $1` pada table dengan PK TEXT sudah efisien.
 
 ---
 
@@ -233,7 +233,7 @@ SELECT pg_try_advisory_xact_lock(hashtext('close:' || shift_instance_id));
 - **Aksi sensitif**: alasan + konfirmasi ulang PIN. Tidak ada PIN di log atau respons API.
 - **CSRF**: SameSite=Lax + custom header `X-Requested-With` untuk state-changing requests.
 - **Foto**: diakses lewat `/api/photos/[id]` (cek akses cabang → Supabase signed URL 1 jam). Tidak ada tautan langsung ke Supabase Storage bucket.
-- **Secret**: `SESSION_SECRET`, `PIN_PEPPER`, `GOOGLE_SA_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — hanya di server, tidak pernah di bundel klien.
+- **Secret**: `SESSION_SECRET`, `PIN_PEPPER`, `GOOGLE_SA_PRIVATE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` hanya di server, tidak pernah di bundel klien.
 
 ---
 
@@ -311,7 +311,7 @@ GET /api/photos/[id]
    b. Download foto dari Supabase Storage (via service role key)
    c. Generate PDF dengan @react-pdf/renderer (embed foto sebagai base64)
    d. Upload PDF ke Google Drive:
-      Folder: checklist-shift-archive/{branch_code}/
+      Folder: MyCheck-archive/{branch_code}/
       Nama: {branch_name}-{shift_date}-{shift_name}-{branch_id}-{ulid}.pdf
    e. UPDATE reports SET archive_pdf_drive_id, archive_pdf_drive_url, archived_at, archived_photo_count
    f. DELETE dari Supabase Storage (batch per shift)

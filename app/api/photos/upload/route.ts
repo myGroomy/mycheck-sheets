@@ -77,7 +77,7 @@ withAuth(async (_req, ctx, _session) => {
           found = true;
           break;
         }
-        // Incident mungkin belum terindeks — cari di tab bulanan
+        // Incident mungkin belum terindeks cari di tab bulanan
         const tabs = await listMonthlyRows(
           resolved.spreadsheetId,
           'Incidents',
@@ -174,7 +174,7 @@ withAuth(async (_req, ctx, _session) => {
   const filename = `mycheck-${branchId}-${resolvedShiftId ?? 'general'}-${photoId}.${ext}`;
 
   const drive = getDriveClient();
-  // Drive API mewajibkan media.body berupa stream — Buffer mentah membuat
+  // Drive API mewajibkan media.body berupa stream Buffer mentah membuat
   // googleapis gagal saat menyusun multipart ("part.body.pipe is not a
   // function"). Pola ini sama dengan uploadXlsxToDrive di stokis.
   const bodyStream = new PassThrough();

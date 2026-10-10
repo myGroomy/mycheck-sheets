@@ -1,4 +1,4 @@
-// app/api/admin/shift-instances/open-on-behalf/route.ts — ADM-OP-04.
+// app/api/admin/shift-instances/open-on-behalf/route.ts ADM-OP-04.
 // Buka shift atas nama petugas tertentu bila PJ lupa membuka.
 //
 // Tanpa konfirmasi PIN: ADM-SEC-01 tidak memasukkan aksi ini ke daftar aksi

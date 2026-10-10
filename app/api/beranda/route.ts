@@ -1,5 +1,5 @@
 // app/api/beranda/route.ts
-// Endpoint tunggal untuk data Beranda — menggantikan 4 panggilan terpisah.
+// Endpoint tunggal untuk data Beranda menggantikan 4 panggilan terpisah.
 
 import { NextResponse } from 'next/server';
 import { withAuth } from '../../../lib/api-auth';

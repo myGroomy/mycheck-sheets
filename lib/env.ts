@@ -17,7 +17,7 @@ function validateEnv() {
   return parsed.data;
 }
 
-// Lazy validation — hanya jalan saat module di-import pertama kali di server
+// Lazy validation hanya jalan saat module di-import pertama kali di server
 let _env: z.infer<typeof envSchema> | null = null;
 
 export function getEnv() {

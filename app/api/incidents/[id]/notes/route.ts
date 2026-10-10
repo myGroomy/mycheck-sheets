@@ -1,4 +1,4 @@
-// app/api/incidents/[id]/notes/route.ts — Phase 4 (Sheets).
+// app/api/incidents/[id]/notes/route.ts Phase 4 (Sheets).
 // POST catatan tindak lanjut (IN-06): penulis + waktu tercatat, isi awal tak diubah.
 import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';

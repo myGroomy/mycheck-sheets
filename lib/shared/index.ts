@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // ============================================
-// Enum Zod — harus identik dengan DATABASE_SCHEMA.md §7
+// Enum Zod harus identik dengan DATABASE_SCHEMA.md §7
 // ============================================
 
 export const roleSchema = z.enum(['admin', 'petugas']);

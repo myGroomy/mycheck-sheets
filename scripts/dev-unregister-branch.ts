@@ -1,4 +1,4 @@
-// scripts/dev-unregister-branch.ts (dev-only) — hapus cabang dari Daftar_Cabang
+// scripts/dev-unregister-branch.ts (dev-only) hapus cabang dari Daftar_Cabang
 import { google } from 'googleapis';
 
 const cabangId = process.argv[2];

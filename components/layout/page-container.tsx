@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 
 /**
- * PageContainer — pembungkus konten halaman dengan spacing responsif yang
+ * PageContainer pembungkus konten halaman dengan spacing responsif yang
  * KONSISTEN di semua device. Menggantikan pola `<main className="mx-auto
  * max-w-* p-4 ...">` yang selama ini berbeda-beda tiap halaman.
  *
@@ -63,7 +63,7 @@ export function PageContainer({
     <Tag
       className={cn(
         'mx-auto w-full',
-        // Padding horizontal responsif — mencegah konten mepet tepi layar
+        // Padding horizontal responsif mencegah konten mepet tepi layar
         'px-4 sm:px-6 lg:px-8 xl:px-10',
         // Padding vertikal
         'py-4 sm:py-6',

@@ -1,4 +1,4 @@
-# UI/UX.md — checklist‑shift PWA
+# UI/UX.md checklist‑shift PWA
 
 ## 1. Design Direction
 - **Mobile‑first, editorial‑inspired** UI.  Off‑white canvas (`#f5f5f5`) with warm near‑black ink (`#292524`).

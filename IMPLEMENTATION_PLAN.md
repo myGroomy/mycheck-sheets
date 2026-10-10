@@ -1,6 +1,6 @@
-# Implementation Plan — checklist-shift v2
+# Implementation Plan MyCheck v2
 
-> ## ⚠️ Status: SUDAH SELESAI — jangan mulai dari dokumen ini
+> ## ⚠️ Status: SUDAH SELESAI jangan mulai dari dokumen ini
 >
 > Rencana ini ditulis untuk versi **PostgreSQL/Supabase** dan **tidak lagi dipakai**
 > sebagai acuan. Seluruh fase telah dikerjakan ulang ke arsitektur Google Sheets.
@@ -24,7 +24,7 @@
 
 ---
 
-## Fase 0 — Setup Project &amp; Infrastruktur — **[BELUM]**
+## Fase 0 Setup Project &amp; Infrastruktur **[BELUM]**
 
 Tugas:
 
@@ -34,7 +34,7 @@ Tugas:
 - [ ] `[DATABASE]` Drizzle ORM setup: `drizzle.config.ts`, connection string dari Supabase.
 - [ ] `[DATABASE]` Drizzle schema awal (semua tabel sesuai DATABASE\_SCHEMA.md), push ke Supabase.
 - [ ] `[DATABASE]` Seed `settings` default ke tabel settings.
-- [ ] `[BACKEND]` Google Drive service account: buat SA di Google Cloud Console, simpan credential, buat folder root `checklist-shift-archive/` di Drive, bagikan ke SA sebagai Editor.
+- [ ] `[BACKEND]` Google Drive service account: buat SA di Google Cloud Console, simpan credential, buat folder root `MyCheck-archive/` di Drive, bagikan ke SA sebagai Editor.
 - [ ] `[BACKEND]` File `.env.example` lengkap (semua variabel dari TRD.md §13).
 - [ ] `[FRONTEND|BACKEND]` Vercel project (satu), link ke repo, set env vars di Vercel dashboard.
 - [ ] `[BACKEND]` Health check endpoint: `GET /api/health` → return `{db: 'ok', storage: 'ok', timestamp}`.
@@ -49,7 +49,7 @@ Verifikasi:
 
 ---
 
-## Fase 1 — Data Layer (Drizzle + Repository) — **[BELUM]**
+## Fase 1 Data Layer (Drizzle + Repository) **[BELUM]**
 
 Tugas:
 
@@ -57,14 +57,14 @@ Tugas:
 - [ ] `[DATABASE]` Migration file awal: `drizzle/migrations/0001_initial.sql`.
 - [ ] `[BACKEND]` Repository layer: typed Drizzle queries per entitas utama (branches, users, shift\_instances, entries, incidents, reports, photos, audit\_log).
 - [ ] `[BACKEND]` Advisory lock helper: `acquireAdvisoryLock(db, key: string): Promise<boolean>` menggunakan `pg_try_advisory_xact_lock(hashtext($key))`.
-- [ ] `[BACKEND]` Transaction helper: `withTransaction(db, fn)` — wrapper `db.transaction(fn)`.
-- [ ] `[BACKEND]` Audit log helper: `appendAuditLog({db, actor_id, action, ...})` — ambil prev\_hash dari baris terakhir, hitung hash, INSERT dalam transaction yang sama.
-- [ ] `[BACKEND]` Hash chain verifier: `verifyAuditChain(db, branch_id?)` — baca semua baris, verifikasi hash.
+- [ ] `[BACKEND]` Transaction helper: `withTransaction(db, fn)` wrapper `db.transaction(fn)`.
+- [ ] `[BACKEND]` Audit log helper: `appendAuditLog({db, actor_id, action, ...})` ambil prev\_hash dari baris terakhir, hitung hash, INSERT dalam transaction yang sama.
+- [ ] `[BACKEND]` Hash chain verifier: `verifyAuditChain(db, branch_id?)` baca semua baris, verifikasi hash.
 - [ ] `[BACKEND]` Supabase Storage helper: `uploadFile(path, buffer)`, `getSignedUrl(path, ttlSeconds)`, `deleteFile(path)`.
 - [ ] `[BACKEND]` Google Drive helper: `uploadFileToDrive(folderId, name, buffer, mimeType)` menggunakan service account credential.
-- [ ] `[BACKEND]` Server time helper (BR-23): `getServerTime()` — return `new Date()` server, bukan jam klien.
-- [ ] `[BACKEND]` Idempotency check: `checkIdempotency(db, client_action_id)` — cek `entry_logs.client_action_id`.
-- [ ] `[BACKEND]` Snapshot builder: `buildTemplateSnapshot(db, shift_definition_id, date, timezone)` — query checklist\_points + handover\_fields aktif untuk hari tertentu.
+- [ ] `[BACKEND]` Server time helper (BR-23): `getServerTime()` return `new Date()` server, bukan jam klien.
+- [ ] `[BACKEND]` Idempotency check: `checkIdempotency(db, client_action_id)` cek `entry_logs.client_action_id`.
+- [ ] `[BACKEND]` Snapshot builder: `buildTemplateSnapshot(db, shift_definition_id, date, timezone)` query checklist\_points + handover\_fields aktif untuk hari tertentu.
 - [ ] `[BACKEND]` Zod schemas di `packages/shared` identik dengan Drizzle schema (tipe + enum).
 
 Hasil: semua helper teruji unit; query dasar berjalan ke Supabase.
@@ -79,18 +79,18 @@ Verifikasi:
 
 ---
 
-## Fase 2 — Autentikasi &amp; Akses — **[BELUM]**
+## Fase 2 Autentikasi &amp; Akses **[BELUM]**
 
 Tugas:
 
-- [ ] `[BACKEND]` Login: `POST /api/auth/login` — cari user by username, `argon2.verify(pin_hash, input + PIN_PEPPER)`, cek `is_active`, cek `locked_until`, cek `must_change_pin`.
+- [ ] `[BACKEND]` Login: `POST /api/auth/login` cari user by username, `argon2.verify(pin_hash, input + PIN_PEPPER)`, cek `is_active`, cek `locked_until`, cek `must_change_pin`.
 - [ ] `[BACKEND]` Rate limit login: increment `pin_fail_attempts.count`, lock jika `>= pin_max_attempts` (set `users.locked_until`), reset saat sukses.
 - [ ] `[BACKEND]` Sesi: buat baris `sessions`, generate JWT HS256 (`{userId, sessionId, exp}`), set cookie `HttpOnly Secure SameSite=Lax`.
-- [ ] `[BACKEND]` Middleware auth: `withAuth(handler)` — verify JWT, cek `sessions.revoked_at IS NULL` dan `expires_at > NOW()`, cek `users.is_active`, inject `user` ke request context.
+- [ ] `[BACKEND]` Middleware auth: `withAuth(handler)` verify JWT, cek `sessions.revoked_at IS NULL` dan `expires_at > NOW()`, cek `users.is_active`, inject `user` ke request context.
 - [ ] `[BACKEND]` Middleware otorisasi peran: `requireRole('admin')` / `requireBranchAccess(branch_id)`.
-- [ ] `[BACKEND]` Ganti PIN: `POST /api/auth/change-pin` — verify PIN lama, validasi PIN baru (6 angka, block weak jika `pin_block_weak=TRUE`), argon2 hash + pepper, update `pin_hash`, `must_change_pin=FALSE`, `pin_changed_at`.
-- [ ] `[BACKEND]` Logout: `POST /api/auth/logout` — set `sessions.revoked_at = NOW()`, clear cookie.
-- [ ] `[BACKEND]` Logout semua perangkat: `POST /api/auth/logout-all` — revoke semua sessions aktif user.
+- [ ] `[BACKEND]` Ganti PIN: `POST /api/auth/change-pin` verify PIN lama, validasi PIN baru (6 angka, block weak jika `pin_block_weak=TRUE`), argon2 hash + pepper, update `pin_hash`, `must_change_pin=FALSE`, `pin_changed_at`.
+- [ ] `[BACKEND]` Logout: `POST /api/auth/logout` set `sessions.revoked_at = NOW()`, clear cookie.
+- [ ] `[BACKEND]` Logout semua perangkat: `POST /api/auth/logout-all` revoke semua sessions aktif user.
 - [ ] `[BACKEND]` Paksa logout (admin): revoke semua sessions user target.
 - [ ] `[BACKEND]` Audit log: login berhasil, ganti PIN, logout.
 - [ ] `[FRONTEND]` Login screen: username input + PIN keypad numerik 6 angka (Input OTP shadcn).
@@ -111,9 +111,9 @@ Verifikasi:
 
 ---
 
-## Fase 3 — Konfigurasi Admin — **[3a BELUM, 3b BELUM, 3c BELUM]**
+## Fase 3 Konfigurasi Admin **[3a BELUM, 3b BELUM, 3c BELUM]**
 
-### 3a — Registry Admin — **[BELUM]**
+### 3a Registry Admin **[BELUM]**
 
 - [ ] `[API|BACKEND]` CRUD Branches: buat, ubah, nonaktifkan. Validasi timezone IANA.
 - [ ] `[API|BACKEND]` CRUD Users: buat (nama, username, PIN awal, peran, akses cabang), ubah nama/peran/akses, nonaktifkan/aktifkan.
@@ -132,7 +132,7 @@ Verifikasi:
 - [ ] `[FRONTEND]` Halaman Pengaturan: form berkelompok (waktu/toleransi, PIN/sesi, foto, WhatsApp template dengan pratinjau variabel).
 - [ ] `[FRONTEND]` Halaman Audit Log: tabel read-only, filter, ekspansi before/after.
 
-### 3b — Konfigurasi Shift per Cabang — **[BELUM]**
+### 3b Konfigurasi Shift per Cabang **[BELUM]**
 
 - [ ] `[API|BACKEND]` CRUD ShiftDefinitions per cabang (nama, jam, crosses\_midnight, urutan, aktif/nonaktif).
 - [ ] `[API|BACKEND]` CRUD SopCategories per shift (nama, urutan, aktif/nonaktif).
@@ -144,7 +144,7 @@ Verifikasi:
 - [ ] `[FRONTEND]` Halaman Handover Builder: daftar field drag &amp; drop + editor.
 - [ ] `[FRONTEND]` Konfirmasi perubahan template: "Berlaku untuk shift yang dibuka setelah ini".
 
-### 3c — Duplikasi &amp; Pratinjau — **[BELUM]**
+### 3c Duplikasi &amp; Pratinjau **[BELUM]**
 
 - [ ] `[API|BACKEND]` Duplikasi shift definition dalam cabang (beserta kategori dan point).
 - [ ] `[API|BACKEND]` Duplikasi sop\_category dalam shift (beserta point).
@@ -162,12 +162,12 @@ Verifikasi:
 
 ---
 
-## Fase 4 — Siklus Shift &amp; Checklist Bersama — **[BELUM]**
+## Fase 4 Siklus Shift &amp; Checklist Bersama **[BELUM]**
 
 Tugas:
 
 - [ ] `[API|BACKEND|DATABASE]` Buka shift: advisory lock BR-01 → cek partial unique index → bangun `template_snapshot` JSONB → INSERT `shift_instances` + `participants` (PJ) + audit log. Jika sudah ada: return `{status: 'bergabung', shift_instance_id}`.
-- [ ] `[API|BACKEND]` Gabung shift: `POST /api/shifts/[id]/join` — cek akses cabang, tambah participant jika belum ada.
+- [ ] `[API|BACKEND]` Gabung shift: `POST /api/shifts/[id]/join` cek akses cabang, tambah participant jika belum ada.
 - [ ] `[API|BACKEND]` "Saya bertugas": tambah participant dengan `first_action_type='saya_bertugas'`.
 - [ ] `[API|BACKEND]` Aksi checklist (`POST /api/shifts/[id]/entries`): cek idempotency → validasi shift berjalan → `SELECT FOR UPDATE` entries → proses BR-12 → UPSERT entries + INSERT entry\_logs + upsert participants (satu transaction).
 - [ ] `[API|BACKEND]` Semua tipe input: centang, foto, teks, angka (cek rentang), ok\_tidak\_ok.
@@ -176,8 +176,8 @@ Tugas:
 - [ ] `[API|BACKEND]` Skip item: `state='skip'`, `skip_reason` wajib.
 - [ ] `[API|BACKEND]` Batal centang: `state='belum'`, log `action='batal'` di entry\_logs.
 - [ ] `[API|BACKEND]` Buka shift atas nama (admin): `POST /api/admin/shifts/open-on-behalf`.
-- [ ] `[API|BACKEND]` Ganti PJ (admin): `POST /api/admin/shifts/[id]/change-pj` — alasan wajib + PIN + audit log.
-- [ ] `[API|BACKEND]` Polling progress: `GET /api/shifts/[id]/progress` — return semua entries + participants.
+- [ ] `[API|BACKEND]` Ganti PJ (admin): `POST /api/admin/shifts/[id]/change-pj` alasan wajib + PIN + audit log.
+- [ ] `[API|BACKEND]` Polling progress: `GET /api/shifts/[id]/progress` return semua entries + participants.
 - [ ] `[FRONTEND]` Home: kartu shift aktif (nama, PJ, progress x/y), tombol Buka/Gabung/Lanjutkan/Tutup Shift.
 - [ ] `[FRONTEND]` Home: tugas berikutnya (waktu target terdekat), daftar singkat incident open, grid shortcut 2x2 (Buat Incident, Checklist, Laporan Hari Ini, Handover Terakhir).
 - [ ] `[FRONTEND]` Tab Checklist: daftar shift cabang (Belum dibuka/Berjalan/Ditutup); peringatan lunak jam tidak cocok.
@@ -200,17 +200,17 @@ Verifikasi:
 
 ---
 
-## Fase 5 — Handover, Incident, Penutupan Shift — **[BELUM]**
+## Fase 5 Handover, Incident, Penutupan Shift **[BELUM]**
 
 Tugas:
 
-- [ ] `[API|BACKEND|FRONTEND]` Baca handover shift sebelumnya: `GET /api/shifts/[id]/handover-prev` — query `shift_instances` terakhir berstatus ditutup/ditutup\_paksa di cabang.
-- [ ] `[API|BACKEND]` Tandai handover sudah dibaca: `POST /api/handovers/[id]/ack` — INSERT `handover_acks`.
-- [ ] `[API|BACKEND|FRONTEND]` Submit handover: `POST /api/shifts/[id]/handover` — validasi field wajib, INSERT `handovers`.
-- [ ] `[API|BACKEND|FRONTEND]` Incident — buat: `POST /api/incidents` — tentukan `shift_instance_id` (berjalan atau 4 jam setelah closed), INSERT `incidents` + audit log.
+- [ ] `[API|BACKEND|FRONTEND]` Baca handover shift sebelumnya: `GET /api/shifts/[id]/handover-prev` query `shift_instances` terakhir berstatus ditutup/ditutup\_paksa di cabang.
+- [ ] `[API|BACKEND]` Tandai handover sudah dibaca: `POST /api/handovers/[id]/ack` INSERT `handover_acks`.
+- [ ] `[API|BACKEND|FRONTEND]` Submit handover: `POST /api/shifts/[id]/handover` validasi field wajib, INSERT `handovers`.
+- [ ] `[API|BACKEND|FRONTEND]` Incident buat: `POST /api/incidents` tentukan `shift_instance_id` (berjalan atau 4 jam setelah closed), INSERT `incidents` + audit log.
 - [ ] `[API|BACKEND|FRONTEND]` Buat incident dari item checklist yang di-skip/gagal (IN-08): data terisi otomatis dari item.
 - [ ] `[API|BACKEND]` Foto incident: upload ke Supabase Storage via `/api/photos/upload`, max 5 foto.
-- [ ] `[API|BACKEND]` Catatan lanjutan incident: `POST /api/incidents/[id]/notes` — INSERT `incident_notes`.
+- [ ] `[API|BACKEND]` Catatan lanjutan incident: `POST /api/incidents/[id]/notes` INSERT `incident_notes`.
 - [ ] `[FRONTEND]` Form incident: chip kategori → deskripsi → foto (maks 5) → waktu kejadian → Kirim.
 - [ ] `[FRONTEND]` Detail incident: isi asli (read-only), foto, timeline catatan, tambah catatan.
 - [ ] `[API|BACKEND|FRONTEND]` Stepper Tutup Shift (3 langkah):
@@ -219,7 +219,7 @@ Tugas:
   - Langkah 3 (Konfirmasi): ringkasan + input PIN → `POST /api/shifts/[id]/close`.
 - [ ] `[BACKEND]` Tutup shift: advisory lock `close:{shiftId}` → validasi status=berjalan, pemanggil=PJ, BR-30 → hitung report\_number + content\_hash → UPDATE shift\_instances + INSERT reports + audit log (satu transaction).
 - [ ] `[FRONTEND]` Layar sukses setelah tutup: tombol "Lihat Laporan" + "Bagikan WhatsApp".
-- [ ] `[BACKEND]` Route foto: `GET /api/photos/[id]` — cek auth + akses cabang → Supabase signed URL 1 jam → redirect.
+- [ ] `[BACKEND]` Route foto: `GET /api/photos/[id]` cek auth + akses cabang → Supabase signed URL 1 jam → redirect.
 
 Hasil: shift dapat ditutup; laporan terkunci terbentuk.
 
@@ -234,7 +234,7 @@ Verifikasi:
 
 ---
 
-## Fase 6 — Laporan, Berbagi, Operasi Admin — **[BELUM]**
+## Fase 6 Laporan, Berbagi, Operasi Admin **[BELUM]**
 
 Tugas:
 
@@ -243,9 +243,9 @@ Tugas:
 - [ ] `[FRONTEND]` Detail laporan (RP-05): header, akordeon per Kategori SOP + label waktu + foto, skip + alasan, incident, handover, kontribusi per petugas (netral, bukan peringkat), addendum.
 - [ ] `[FRONTEND|BACKEND]` Bagikan ke WhatsApp: `wa.me` dengan template dari settings, ringkasan + link laporan.
 - [ ] `[API|BACKEND]` Share token: `POST /api/admin/reports/[id]/share` → generate token → INSERT `share_tokens`. `DELETE /api/admin/reports/[id]/share/[tokenId]` → revoke.
-- [ ] `[FRONTEND]` Halaman publik `/r/[token]` — tanpa login, read-only, siap cetak. Kedaluwarsa/dicabut → halaman informasi.
-- [ ] `[API|BACKEND]` Operasi admin shift: tutup paksa (BR-34), ganti PJ, void, buka atas nama — semua wajib alasan + PIN + audit log.
-- [ ] `[API|BACKEND]` Addendum laporan: `POST /api/admin/reports/[id]/addenda` — INSERT `addenda` + audit log.
+- [ ] `[FRONTEND]` Halaman publik `/r/[token]` tanpa login, read-only, siap cetak. Kedaluwarsa/dicabut → halaman informasi.
+- [ ] `[API|BACKEND]` Operasi admin shift: tutup paksa (BR-34), ganti PJ, void, buka atas nama semua wajib alasan + PIN + audit log.
+- [ ] `[API|BACKEND]` Addendum laporan: `POST /api/admin/reports/[id]/addenda` INSERT `addenda` + audit log.
 - [ ] `[API|BACKEND]` Buka kunci laporan (darurat): alasan + PIN + audit log + increment `unlock_count`.
 - [ ] `[API|BACKEND]` Incident admin: ubah status, tambah catatan admin, tautkan ke shift.
 - [ ] `[FRONTEND]` Halaman Operasi Shift admin: daftar shift berjalan lintas cabang; menu aksi.
@@ -263,7 +263,7 @@ Verifikasi:
 
 ---
 
-## Fase 7 — PWA (App Shell, Tanpa Offline Queue) — **[BELUM]**
+## Fase 7 PWA (App Shell, Tanpa Offline Queue) **[BELUM]**
 
 > **Catatan:** Offline queue (Dexie) dihapus dari scope. Trade-off yang diterima untuk skala 5–20 cabang di area dengan koneksi cukup. Offline = read-only dari cache.
 
@@ -291,7 +291,7 @@ Verifikasi:
 
 ---
 
-## Fase 8 — Notifikasi, Statistik, Arsip Foto, Dashboard — **[BELUM]**
+## Fase 8 Notifikasi, Statistik, Arsip Foto, Dashboard **[BELUM]**
 
 Tugas:
 
@@ -303,7 +303,7 @@ Tugas:
 - [ ] `[BACKEND]` **Cron mingguan `archive-photos`** (`0 19 * * 0` UTC = Senin 02.00 WIB):
   - Query shift closed &gt;7 hari dengan foto `status='uploaded'`
   - Per shift: generate PDF (@react-pdf/renderer, embed foto sebagai base64 dari Supabase signed URL)
-  - Upload PDF ke Drive: folder `checklist-shift-archive/{branch.code}/`, nama `{branch.name}-{shift_date}-{shift.name}-{branch.id}-{ulid}.pdf`
+  - Upload PDF ke Drive: folder `MyCheck-archive/{branch.code}/`, nama `{branch.name}-{shift_date}-{shift.name}-{branch.id}-{ulid}.pdf`
   - UPDATE `reports.archive_pdf_drive_id`, `archive_pdf_drive_url`, `archived_at`, `archived_photo_count`
   - UPDATE `photos SET status='purged', purged_at=NOW()` WHERE shift\_instance\_id dan status='uploaded'
   - DELETE dari Supabase Storage (batch per shift)
@@ -313,10 +313,10 @@ Tugas:
 - [ ] `[FRONTEND|BACKEND]` Dashboard admin: kartu per cabang (shift berjalan, progress, incident open, laporan hari ini); panel peringatan.
 - [ ] `[BACKEND]` Statistik: baca dari `summary` (bukan data mentah). Endpoint: `GET /api/admin/stats`.
 - [ ] `[BACKEND]` Deteksi shift tanpa laporan: definisi shift aktif cabang yang tidak memiliki shift pada hari berjalan setelah jam selesainya (ADM-RP-06).
-- [ ] `[BACKEND]` Ekspor PDF laporan (data dari DB, bukan foto langsung — foto embed dari signed URL jika masih uploaded, atau dari Drive jika purged).
+- [ ] `[BACKEND]` Ekspor PDF laporan (data dari DB, bukan foto langsung foto embed dari signed URL jika masih uploaded, atau dari Drive jika purged).
 - [ ] `[BACKEND]` Ekspor CSV: laporan, statistik.
 - [ ] `[BACKEND]` Mode pratinjau petugas: `is_test=TRUE` pada shift\_instances dan incidents; dikecualikan dari summary dan statistik.
-- [ ] `[FRONTEND]` Halaman Laporan admin — tab Statistik: KPI, grafik.
+- [ ] `[FRONTEND]` Halaman Laporan admin tab Statistik: KPI, grafik.
 - [ ] `[FRONTEND]` Foto purged tampil sebagai placeholder + link Drive PDF.
 
 Hasil: seluruh 13 modul admin lengkap; foto terarsip otomatis ke Drive.
@@ -332,7 +332,7 @@ Verifikasi:
 
 ---
 
-## Fase 9 — Produksi — **[BELUM]**
+## Fase 9 Produksi **[BELUM]**
 
 Tugas:
 

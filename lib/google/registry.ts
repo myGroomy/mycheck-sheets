@@ -1,5 +1,5 @@
 // lib/google/registry.ts
-// Resolver akses data — pengganti Registry.js (getRegistry_, resolveCabangSpreadsheet_,
+// Resolver akses data pengganti Registry.js (getRegistry_, resolveCabangSpreadsheet_,
 // getCabangList, getSettingsGlobal_) di Google Apps Script.
 //
 // Spreadsheet Registry (input: { REGISTRY_SPREADSHEET_ID }) memuat sheet:

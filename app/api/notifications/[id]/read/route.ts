@@ -1,4 +1,4 @@
-// app/api/notifications/[id]/read/route.ts — Phase 4 (Sheets). Idempotent.
+// app/api/notifications/[id]/read/route.ts Phase 4 (Sheets). Idempotent.
 import { NextResponse } from 'next/server';
 import { withAuth } from '../../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../../lib/google/registry';

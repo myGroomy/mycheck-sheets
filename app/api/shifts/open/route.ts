@@ -81,7 +81,7 @@ withAuth(async (_req, ctx, _session) => {
   );
 
   // BR-01: ID diturunkan dari (cabang, definisi, tanggal, is_test) sehingga
-  // dua request paralel tidak mungkin membuat dua shift berbeda — keduanya
+  // dua request paralel tidak mungkin membuat dua shift berbeda keduanya
   // menulis ID yang sama, lalu direkonsiliasi di bawah.
   const shiftInstanceId = deterministicShiftInstanceId(
     branchId,
@@ -103,7 +103,7 @@ withAuth(async (_req, ctx, _session) => {
 
   // Shift dengan kunci ini pernah ada tapi sudah di-void (ADM-OP-05: shift yang
   // dibuka tidak sengaja dibatalkan). Membukanya lagi adalah instance BARU, jadi
-  // ID-nya harus baru — bukan ID deterministik yang sama. Kalau ID-nya sama,
+  // ID-nya harus baru bukan ID deterministik yang sama. Kalau ID-nya sama,
   // resolveInstance akan menemukan baris void yang lama dan shift yang baru
   // akan ikut ter-void oleh rekonsiliasi BR-01.
   const voidedBefore = await filterRows(
@@ -132,7 +132,7 @@ withAuth(async (_req, ctx, _session) => {
   });
 
   // Rekonsiliasi BR-01: bila request paralel sempat sama-sama lolos pengecekan
-  // di atas, baris duplikat akan di-void — baris non-void pertama yang jadi shift
+  // di atas, baris duplikat akan di-void baris non-void pertama yang jadi shift
   // kanonik. Baris TIDAK dihapus (BR-40), hanya di-void.
   await voidDuplicateShiftInstances(spreadsheetId, instanceId);
 

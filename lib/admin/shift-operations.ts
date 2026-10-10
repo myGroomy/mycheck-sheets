@@ -2,14 +2,14 @@
 // Aksi admin terhadap shift instance yang sedang berjalan (PRD §7.8).
 //
 // Empat aksi:
-//   - Tutup paksa (ADM-OP-02, BR-34) — syarat BR-30 tidak diberlakukan,
+//   - Tutup paksa (ADM-OP-02, BR-34) syarat BR-30 tidak diberlakukan,
 //     laporan ditandai "ditutup paksa", item wajib yang belum selesai ditandai
 //     tidak lengkap, alasan wajib dicatat.
-//   - Ganti PJ (ADM-OP-03) — pindahkan tanggung jawab ke petugas lain yang punya
+//   - Ganti PJ (ADM-OP-03) pindahkan tanggung jawab ke petugas lain yang punya
 //     akses cabang; alasan wajib; tercatat dari siapa ke siapa.
-//   - Void (ADM-OP-05) — batalkan shift yang dibuka tidak sengaja; alasan wajib;
+//   - Void (ADM-OP-05) batalkan shift yang dibuka tidak sengaja; alasan wajib;
 //     data tetap tersimpan tapi tidak masuk statistik. Tidak menghapus baris (BR-40).
-//   - Buka atas nama (ADM-OP-04) — PJ lupa membuka.
+//   - Buka atas nama (ADM-OP-04) PJ lupa membuka.
 //
 // Soal penjaga: tutup paksa, ganti PJ, dan void wajib alasan + PIN (ADM-SEC-01).
 // Buka atas nama TIDAK diminta PIN oleh ADM-SEC-01, jadi cukup alasan.
@@ -87,7 +87,7 @@ export async function listShiftInstancesAcrossBranches(
         });
       }
     } catch {
-      // Cabang tanpa spreadsheet dilewati — satu cabang rusak tidak boleh
+      // Cabang tanpa spreadsheet dilewati satu cabang rusak tidak boleh
       // menggagalkan seluruh daftar.
     }
   }
@@ -128,7 +128,7 @@ function summariseEntries(entryRows: Record<string, unknown>[]) {
 
 /**
  * Tutup paksa (ADM-OP-02 / BR-34). Melewati syarat BR-30: tidak butuh semua
- * item selesai dan tidak butuh handover terisi — tapi alasan wajib dicatat dan
+ * item selesai dan tidak butuh handover terisi tapi alasan wajib dicatat dan
  * laporan ditandai tidak lengkap.
  */
 async function forceClose(
@@ -266,7 +266,7 @@ async function changePj(
 }
 
 /**
- * Void shift (ADM-OP-05). Baris TIDAK dihapus (BR-40) — hanya ditandai void
+ * Void shift (ADM-OP-05). Baris TIDAK dihapus (BR-40) hanya ditandai void
  * supaya tidak dihitung di statistik. Hanya shift berjalan boleh di-void:
  * shift yang sudah ditutup punya laporan terkunci (BR-32) dan koreksinya
  * lewat addendum, bukan void.
@@ -327,7 +327,7 @@ export async function runShiftOperation(
 }
 
 /**
- * Buka shift atas nama petugas (ADM-OP-04). Tanpa PIN — ADM-SEC-01 tidak
+ * Buka shift atas nama petugas (ADM-OP-04). Tanpa PIN ADM-SEC-01 tidak
  * memasukkan aksi ini ke daftar aksi sensitif. Alasan tetap wajib.
  */
 export async function openShiftOnBehalf(

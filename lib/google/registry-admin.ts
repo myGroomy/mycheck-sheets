@@ -41,7 +41,7 @@ export interface UserRow {
   [key: string]: unknown;
 }
 
-/** Kolom per sheet Registry — dipakai untuk menulis baris. */
+/** Kolom per sheet Registry dipakai untuk menulis baris. */
 const CABANG_HEADERS = [
   'Cabang_ID',
   'Nama_Cabang',
@@ -143,7 +143,7 @@ let _usersCache: UserRow[] | null = null;
 let _usersCacheAt = 0;
 let _usersPending: Promise<UserRow[]> | null = null;
 
-/** Buang cache Users — dipanggil setiap mutasi pada sheet Users. */
+/** Buang cache Users dipanggil setiap mutasi pada sheet Users. */
 export function resetUsersCache(): void {
   _usersCache = null;
   _usersCacheAt = 0;

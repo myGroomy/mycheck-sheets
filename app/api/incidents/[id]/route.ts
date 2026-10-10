@@ -1,4 +1,4 @@
-// app/api/incidents/[id]/route.ts — Phase 4 (Sheets).
+// app/api/incidents/[id]/route.ts Phase 4 (Sheets).
 // GET: detail + notes + photos. PATCH (admin): ubah status open<->selesai (IN-04).
 import { NextResponse } from 'next/server';
 import { requireBranchAccess, requireRole, withAuth } from '../../../../lib/api-auth';

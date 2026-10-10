@@ -1,4 +1,4 @@
-// Shared JS untuk prototype checklist-shift v2
+// Shared JS untuk prototype MyCheck v2
 
 // Toast
 function showToast(message, type = 'info') {

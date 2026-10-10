@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Toaster } from '@/components/ui/sonner';
 import { PwaStatus } from '@/components/pwa-status';
 import { AuthProvider } from '@/lib/AuthContext';
@@ -17,7 +18,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'checklist-shift',
+  title: 'MyCheck',
   description: 'PWA untuk SOP shift karyawan F&B',
   manifest: '/manifest.json',
   icons: {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: 'checklist-shift',
+    title: 'MyCheck',
     statusBarStyle: 'default',
   },
 };
@@ -54,18 +55,20 @@ export default async function RootLayout({
   const initialRole = session?.role === 'admin' ? 'admin' : 'petugas';
 
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <body className={`${plusJakartaSans.variable} bg-canvas text-ink antialiased`}>
-        <PwaStatus />
-        <AuthProvider>
-          <CabangProvider>
-            <AuthGuard>
-              <NavbarClient initialRole={initialRole} />
-              {children}
-            </AuthGuard>
-          </CabangProvider>
-        </AuthProvider>
-        <Toaster position="top-center" richColors />
+        <RootProvider>
+          <PwaStatus />
+          <AuthProvider>
+            <CabangProvider>
+              <AuthGuard>
+                <NavbarClient initialRole={initialRole} />
+                {children}
+              </AuthGuard>
+            </CabangProvider>
+          </AuthProvider>
+          <Toaster position="top-center" richColors />
+        </RootProvider>
       </body>
     </html>
   );

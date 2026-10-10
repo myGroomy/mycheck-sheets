@@ -1,4 +1,4 @@
-const CACHE_PREFIX = 'checklist-shift-';
+const CACHE_PREFIX = 'MyCheck-';
 const CACHE_NAME = `${CACHE_PREFIX}shell-v2`;
 const APP_SHELL = ['/manifest.json', '/icon-192.png', '/icon-512.png'];
 

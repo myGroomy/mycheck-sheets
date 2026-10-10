@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ambil session dari server (httpOnly cookie) — bukan localStorage.
+    // Ambil session dari server (httpOnly cookie) bukan localStorage.
     fetch('/api/auth/me')
       .then((res) => res.json())
       .then((data) => {

@@ -71,7 +71,7 @@ export function PwaStatus() {
             .then((keys) =>
               Promise.all(
                 keys
-                  .filter((key) => key.startsWith('checklist-shift-'))
+                  .filter((key) => key.startsWith('MyCheck-'))
                   .map((key) => window.caches.delete(key))
               )
             )
@@ -96,14 +96,14 @@ export function PwaStatus() {
     setDeferredPrompt(null);
   };
 
-  // "Nanti" — sembunyi sampai tab ini ditutup, tapi akan muncul lagi lain kali.
+  // "Nanti" sembunyi sampai tab ini ditutup, tapi akan muncul lagi lain kali.
   const snooze = () => {
     sessionStorage.setItem(SNOOZE_KEY, 'true');
     setSnoozed(true);
     setDeferredPrompt(null);
   };
 
-  // "Jangan tampilkan lagi" — permanen, tidak akan muncul lagi di perangkat ini.
+  // "Jangan tampilkan lagi" permanen, tidak akan muncul lagi di perangkat ini.
   const dismissPermanently = () => {
     localStorage.setItem(DISMISS_KEY, 'true');
     setDismissedForever(true);

@@ -1,4 +1,4 @@
-# App Flow — checklist-shift
+# App Flow MyCheck
 
 Acuan perilaku: `PRD.md`. Dokumen ini memetakan layar, modal, dan alur UI.
 

@@ -1,6 +1,6 @@
 // lib/concurrency.ts
 // Rekonsiliasi untuk aturan yang di PostgreSQL dijaga index/lock, sedangkan
-// Google Sheets hanya bisa "cek lalu tulis" — dan langkah itu bisa raced.
+// Google Sheets hanya bisa "cek lalu tulis" dan langkah itu bisa raced.
 //
 // Strategi: ID resource bersifat deterministik (lihat `lib/ids.ts`) sehingga
 // dua request paralel menulis baris dengan ID yang sama. Setelah menulis,
@@ -73,7 +73,7 @@ export async function isCanonicalEntry(
 /**
  * Kembalikan ke 'belum' semua baris entry untuk satu point KECUALI baris
  * kanonik. Karena ID entry deterministik, semua baris itu mewakili satu entri
- * logis — jadi hanya boleh satu yang terisi.
+ * logis jadi hanya boleh satu yang terisi.
  *
  * Sengaja tidak mencoba menebak "baris mana milik pemanggil": beberapa
  * pemanggil yang kalah bisa membaca sheet pada waktu yang sama dan memilih
@@ -112,7 +112,7 @@ export async function resetDuplicateEntryRows(
  *
  * Baris kanonik = baris NON-VOID paling awal. Penting: kalau baris paling awal
  * sudah void (mis. shift di-void lalu dibuka lagi), baris itu TIDAK boleh
- * dipilih sebagai kanonik — kalau begitu shift yang baru dibuka akan langsung
+ * dipilih sebagai kanonik kalau begitu shift yang baru dibuka akan langsung
  * ikut di-void. Baris yang sudah void dilewati, tidak di-void ulang.
  */
 export async function voidDuplicateShiftInstances(

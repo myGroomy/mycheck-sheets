@@ -1,4 +1,4 @@
-# DATABASE_SCHEMA.md — Struktur Data mycheck
+# DATABASE_SCHEMA.md Struktur Data mycheck
 
 > **Menggantikan skema PostgreSQL.**mycheck memakai **Google Sheets API**,
 > bukan database SQL. Tidak ada migration, tidak ada ORM, tidak ada transaksi.
@@ -23,7 +23,7 @@ Ada dua spreadsheet yang berbeda sifat:
 | Env | `REGISTRY_SPREADSHEET_ID` | kolom `Spreadsheet_ID` di Registry |
 
 Konvensi nama berbeda antara Registry (PascalCase, mengikuti stokis) dan
-spreadsheet cabang (snake_case). Ini disengaja — jangan disamakan.
+spreadsheet cabang (snake_case). Ini disengaja jangan disamakan.
 
 ## 2. Registry
 
@@ -39,7 +39,7 @@ spreadsheet cabang (snake_case). Ini disengaja — jangan disamakan.
 | `Aktif` | bool | Hanya cabang aktif yang bisa diakses. |
 
 > Cabang dibuat **nonaktif**. Wajib diisi `Spreadsheet_ID` dulu sebelum bisa
-> diaktifkan — API menolak mengaktifkan cabang tanpa spreadsheet.
+> diaktifkan API menolak mengaktifkan cabang tanpa spreadsheet.
 
 ### `Users`
 | Kolom | Tipe | Keterangan |
@@ -54,7 +54,7 @@ spreadsheet cabang (snake_case). Ini disengaja — jangan disamakan.
 | `Must_Change_Pin` | bool | Diset `TRUE` saat admin reset PIN user. |
 | `Created_At` | string | ISO UTC. |
 
-Tidak ada tabel `user_branch_access` — akses cabang disimpan di kolom
+Tidak ada tabel `user_branch_access` akses cabang disimpan di kolom
 `Cabang_ID`. Tidak ada `pin_fail_attempts` (tidak ada lockout/rate limiting).
 
 ### `Settings_Global`
@@ -71,7 +71,7 @@ Token disimpan apa adanya (bukan hash) agar route publik bisa mencarinya dengan
 satu pembacaan sheet.
 
 ### `Template_Referensi`
-`Template_Spreadsheet_ID` — pointer ke template master.
+`Template_Spreadsheet_ID` pointer ke template master.
 
 ## 3. Spreadsheet cabang
 
@@ -116,7 +116,7 @@ Tab dibuat otomatis oleh kode saat pertama dipakai (`ensureMonthlySheet`).
 | `AuditLog_<bulan>` | Audit append-only + hash chain (`seq`, `prev_hash`, `hash`) |
 
 Tab mana yang dipakai sebuah shift ditentukan oleh `ShiftInstances.tab_month`.
-Sheet default Google (`Sheet1`) **wajib** dihapus — script setup sudah melakukannya.
+Sheet default Google (`Sheet1`) **wajib** dihapus script setup sudah melakukannya.
 
 ### 3.4 Snapshot & audit
 
@@ -124,7 +124,7 @@ Sheet default Google (`Sheet1`) **wajib** dihapus — script setup sudah melakuk
   (`snapshot_encoding` = `json`). Perubahan template setelah shift dibuka tidak
   memengaruhi shift yang sedang berjalan (BR-05).
 - **Hash chain audit** dihitung di dalam satu tab bulanan, jadi chain **di-reset
-  setiap ganti bulan** — bukan global seperti di PostgreSQL. Ini perbedaan yang
+  setiap ganti bulan** bukan global seperti di PostgreSQL. Ini perbedaan yang
   diterima, bukan bug.
 
 ## 4. Aturan yang wajib dijaga
@@ -140,12 +140,12 @@ Sheet default Google (`Sheet1`) **wajib** dihapus — script setup sudah melakuk
 5. **Tidak ada row lock.** BR-12 dijaga pengecekan state sebelum update.
 6. Hapus baris secara fisik hanya boleh untuk operasi admin yang memang
   Bike menghapus konfigurasi. Lifecycle bisnis (shift, incident, laporan)
-   **tidak** menghapus baris — hanya ubah status.
+   **tidak** menghapus baris hanya ubah status.
 
 ## 5. Menambah kolom
 
 1. Ubah header di Registry atau di seluruh spreadsheet cabang.
 2. Update `lib/google/branch-schema.ts` (`STATIC_SHEETS` atau `MONTHLY_SHEETS`).
 3. Update pemanggilnya di `lib/store.ts` / `lib/admin/template-service.ts`.
-4. Tidak ada migration — tapi **penyesuaian** ke spreadsheet cabang lama wajib
+4. Tidak ada migration tapi **penyesuaian** ke spreadsheet cabang lama wajib
    dilakukan manual, karena kode tidak menambah kolom yang belum ada.

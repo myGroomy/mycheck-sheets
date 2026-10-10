@@ -81,7 +81,7 @@ export async function findIncidentAcrossBranches(
         }
       }
     } catch {
-      // sheet index belum ada — lanjut ke fallback
+      // sheet index belum ada lanjut ke fallback
     }
 
     // 2. Fallback: scan tab bulanan
@@ -135,7 +135,7 @@ export async function updateIncidentRow(
         });
       }
     } catch {
-      // index boleh tidak ada — abaikan
+      // index boleh tidak ada abaikan
     }
   }
   return true;
@@ -162,7 +162,7 @@ export async function categoryNameMap(ctx: AuthContext): Promise<Map<string, str
       const rows = await filterRows(spreadsheetId, 'IncidentCategories', () => true);
       for (const r of rows) map.set(asStr(r['id']), asStr(r['name']));
     } catch {
-      // sheet belum ada di cabang ini — lanjut
+      // sheet belum ada di cabang ini lanjut
     }
   }
   return map;
@@ -235,7 +235,7 @@ export interface NotifyInput {
 
 /**
  * Fan-out notifikasi ke sheet statis Notifications pada spreadsheet cabang.
- * Kegagalan tulis tidak boleh menggagalkan transaksi utama — caller
+ * Kegagalan tulis tidak boleh menggagalkan transaksi utama caller
  * menangkap error sendiri bila perlu.
  */
 export async function pushNotification(
@@ -304,7 +304,7 @@ export async function upsertIncidentIndex(
       return;
     }
   } catch {
-    // sheet kosong — insert di bawah
+    // sheet kosong insert di bawah
   }
   await insertRow(spreadsheetId, 'IncidentIndex', {
     incident_id: entry.incident_id,

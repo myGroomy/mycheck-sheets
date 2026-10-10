@@ -122,7 +122,7 @@ koneksi internet**.
 
 | Gejala | Yang dapat dicoba |
 | --- | --- |
-| Tombol login kembali ke landing page atau sesi tidak berlaku | Buka `/login` lagi. Jika masih gagal, hapus data situs aplikasi atau minta admin mencabut sesi dan login kembali. |
+| Tombol login Kembali atau sesi tidak berlaku | Buka `/login` lagi. Jika masih gagal, hapus data situs aplikasi atau minta admin mencabut sesi dan login kembali. |
 | PIN salah atau akun terkunci | Pastikan username/PIN benar; setelah beberapa percobaan gagal, hubungi admin untuk membuka kunci atau mereset PIN. |
 | Tidak dapat membuka shift atau melihat cabang | Pastikan cabang yang benar dipilih dan minta admin memeriksa akses akun. |
 | Item wajib menghalangi penutupan | Selesaikan item tersebut atau pilih Skip dan isi alasan. |
@@ -135,7 +135,7 @@ atau informasi rahasia.
 
 ## Simulasi Penutupan Shift
 
-Komponen ini mendemonstrasikan alur validasi sebelum menutup shift — semua item wajib harus selesai atau di-skip dengan alasan.
+Komponen ini mendemonstrasikan alur validasi sebelum menutup shift semua item wajib harus selesai atau di-skip dengan alasan.
 
 ```jsx
 function ShiftCloseSimulator() {
@@ -200,7 +200,7 @@ function ShiftCloseSimulator() {
         rows={2}
       />
       <div className={`text-sm font-medium ${allDone ? "text-green-600" : "text-red-500"}`}>
-        {allDone ? "Semua item wajib terisi — siap tutup shift" : "Masih ada item wajib yang belum selesai"}
+        {allDone ? "Semua item wajib terisi siap tutup shift" : "Masih ada item wajib yang belum selesai"}
       </div>
     </div>
   );

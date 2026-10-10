@@ -1,5 +1,5 @@
 // lib/domain/dashboard-service.ts
-// Domain service untuk data Beranda — menggabungkan 4 endpoint API jadi 1 panggilan.
+// Domain service untuk data Beranda menggabungkan 4 endpoint API jadi 1 panggilan.
 
 import type { AuthContext } from '../api-auth';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -51,11 +51,11 @@ export function LandingPage() {
       </div>
 
       <nav className="relative z-10 mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 sm:px-8 lg:px-12">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="checklist-shift beranda">
+        <Link href="/" className="flex items-center gap-2.5" aria-label="MyCheck beranda">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#292524] text-white">
             <Check className="h-5 w-5" strokeWidth={2.5} />
           </span>
-          <span className="text-[15px] font-bold tracking-tight">checklist<span className="text-[#8a847d]">-shift</span></span>
+          <span className="text-[15px] font-bold tracking-tight">MyCheck</span>
         </Link>
         <div className="flex items-center gap-3">
           <span className="hidden text-sm text-[#77716b] sm:inline">Untuk operasional F&amp;B</span>
@@ -121,7 +121,7 @@ export function LandingPage() {
                     <Check className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-bold tracking-tight">checklist-shift</p>
+                    <p className="text-sm font-bold tracking-tight">MyCheck</p>
                     <p className="text-[11px] text-[#8a847d]">Operasional harian</p>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export function LandingPage() {
               Mulai shift berikutnya dengan informasi yang lebih jelas.
             </h2>
             <p className="mt-4 max-w-lg text-sm leading-6 text-[#66645d]">
-              Masuk ke checklist-shift untuk membuka dashboard cabang dan alur shift Anda.
+              Masuk ke MyCheck untuk membuka dashboard cabang dan alur shift Anda.
             </p>
             <Link href="/login" className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-full bg-[#292524] px-6 text-sm font-semibold text-white transition hover:bg-[#44403c]">
               Masuk ke aplikasi <ArrowRight className="h-4 w-4" />
@@ -301,7 +301,7 @@ export function LandingPage() {
 
       <footer className="relative z-10 border-t border-[#e3e0d9]">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-7 text-xs text-[#77716b] sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-12">
-          <Link href="/" className="font-semibold tracking-tight text-[#292524]">checklist-shift</Link>
+          <Link href="/" className="font-semibold tracking-tight text-[#292524]">MyCheck</Link>
           <p>Operasional shift yang jelas, dari buka sampai tutup.</p>
           <Link href="/login" className="inline-flex min-h-10 items-center gap-1 font-semibold text-[#292524] hover:underline">
             Masuk <ArrowUpRight className="h-3.5 w-3.5" />

@@ -55,7 +55,7 @@ async function main() {
     dv.slice(1).forEach((r) => { if (r.every((c) => String(c ?? '').trim() === '')) return; if (/^T1f/i.test(String(r[dnmI] ?? ''))) dummyIds.add(String(r[didI] ?? '')); });
     const ih = iv[0].map((h) => String(h).trim());
     const stI = ih.indexOf('status'), sdI = ih.indexOf('shift_definition_id'), iddI = ih.indexOf('id');
-    iv.slice(1).forEach((r, i) => { if (r.every((c) => String(c ?? '').trim() === '')) return; if (String(r[stI] ?? '') === 'berjalan' && dummyIds.has(String(r[sdI] ?? ''))) { totalVoid++; console.log('  [' + b.id + '] instance berjalan dummy baris ' + (i + 2) + ' id=' + r[iddI]); const R = i + 2; writes.push({ ss: b.spreadsheetId, range: 'ShiftInstances!E' + R, values: [['void']] }); writes.push({ ss: b.spreadsheetId, range: 'ShiftInstances!P' + R + ':R' + R, values: [['Bersihkan dummy — definisi shift uji dihapus', 'admin', nowIso]] }); writes.push({ ss: b.spreadsheetId, range: 'ShiftInstances!X' + R, values: [[nowIso]] }); } });
+    iv.slice(1).forEach((r, i) => { if (r.every((c) => String(c ?? '').trim() === '')) return; if (String(r[stI] ?? '') === 'berjalan' && dummyIds.has(String(r[sdI] ?? ''))) { totalVoid++; console.log('  [' + b.id + '] instance berjalan dummy baris ' + (i + 2) + ' id=' + r[iddI]); const R = i + 2; writes.push({ ss: b.spreadsheetId, range: 'ShiftInstances!E' + R, values: [['void']] }); writes.push({ ss: b.spreadsheetId, range: 'ShiftInstances!P' + R + ':R' + R, values: [['Bersihkan dummy definisi shift uji dihapus', 'admin', nowIso]] }); writes.push({ ss: b.spreadsheetId, range: 'ShiftInstances!X' + R, values: [[nowIso]] }); } });
   }
   console.log('---');
   console.log('Definisi dummy perlu dinonaktifkan:', totalDeact);

@@ -55,7 +55,7 @@ function driveFolderUrl(id: string): string {
 }
 
 /**
- * Sel ID panjang (Spreadsheet/Folder Drive) — tombol yang membuka file/folder
+ * Sel ID panjang (Spreadsheet/Folder Drive) tombol yang membuka file/folder
  * asli di tab baru, plus tombol salin ID. Bukan sekadar teks ID.
  */
 function LinkableId({

@@ -2,7 +2,7 @@
 // Tambah kolom `Alamat` ke header sheet Registry.Daftar_Cabang.
 //
 // PRD ADM-BR-01 menyebut cabang punya "alamat singkat", tapi DATABASE_SCHEMA.md
-// lama tidak punya kolomnya — sehingga input Alamat di form admin discarding
+// lama tidak punya kolomnya sehingga input Alamat di form admin discarding
 // tanpa disimpan. Kolom baru ditaruh di AKHIR supaya kolom lama tidak bergeser
 // dan data existing tidak perlu dimigrasi.
 
@@ -17,7 +17,7 @@ async function main() {
   console.log('header saat ini :', headers.join(' | '));
 
   if (headers.includes('Alamat')) {
-    console.log('kolom Alamat sudah ada — tidak ada yang diubah.');
+    console.log('kolom Alamat sudah ada tidak ada yang diubah.');
     return;
   }
 
