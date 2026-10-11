@@ -12,6 +12,8 @@ const toApiPoint = (p: {
   title: string;
   instruction: string | null;
   input_type: string;
+  input_types: string[];
+  options: string[] | null;
   is_required: boolean;
   target_time: string | null;
   tolerance_minutes: number | null;
@@ -28,6 +30,8 @@ const toApiPoint = (p: {
   title: p.title,
   instruction: p.instruction,
   inputType: p.input_type,
+  inputTypes: p.input_types,
+  options: p.options,
   isRequired: p.is_required,
   targetTime: p.target_time,
   toleranceMinutes: p.tolerance_minutes,
@@ -94,6 +98,28 @@ withAuth(async (_req, ctx, _session) => {
       { status: 400 }
     );
   }
+  const inputTypesRaw = body['inputTypes'];
+  const inputTypes = Array.isArray(inputTypesRaw) ? inputTypesRaw : [inputTypeParsed.data];
+  if (!inputTypes.length || new Set(inputTypes).size !== inputTypes.length || inputTypes.some((type) => !inputTypeSchema.safeParse(type).success)) {
+    return NextResponse.json({ error: 'Daftar tipe input tidak valid.' }, { status: 400 });
+  }
+  const choiceType = inputTypes.some((type) => ['pilihan_ganda', 'kotak_centang', 'dropdown'].includes(String(type)));
+  const rawOptions = body['options'];
+  if (
+    rawOptions !== undefined &&
+    (!Array.isArray(rawOptions) || !rawOptions.every((option: unknown) => typeof option === 'string'))
+  ) {
+    return NextResponse.json({ error: 'options harus berupa daftar teks' }, { status: 400 });
+  }
+  const options = Array.isArray(rawOptions)
+    ? rawOptions.map((option: string) => option.trim()).filter(Boolean)
+    : [];
+  if (choiceType && options.length === 0) {
+    return NextResponse.json({ error: 'Tambahkan minimal satu opsi jawaban' }, { status: 400 });
+  }
+  if (new Set(options).size !== options.length) {
+    return NextResponse.json({ error: 'Opsi jawaban tidak boleh duplikat' }, { status: 400 });
+  }
 
   const loc = await locateSopCategory(ctx, categoryId);
   if (!loc) {
@@ -105,6 +131,8 @@ withAuth(async (_req, ctx, _session) => {
     title,
     instruction: body['instruction'] ? String(body['instruction']) : null,
     input_type: inputTypeParsed.data,
+    input_types: inputTypes.map(String),
+    options: choiceType ? options : null,
     is_required: Boolean(body['isRequired'] ?? body['is_required'] ?? true),
     target_time: body['targetTime'] ? String(body['targetTime'] ?? body['target_time']) : null,
     tolerance_minutes:

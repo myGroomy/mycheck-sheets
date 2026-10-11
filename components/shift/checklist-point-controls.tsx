@@ -14,12 +14,24 @@ import {
 } from '@/components/ui/attachment';
 import { Spinner } from '@/components/ui/spinner';
 
-type InputType = 'centang' | 'foto' | 'teks' | 'angka' | 'ok_tidak_ok';
+type InputType =
+  | 'centang'
+  | 'foto'
+  | 'teks'
+  | 'angka'
+  | 'ok_tidak_ok'
+  | 'paragraf'
+  | 'pilihan_ganda'
+  | 'kotak_centang'
+  | 'dropdown'
+  | 'tanggal_waktu';
 type EntryState = 'belum' | 'selesai' | 'skip';
 
 interface Point {
   point_ref: string;
   input_type: InputType;
+  input_types?: InputType[];
+  options: string[] | null;
   state: EntryState;
   value: string | null;
   skip_reason: string | null;
@@ -77,6 +89,29 @@ export function ChecklistPointControls({
   onSkip: (reason: string) => Promise<void>;
 }) {
   const [value, setValue] = useState(point.value ?? '');
+  const [selectedOptions, setSelectedOptions] = useState<string[]>(() => {
+    try {
+      const parsed: unknown = JSON.parse(point.value ?? '[]');
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+  const inputTypes = point.input_types?.length ? point.input_types : [point.input_type];
+  const combined = inputTypes.length > 1;
+  const [combinedValues, setCombinedValues] = useState<Record<string, unknown>>(() => {
+    if (!combined || !point.value) return {};
+    try {
+      const parsed: unknown = JSON.parse(point.value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? parsed as Record<string, unknown>
+        : {};
+    } catch {
+      return {};
+    }
+  });
+  const [combinedUploadError, setCombinedUploadError] = useState<string | null>(null);
+  const [combinedUploading, setCombinedUploading] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
   const [skipReason, setSkipReason] = useState('');
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -120,14 +155,68 @@ export function ChecklistPointControls({
     }
   };
 
+  const uploadCombinedPhotos = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const existing = Array.isArray(combinedValues['foto'])
+      ? combinedValues['foto'].filter((value): value is string => typeof value === 'string')
+      : [];
+    if (existing.length + files.length > 5) {
+      setCombinedUploadError('Maksimal 5 foto untuk satu pertanyaan.');
+      return;
+    }
+    setCombinedUploadError(null);
+    setCombinedUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const compressed = await compressPhoto(file);
+        const form = new FormData();
+        form.set('file', compressed);
+        form.set('ownerType', 'entry');
+        form.set('ownerId', point.point_ref);
+        form.set('shiftInstanceId', shiftId);
+        const response = await fetch('/api/photos/upload', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'fetch' },
+          body: form,
+        });
+        const result = (await response.json()) as { error?: string; photo_id?: string };
+        if (!response.ok || !result.photo_id) throw new Error(result.error || 'Foto gagal diunggah.');
+        setCombinedValues((current) => ({
+          ...current,
+          foto: [
+            ...(Array.isArray(current['foto']) ? current['foto'].filter((id): id is string => typeof id === 'string') : []),
+            result.photo_id,
+          ],
+        }));
+      }
+    } catch (error) {
+      setCombinedUploadError(error instanceof Error ? error.message : 'Foto gagal diunggah.');
+    } finally {
+      setCombinedUploading(false);
+    }
+  };
+
   if (point.state !== 'belum') {
+    let completedValue = point.value;
+    if (point.input_type === 'tanggal_waktu' && point.value) {
+      const date = new Date(point.value);
+      completedValue = Number.isNaN(date.getTime()) ? point.value : date.toLocaleString('id-ID');
+    }
+    if (point.input_type === 'kotak_centang' && point.value) {
+      try {
+        const parsed: unknown = JSON.parse(point.value);
+        if (Array.isArray(parsed)) completedValue = parsed.map(String).join(', ');
+      } catch {
+        completedValue = point.value;
+      }
+    }
     return (
       <div className="flex flex-wrap items-center gap-2">
         {point.state === 'skip' ? (
           <p className="text-sm text-ink-muted">Alasan skip: {point.skip_reason || '—'}</p>
         ) : (
           <p className="text-sm text-ink-muted">
-            {point.input_type === 'foto' ? 'Foto tersimpan' : `Nilai: ${point.value ?? 'Selesai'}`}
+            {combined && point.value ? `Nilai: ${formatCombinedValue(point.value)}` : point.input_type === 'foto' ? 'Foto tersimpan' : `Nilai: ${completedValue ?? 'Selesai'}`}
             {point.out_of_range ? ' • Di luar rentang' : ''}
           </p>
         )}
@@ -149,7 +238,154 @@ export function ChecklistPointControls({
   );
 
   let input;
-  if (point.input_type === 'centang') {
+  if (combined) {
+    const updateComponent = (type: string, value: unknown) =>
+      setCombinedValues((current) => ({ ...current, [type]: value }));
+    input = (
+      <fieldset className="space-y-3">
+        <legend className="sr-only">Isi semua komponen pertanyaan</legend>
+        {inputTypes.map((type) => (
+          <div key={type} className="space-y-2">
+            <p className="text-xs font-semibold text-ink-muted">{INPUT_LABEL[type] ?? type}</p>
+            {type === 'teks' || type === 'paragraf' || type === 'angka' || type === 'tanggal_waktu' ? (
+              type === 'paragraf' ? (
+                <textarea
+                  value={String(combinedValues[type] ?? '')}
+                  onChange={(event) => updateComponent(type, event.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  disabled={disabled || busy}
+                  className="min-h-24 w-full rounded-lg border border-border bg-surface px-3 py-2 text-base"
+                />
+              ) : (
+                <input
+                  type={type === 'tanggal_waktu' ? 'datetime-local' : type === 'angka' ? 'number' : 'text'}
+                  value={String(combinedValues[type] ?? '')}
+                  onChange={(event) => updateComponent(type, event.target.value)}
+                  min={type === 'angka' ? point.number_min ?? undefined : undefined}
+                  max={type === 'angka' ? point.number_max ?? undefined : undefined}
+                  disabled={disabled || busy}
+                  className="min-h-11 w-full rounded-lg border border-border bg-surface px-3 text-base"
+                />
+              )
+            ) : type === 'centang' ? (
+              <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border px-3">
+                <input
+                  type="checkbox"
+                  checked={combinedValues[type] === true}
+                  onChange={(event) => updateComponent(type, event.target.checked)}
+                  disabled={disabled || busy}
+                  className="h-5 w-5"
+                />
+                Tandai selesai
+              </label>
+            ) : type === 'ok_tidak_ok' ? (
+              <div className="flex flex-wrap gap-2">
+                {['ya', 'tidak'].map((option) => (
+                  <label key={option} className="flex min-h-11 items-center gap-2 rounded-lg border border-border px-3">
+                    <input
+                      type="radio"
+                      name={`combo-${point.point_ref}-${type}`}
+                      checked={combinedValues[type] === option}
+                      onChange={() => updateComponent(type, option)}
+                      disabled={disabled || busy}
+                    />
+                    {option === 'ya' ? 'Ya / OK' : 'Tidak / Tidak OK'}
+                  </label>
+                ))}
+              </div>
+            ) : type === 'pilihan_ganda' || type === 'dropdown' || type === 'kotak_centang' ? (
+              type === 'dropdown' ? (
+                <select
+                  value={String(combinedValues[type] ?? '')}
+                  onChange={(event) => updateComponent(type, event.target.value)}
+                  disabled={disabled || busy}
+                  className="min-h-12 w-full rounded-lg border border-border bg-surface px-3 text-base"
+                >
+                  <option value="">Pilih jawaban</option>
+                  {(point.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+              ) : (
+                <div className="space-y-2">
+                  {(point.options ?? []).map((option) => {
+                    const multiple = type === 'kotak_centang';
+                    const selected = Array.isArray(combinedValues[type])
+                      ? combinedValues[type] as string[]
+                      : [];
+                    const checked = multiple ? selected.includes(option) : combinedValues[type] === option;
+                    return (
+                      <label key={option} className="flex min-h-11 items-center gap-3 rounded-lg border border-border px-3">
+                        <input
+                          type={multiple ? 'checkbox' : 'radio'}
+                          name={`combo-${point.point_ref}-${type}`}
+                          checked={checked}
+                          disabled={disabled || busy}
+                          onChange={() => updateComponent(
+                            type,
+                            multiple
+                              ? checked ? selected.filter((item) => item !== option) : [...selected, option]
+                              : option
+                          )}
+                        />
+                        {option}
+                      </label>
+                    );
+                  })}
+                </div>
+              )
+            ) : type === 'foto' ? (
+              <div className="space-y-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  onChange={(event) => void uploadCombinedPhotos(event.target.files)}
+                  disabled={disabled || busy || combinedUploading}
+                  className="block w-full text-sm"
+                />
+                <p className="text-xs text-ink-muted">
+                  {Array.isArray(combinedValues[type]) ? combinedValues[type].length : 0}/5 foto diunggah.
+                </p>
+                {combinedUploading && <p className="text-xs text-ink-muted">Mengunggah foto...</p>}
+                {combinedUploadError && <p role="alert" className="text-sm text-error">{combinedUploadError}</p>}
+              </div>
+            ) : null}
+          </div>
+        ))}
+        <Button
+          type="button"
+          onClick={() => {
+            const output: Record<string, unknown> = {};
+            for (const type of inputTypes) {
+              const value = combinedValues[type];
+              if (
+                value === undefined || value === null ||
+                (typeof value === 'string' && !value.trim()) ||
+                (Array.isArray(value) && value.length === 0) ||
+                (type === 'centang' && value !== true)
+              ) return;
+              output[type] = type === 'tanggal_waktu' && typeof value === 'string'
+                ? new Date(value).toISOString()
+                : type === 'kotak_centang'
+                  ? JSON.stringify(value)
+                  : value;
+            }
+            void onComplete(JSON.stringify(output));
+          }}
+          disabled={disabled || busy || combinedUploading || inputTypes.some((type) => {
+            const value = combinedValues[type];
+            return value === undefined || value === null ||
+              (typeof value === 'string' && !value.trim()) ||
+              (Array.isArray(value) && value.length === 0) ||
+              (type === 'centang' && value !== true);
+          })}
+        >
+          Simpan semua jawaban
+        </Button>
+      </fieldset>
+    );
+  } else if (point.input_type === 'centang') {
     input = <Button type="button" onClick={() => void onComplete('true')} disabled={disabled || busy}>{busy ? 'Menyimpan...' : 'Tandai selesai'}</Button>;
   } else if (point.input_type === 'ok_tidak_ok') {
     input = (
@@ -158,21 +394,99 @@ export function ChecklistPointControls({
         <Button type="button" variant="outline" onClick={() => void onComplete('tidak')} disabled={disabled || busy}>Tidak OK</Button>
       </div>
     );
-  } else if (point.input_type === 'teks' || point.input_type === 'angka') {
+  } else if (
+    point.input_type === 'teks' ||
+    point.input_type === 'paragraf' ||
+    point.input_type === 'angka' ||
+    point.input_type === 'tanggal_waktu'
+  ) {
+    const isParagraph = point.input_type === 'paragraf';
     input = (
       <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          aria-label={point.input_type === 'angka' ? 'Nilai angka' : 'Catatan checklist'}
-          type={point.input_type === 'angka' ? 'number' : 'text'}
+        {isParagraph ? (
+          <textarea
+            aria-label="Jawaban"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            rows={4}
+            maxLength={2000}
+            className="min-h-24 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-base"
+            placeholder="Tulis jawaban"
+            disabled={disabled || busy}
+          />
+        ) : (
+          <input
+            aria-label={point.input_type === 'angka' ? 'Nilai angka' : point.input_type === 'tanggal_waktu' ? 'Tanggal dan waktu' : 'Catatan checklist'}
+            type={point.input_type === 'angka' ? 'number' : point.input_type === 'tanggal_waktu' ? 'datetime-local' : 'text'}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            min={point.input_type === 'angka' ? point.number_min ?? undefined : undefined}
+            max={point.input_type === 'angka' ? point.number_max ?? undefined : undefined}
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-base"
+            placeholder={point.input_type === 'angka' ? 'Masukkan angka' : 'Tulis catatan'}
+            disabled={disabled || busy}
+          />
+        )}
+        <Button type="button" onClick={() => void onComplete(value)} disabled={disabled || busy || !value.trim()}>
+          Simpan
+        </Button>
+      </div>
+    );
+  } else if (point.input_type === 'pilihan_ganda' || point.input_type === 'kotak_centang') {
+    const options = point.options ?? [];
+    const isMultiple = point.input_type === 'kotak_centang';
+    input = (
+      <fieldset className="space-y-2">
+        <legend className="sr-only">Pilih jawaban</legend>
+        {options.map((option) => {
+          const checked = isMultiple ? selectedOptions.includes(option) : value === option;
+          return (
+            <label key={option} className="flex min-h-12 items-center gap-3 rounded-lg border border-border bg-surface px-3 text-base">
+              <input
+                type={isMultiple ? 'checkbox' : 'radio'}
+                name={`answer-${point.point_ref}`}
+                checked={checked}
+                disabled={disabled || busy}
+                onChange={() => {
+                  if (isMultiple) {
+                    const next = checked
+                      ? selectedOptions.filter((item) => item !== option)
+                      : [...selectedOptions, option];
+                    setSelectedOptions(next);
+                    setValue(JSON.stringify(next));
+                  } else {
+                    setValue(option);
+                  }
+                }}
+                className="h-5 w-5"
+              />
+              {option}
+            </label>
+          );
+        })}
+        <Button
+          type="button"
+          onClick={() => void onComplete(isMultiple ? JSON.stringify(selectedOptions) : value)}
+          disabled={disabled || busy || (isMultiple ? selectedOptions.length === 0 : !value)}
+        >
+          Simpan jawaban
+        </Button>
+      </fieldset>
+    );
+  } else if (point.input_type === 'dropdown') {
+    input = (
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <select
+          aria-label="Pilih jawaban"
           value={value}
           onChange={(event) => setValue(event.target.value)}
-          min={point.number_min ?? undefined}
-          max={point.number_max ?? undefined}
-          className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-base"
-          placeholder={point.input_type === 'angka' ? 'Masukkan angka' : 'Tulis catatan'}
           disabled={disabled || busy}
-        />
-        <Button type="button" onClick={() => void onComplete(value)} disabled={disabled || busy || !value.trim()}>
+          className="min-h-12 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-base"
+        >
+          <option value="">Pilih jawaban</option>
+          {(point.options ?? []).map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+        <Button type="button" onClick={() => void onComplete(value)} disabled={disabled || busy || !value}>
           Simpan
         </Button>
       </div>
@@ -214,6 +528,33 @@ export function ChecklistPointControls({
         {photoError && <p role="alert" className="mt-2 text-sm text-error">{photoError}</p>}
       </>
     );
+  }
+
+  const INPUT_LABEL: Record<string, string> = {
+    centang: 'Centang checklist',
+    foto: 'Foto',
+    teks: 'Jawaban singkat',
+    angka: 'Angka',
+    ok_tidak_ok: 'OK / Tidak OK',
+    paragraf: 'Paragraf',
+    pilihan_ganda: 'Pilihan ganda',
+    kotak_centang: 'Pilihan jamak',
+    dropdown: 'Dropdown',
+    tanggal_waktu: 'Tanggal dan waktu',
+  };
+
+  function formatCombinedValue(raw: string): string {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return raw;
+      return Object.entries(parsed).map(([key, value]) => {
+        if (key === 'foto' && Array.isArray(value)) return `${value.length} foto tersimpan`;
+        if (Array.isArray(value)) return value.map(String).join(', ');
+        return `${INPUT_LABEL[key] ?? key}: ${String(value)}`;
+      }).join(' · ');
+    } catch {
+      return raw;
+    }
   }
 
   return (

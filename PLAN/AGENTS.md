@@ -8,7 +8,7 @@ PWA mobile-first (Bahasa Indonesia) untuk SOP shift karyawan F&amp;B. Dokumen in
 2. DATABASE\_[SCHEMA.md](http://SCHEMA.md) : struktur data PostgreSQL
 3. [TRD.md](http://TRD.md) : keputusan teknis
 4. APP\_[FLOW.md](http://FLOW.md) : layar, modal, alur
-5. IMPLEMENTATION\_[PLAN.md](http://PLAN.md) : urutan kerja
+5. [PLAN/IMPLEMENTATION_PLAN.md](PLAN/IMPLEMENTATION_PLAN.md) : urutan kerja
 6. [TESTING.md](http://TESTING.md) : kriteria lulus
 7. [UI-UX.md](http://UI-UX.md) : Spesifikasi UI/UX
 
@@ -16,7 +16,7 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 
 ## 2. Aturan Anti-Overwrite (WAJIB)
 
-- Kerjakan SATU fase IMPLEMENTATION\_[PLAN.md](http://PLAN.md) pada satu waktu, hanya fase yang diminta.
+- Kerjakan SATU fase [PLAN/IMPLEMENTATION_PLAN.md](PLAN/IMPLEMENTATION_PLAN.md) pada satu waktu, hanya fase yang diminta.
 - Sebelum menulis kode: tuliskan asumsi dan daftar file yang akan dibuat/diubah/dihapus, lalu tunggu persetujuan.
 - Jangan menimpa file yang sudah ada secara utuh. Ubah dengan edit minimal (diff kecil). Jika perlu menulis ulang &gt;30% sebuah file, minta izin dulu.
 - Jangan memformat ulang, mengganti nama, memindahkan, atau merapikan kode di luar lingkup tugas.
@@ -124,7 +124,7 @@ Jika dokumen bertentangan dengan kode atau dengan instruksi, BERHENTI dan tanyak
 ## 11. Keputusan Terbuka (JANGAN diputuskan sendiri, tanyakan)
 
 - Apakah severity incident dipakai (kolom opsional sudah ada di schema).
-- Target skala dan metrik keberhasilan numerik final (PRD §12).
+- Target skala dan metrik keberhasilan numerik final (PRD S12).
 - Apakah web push diimplementasikan di Fase awal atau belakangan.
 - Akordeon vs tab untuk Kategori SOP; apakah admin memakai HP.
 
@@ -149,4 +149,3 @@ Catatan: `npm run build` di mesin dengan RAM < 4GB perlu
 Tanyakan, jangan menebak. Lebih baik satu pertanyaan singkat daripada perubahan besar yang salah.
 
 ## 14. Lakukan commit dan push berkala.
-

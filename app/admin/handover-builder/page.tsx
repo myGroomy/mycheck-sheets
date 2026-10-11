@@ -35,6 +35,9 @@ const FIELD_TYPE_LABEL: Record<string, string> = {
   angka: 'Angka',
   pilihan: 'Pilihan',
   ya_tidak: 'Ya / Tidak',
+  paragraf: 'Paragraf',
+  tanggal_waktu: 'Tanggal dan waktu',
+  foto: 'Foto',
 };
 
 export default function HandoverBuilderPage() {
@@ -185,16 +188,6 @@ export default function HandoverBuilderPage() {
     }
   };
 
-  const changeFieldType = async (fieldId: string, newType: HandoverField['fieldType']) => {
-    try {
-      await updateHandoverField(fieldId, { fieldType: newType });
-      toast.success('Tipe isian diubah');
-      await loadFields(shiftId);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Gagal mengubah tipe isian');
-    }
-  };
-
   const onDrop = (to: number) => {
     if (dragIndex === null || dragIndex === to) {
       setDragIndex(null);
@@ -327,24 +320,12 @@ export default function HandoverBuilderPage() {
                   </button>
                 )}
                 <div className="mt-1">
-                  <Select
-                    value={f.fieldType}
-                    onValueChange={(v) => void changeFieldType(f.id, v as HandoverField['fieldType'])}
-                  >
-                    <SelectTrigger className="h-6 text-xs">
-                      <SelectValue>
-                        {FIELD_TYPE_LABEL[f.fieldType] ?? f.fieldType}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(FIELD_TYPE_LABEL).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {f.fieldType === 'pilihan' && f.options && (
+                  <p className="text-xs text-ink-muted">
+                    {(f.inputTypes?.length ? f.inputTypes : [f.fieldType])
+                      .map((type) => FIELD_TYPE_LABEL[type] ?? type)
+                      .join(' + ')}
+                  </p>
+                  {(f.inputTypes ?? [f.fieldType]).some((type) => ['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type)) && f.options && (
                     <p className="mt-0.5 text-xs text-ink-muted">
                       {(Array.isArray(f.options) ? f.options : [f.options]).join(', ')}
                     </p>
@@ -396,34 +377,14 @@ export default function HandoverBuilderPage() {
                       {f.label}
                       {f.isRequired && <span className="text-danger"> *</span>}
                     </label>
-                    {f.fieldType === 'teks' && (
-                      <div className="rounded border border-border bg-background p-2 text-xs text-ink-muted">
-                        Input teks...
+                    {(f.inputTypes?.length ? f.inputTypes : [f.fieldType]).map((type) => (
+                      <div key={type} className="rounded border border-border bg-background p-2 text-xs text-ink-muted">
+                        {FIELD_TYPE_LABEL[type] ?? type}
+                        {['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type) && f.options?.length
+                          ? `: ${f.options.join(', ')}`
+                          : type === 'foto' ? ' — unggah satu atau lebih foto' : ' — input petugas'}
                       </div>
-                    )}
-                    {f.fieldType === 'angka' && (
-                      <div className="rounded border border-border bg-background p-2 text-xs text-ink-muted">
-                        Input angka...
-                      </div>
-                    )}
-                    {f.fieldType === 'pilihan' && (
-                      <div className="flex flex-wrap gap-1">
-                        {(Array.isArray(f.options) ? f.options : [f.options]).map((opt, i) => (
-                          <span
-                            key={i}
-                            className="rounded-full border border-border px-2 py-0.5 text-xs"
-                          >
-                            {opt}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {f.fieldType === 'ya_tidak' && (
-                      <div className="flex gap-2">
-                        <span className="rounded-full border border-border px-2 py-0.5 text-xs">Ya</span>
-                        <span className="rounded-full border border-border px-2 py-0.5 text-xs">Tidak</span>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 ))
             )}

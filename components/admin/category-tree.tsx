@@ -26,15 +26,20 @@ interface CategoryTreeProps {
 }
 
 const INPUT_TYPE_LABEL: Record<string, string> = {
-  centang: 'Centang',
+  centang: 'Centang checklist',
   foto: 'Foto',
-  teks: 'Teks',
+  teks: 'Jawaban singkat',
   angka: 'Angka',
   ok_tidak_ok: 'OK / Tidak OK',
+  paragraf: 'Paragraf',
+  pilihan_ganda: 'Pilihan ganda',
+  kotak_centang: 'Pilihan jamak',
+  dropdown: 'Dropdown',
+  tanggal_waktu: 'Tanggal dan waktu',
 };
 
 /**
- * Pohon Kategori SOP + item checklist dengan drag & drop urutan (HTML5 native,
+ * Editor Section + Question dengan drag & drop urutan (HTML5 native,
  * tanpa dependensi tambahan).
  */
 export function CategoryTree({
@@ -61,16 +66,16 @@ export function CategoryTree({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold">Kategori &amp; Item</h2>
-        <Button size="sm" onClick={onAddCategory}>
+        <h2 className="text-lg font-semibold">Section</h2>
+        <Button size="sm" className="min-h-12 px-4" onClick={onAddCategory}>
           <FolderPlus className="h-3.5 w-3.5" />
-          Kategori
+          Tambah section
         </Button>
       </div>
 
       {categories.length === 0 && (
-        <p className="rounded-lg border border-dashed border-border p-3 text-sm text-ink-muted">
-          Belum ada kategori SOP pada shift ini
+        <p className="rounded-lg border border-dashed border-border p-4 text-sm text-ink-muted">
+          Belum ada section. Tambahkan section untuk mengelompokkan pertanyaan SOP.
         </p>
       )}
 
@@ -86,60 +91,66 @@ export function CategoryTree({
               setDragCategory(null);
             }}
             onDragEnd={() => setDragCategory(null)}
-            className={`rounded-lg border ${
+            className={`overflow-hidden rounded-xl border bg-surface ${
               selectedCategoryId === cat.id
                 ? 'border-primary bg-primary/5'
                 : 'border-border bg-surface'
             }`}
           >
-            <div className="flex min-h-[48px] items-center gap-2 p-2">
+            <div className="flex min-h-12 flex-wrap items-center gap-2 p-3">
               <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-ink-muted" aria-hidden />
               <button
                 type="button"
                 onClick={() => onSelectCategory(cat.id)}
-                className="min-w-0 flex-1 text-left"
+                className="min-w-[120px] flex-1 text-left"
               >
                 <span className="block truncate text-sm font-medium">{cat.name}</span>
-                <span className="block text-xs text-ink-muted">
-                  {cat.points.filter((p) => p.isActive).length} item aktif
+                <span className="block text-sm text-ink-muted">
+                  {cat.points.filter((p) => p.isActive).length} pertanyaan aktif
                 </span>
               </button>
-              <Badge variant={cat.isActive ? 'default' : 'secondary'}>
+              <Badge className="shrink-0" variant={cat.isActive ? 'default' : 'secondary'}>
                 {cat.isActive ? 'Aktif' : 'Nonaktif'}
               </Badge>
-              <Button
-                size="sm"
-                variant="outline"
-                aria-label={`Tambah item pada ${cat.name}`}
-                onClick={() => onAddPoint(cat.id)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                aria-label={`Duplikasi kategori ${cat.name}`}
-                disabled={busyId === cat.id}
-                onClick={() => onDuplicateCategory(cat)}
-              >
-                <Copy className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                aria-label={`Ubah kategori ${cat.name}`}
-                onClick={() => onEditCategory(cat)}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                aria-label={`${cat.isActive ? 'Nonaktifkan' : 'Aktifkan'} kategori ${cat.name}`}
-                onClick={() => onToggleCategory(cat)}
-              >
-                <Power className="h-3.5 w-3.5" />
-              </Button>
+              <div className="ml-auto flex items-center gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-12 w-12 shrink-0 p-0"
+                  aria-label={`Tambah item pada ${cat.name}`}
+                  onClick={() => onAddPoint(cat.id)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-12 w-12 shrink-0 p-0"
+                  aria-label={`Duplikasi section ${cat.name}`}
+                  disabled={busyId === cat.id}
+                  onClick={() => onDuplicateCategory(cat)}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-12 w-12 shrink-0 p-0"
+                  aria-label={`Ubah section ${cat.name}`}
+                  onClick={() => onEditCategory(cat)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-12 w-12 shrink-0 p-0"
+                  aria-label={`${cat.isActive ? 'Nonaktifkan' : 'Aktifkan'} section ${cat.name}`}
+                  onClick={() => onToggleCategory(cat)}
+                >
+                  <Power className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
             {cat.points.length > 0 && (
               <ul className="border-t border-border">
@@ -156,7 +167,7 @@ export function CategoryTree({
                       setDragPoint(null);
                     }}
                     onDragEnd={() => setDragPoint(null)}
-                    className="flex min-h-[48px] items-center gap-2 border-b border-border px-2 py-1 last:border-b-0"
+                    className="m-3 flex min-h-14 flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2"
                   >
                     <GripVertical
                       className="h-4 w-4 shrink-0 cursor-grab text-ink-muted"
@@ -165,43 +176,54 @@ export function CategoryTree({
                     <button
                       type="button"
                       onClick={() => onSelectCategory(cat.id)}
-                      className="min-w-0 flex-1 text-left"
+                      className="min-w-[120px] flex-1 text-left"
                     >
                       <span className="block truncate text-sm">
                         {point.title}
                         {point.isRequired && <span className="text-danger"> *</span>}
                       </span>
-                      <span className="block text-xs text-ink-muted">
-                        {INPUT_TYPE_LABEL[point.inputType] ?? point.inputType}
+                      <span className="block truncate text-sm text-ink-muted">
+                        {(point.inputTypes?.length ? point.inputTypes : [point.inputType])
+                          .map((type) => INPUT_TYPE_LABEL[type] ?? type)
+                          .join(' + ')}
                         {point.targetTime ? ` · ${point.targetTime}` : ''}
                       </span>
                     </button>
-                    {!point.isActive && <Badge variant="secondary">Nonaktif</Badge>}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      aria-label={`Duplikasi item ${point.title}`}
-                      disabled={busyId === point.id}
-                      onClick={() => onDuplicatePoint(point)}
-                    >
-                      <Copy className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      aria-label={`Ubah item ${point.title}`}
-                      onClick={() => onEditPoint(point)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      aria-label={`${point.isActive ? 'Nonaktifkan' : 'Aktifkan'} item ${point.title}`}
-                      onClick={() => onTogglePoint(point)}
-                    >
-                      <Power className="h-3.5 w-3.5" />
-                    </Button>
+                    {!point.isActive && (
+                      <Badge className="shrink-0" variant="secondary">
+                        Nonaktif
+                      </Badge>
+                    )}
+                    <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-12 w-12 shrink-0 p-0"
+                        aria-label={`Duplikasi pertanyaan ${point.title}`}
+                        disabled={busyId === point.id}
+                        onClick={() => onDuplicatePoint(point)}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-12 w-12 shrink-0 p-0"
+                        aria-label={`Ubah pertanyaan ${point.title}`}
+                        onClick={() => onEditPoint(point)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-12 w-12 shrink-0 p-0"
+                        aria-label={`${point.isActive ? 'Nonaktifkan' : 'Aktifkan'} pertanyaan ${point.title}`}
+                        onClick={() => onTogglePoint(point)}
+                      >
+                        <Power className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -12,18 +12,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { HandoverField, HandoverFieldType } from '@/lib/admin/api';
 
 export interface HandoverFormValues {
   label: string;
   fieldType: HandoverFieldType;
+  inputTypes: HandoverFieldType[];
   options: string[] | null;
   isRequired: boolean;
   sortOrder: number;
@@ -45,6 +39,12 @@ const FIELD_TYPES: { value: HandoverFieldType; label: string }[] = [
   { value: 'angka', label: 'Angka' },
   { value: 'pilihan', label: 'Pilihan' },
   { value: 'ya_tidak', label: 'Ya / Tidak' },
+  { value: 'pilihan_ganda', label: 'Pilihan ganda' },
+  { value: 'kotak_centang', label: 'Pilihan jamak' },
+  { value: 'dropdown', label: 'Dropdown' },
+  { value: 'paragraf', label: 'Paragraf' },
+  { value: 'tanggal_waktu', label: 'Tanggal dan waktu' },
+  { value: 'foto', label: 'Foto' },
 ];
 
 const normalizeOptions = (raw: HandoverField['options'] | undefined): string[] => {
@@ -63,6 +63,7 @@ export function HandoverFieldEditor({
 }: HandoverFieldEditorProps) {
   const [label, setLabel] = useState('');
   const [fieldType, setFieldType] = useState<HandoverFieldType>('teks');
+  const [inputTypes, setInputTypes] = useState<HandoverFieldType[]>(['teks']);
   const [options, setOptions] = useState<string[]>([]);
   const [isRequired, setIsRequired] = useState(false);
   const [sortOrder, setSortOrder] = useState(0);
@@ -72,6 +73,7 @@ export function HandoverFieldEditor({
     if (!open) return;
     setLabel(field?.label ?? '');
     setFieldType(field?.fieldType ?? 'teks');
+    setInputTypes(field?.inputTypes?.length ? field.inputTypes : [field?.fieldType ?? 'teks']);
     setOptions(normalizeOptions(field?.options));
     setIsRequired(field?.isRequired ?? false);
     setSortOrder(field?.sortOrder ?? 0);
@@ -83,11 +85,11 @@ export function HandoverFieldEditor({
     const trimmed = label.trim();
     if (trimmed.length < 2) return;
     const cleaned =
-      fieldType === 'pilihan'
+      inputTypes.some((type) => ['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type))
         ? options.map((o) => o.trim()).filter((o) => o.length > 0)
         : null;
-    if (fieldType === 'pilihan' && (cleaned?.length ?? 0) === 0) return;
-    onSubmit({ label: trimmed, fieldType, options: cleaned, isRequired, sortOrder, isActive });
+    if (inputTypes.some((type) => ['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type)) && (cleaned?.length ?? 0) === 0) return;
+    onSubmit({ label: trimmed, fieldType: inputTypes[0] ?? fieldType, inputTypes, options: cleaned, isRequired, sortOrder, isActive });
   };
 
   return (
@@ -111,25 +113,31 @@ export function HandoverFieldEditor({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="handover-type">Tipe isian</Label>
-            <Select
-              value={fieldType}
-              onValueChange={(v) => setFieldType(v as HandoverFieldType)}
-            >
-              <SelectTrigger id="handover-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FIELD_TYPES.map((t) => (
-                  <SelectItem key={t.value} value={t.value}>
-                    {t.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Tipe isian (pilih satu atau lebih)</Label>
+            <fieldset className="grid grid-cols-2 gap-2">
+              {FIELD_TYPES.map((type) => (
+                <label key={type.value} className="flex min-h-10 items-center gap-2 rounded border border-border px-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={inputTypes.includes(type.value)}
+                    onChange={(event) => {
+                      const next = event.target.checked
+                        ? [...inputTypes, type.value]
+                        : inputTypes.filter((selected) => selected !== type.value);
+                      if (next.length) {
+                        setInputTypes(next);
+                        setFieldType(next[0]);
+                      }
+                    }}
+                  />
+                  {type.label}
+                </label>
+              ))}
+            </fieldset>
+            {!inputTypes.length && <p className="text-xs text-danger">Pilih minimal satu tipe input.</p>}
           </div>
 
-          {fieldType === 'pilihan' && (
+          {inputTypes.some((type) => ['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type)) && (
             <div className="space-y-1">
               <Label htmlFor="handover-option">Pilihan (satu per baris)</Label>
               <div className="space-y-2">
@@ -204,7 +212,7 @@ export function HandoverFieldEditor({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Batal
             </Button>
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving || inputTypes.length === 0}>
               {saving ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </DialogFooter>

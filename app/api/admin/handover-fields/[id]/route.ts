@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { handoverFieldTypeSchema } from '@/lib/shared';
+import { normalizeInputTypes } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { locateHandoverField } from '../../../../../lib/admin/resolve-config';
 import {
@@ -13,6 +14,7 @@ const toApiField = (f: {
   id: string;
   label: string;
   field_type: string;
+  input_types: string[];
   options: string[] | null;
   is_required: boolean;
   sort_order: number;
@@ -24,6 +26,7 @@ const toApiField = (f: {
   id: f.id,
   label: f.label,
   fieldType: f.field_type,
+  inputTypes: f.input_types,
   options: f.options,
   isRequired: f.is_required,
   sortOrder: f.sort_order,
@@ -85,6 +88,16 @@ withAuth(async (_req, ctx, _session) => {
 
   const updates: Record<string, unknown> = {};
   if (body['label'] !== undefined) updates['label'] = String(body['label']).trim();
+  const rawInputTypes = body['inputTypes'];
+  let nextInputTypes: string[] | undefined;
+  if (rawInputTypes !== undefined) {
+    if (!Array.isArray(rawInputTypes) || !rawInputTypes.length || !rawInputTypes.every((type) => handoverFieldTypeSchema.safeParse(type).success) || new Set(rawInputTypes).size !== rawInputTypes.length) {
+      return NextResponse.json({ error: 'Daftar tipe input tidak valid.' }, { status: 400 });
+    }
+    nextInputTypes = rawInputTypes as string[];
+    updates['input_types'] = nextInputTypes;
+    updates['field_type'] = nextInputTypes[0];
+  }
   if (body['fieldType'] ?? body['field_type']) {
     const parsed = handoverFieldTypeSchema.safeParse(body['fieldType'] ?? body['field_type']);
     if (!parsed.success) {
@@ -93,25 +106,33 @@ withAuth(async (_req, ctx, _session) => {
         { status: 400 }
       );
     }
+    if (!nextInputTypes) {
+      nextInputTypes = [parsed.data];
+      updates['input_types'] = nextInputTypes;
+    }
     updates['field_type'] = parsed.data;
   }
   if (body['options'] !== undefined) {
     const opts = body['options'];
     updates['options'] = Array.isArray(opts) ? opts.map(String) : null;
   }
-  if (body['isRequired'] ?? body['is_required']) {
+  if ((body['isRequired'] ?? body['is_required']) !== undefined) {
     updates['is_required'] = Boolean(body['isRequired'] ?? body['is_required']);
   }
-  if (body['sortOrder'] ?? body['sort_order']) {
+  if ((body['sortOrder'] ?? body['sort_order']) !== undefined) {
     updates['sort_order'] = Number(body['sortOrder'] ?? body['sort_order']) || 0;
   }
-  if (body['isActive'] ?? body['is_active']) {
+  if ((body['isActive'] ?? body['is_active']) !== undefined) {
     updates['is_active'] = Boolean(body['isActive'] ?? body['is_active']);
   }
 
-  const finalType = (updates['field_type'] as string) ?? undefined;
-  const finalOptions = (updates['options'] as string[] | null) ?? undefined;
-  if (finalType === 'pilihan' && finalOptions !== undefined && finalOptions.length === 0) {
+  const current = nextInputTypes || body['options'] !== undefined
+    ? (await listHandoverFields(loc.spreadsheetId, loc.shiftDefinitionId)).find((field) => field.id === id)
+    : undefined;
+  const effectiveTypes = nextInputTypes ?? normalizeInputTypes(current?.input_types, current?.field_type ?? '');
+  const needsOptions = effectiveTypes.some((type) => ['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type));
+  const finalOptions = updates['options'] as string[] | null | undefined ?? current?.options;
+  if (needsOptions && (!finalOptions || finalOptions.length === 0)) {
     return NextResponse.json(
       { error: 'Field bertipe pilihan wajib memiliki minimal satu opsi.' },
       { status: 400 }

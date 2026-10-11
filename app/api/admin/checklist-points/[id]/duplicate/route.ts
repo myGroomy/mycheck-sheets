@@ -27,6 +27,8 @@ withAuth(async (_req, ctx, _session) => {
         sopCategoryId: copy.sop_category_id,
         title: copy.title,
         inputType: copy.input_type,
+        inputTypes: copy.input_types,
+        options: copy.options,
         isRequired: copy.is_required,
         sortOrder: copy.sort_order,
         isActive: copy.is_active,

@@ -12,7 +12,7 @@
 
 ## 3. Global Layout
 - **App Shell** (Serwist service worker) caches the HTML head, base CSS, navigation and footer.
-- **Top Navigation** (`component.top‑nav`): fixed 64 px height, ink text on canvas background, hamburger menu below 768 px.
+- **Navigasi petugas** (`component.top‑nav`): fixed 64 px height, ink text on canvas background, menu ringkas pada layar kecil. **Navigasi admin** memakai sidebar berkelompok pada desktop dan bottom navigation + drawer pada HP; topbar admin tetap memuat identitas dan keluar.
 - **Footer** (`component.footer`): 5‑column link list, canvas background, body‑sm typography.
 - **Main container**: max‑width ≈ 1200 px, centred, horizontal padding 16 px on mobile, 32 px on tablet+, vertical padding 96 px between sections.
 
@@ -26,7 +26,7 @@
 | **Shift Detail** | `/shifts/[id]` | Petugas view of an opened shift – checklist, incident, handover. | Accordion per SOP category, checklist item row (`checkbox`, `text‑input`, `number‑input`, `photo‑upload`), incident chip, handover form, `button-primary` (Tutup Shift) |
 | **Incident List** | `/incidents` | List of open incidents for the branch. | Table with status chips, `button-outline` (Lihat Detail) |
 | **Report / Laporan** | `/reports/[id]` | Read‑only view of locked report, share token link. | PDF‑preview embed, `button-outline` (Bagikan WhatsApp), `button-primary` (Addendum) |
-| **Admin Console** | `/admin/*` | Admin utilities – users, branches, settings, audit log. | Data tables, `button-primary` (Reset PIN), `button-outline` (Non‑aktifkan) |
+| **Admin Console** | `/admin/*` | Kelola operasi shift, incident, laporan, konfigurasi, akun, dan sistem. | Sidebar desktop: Dashboard; Operasional; Laporan; Konfigurasi; Administrasi. Incident dan Kategori Incident memakai tab internal. HP: bottom navigation Dashboard/Operasi/Incident/Laporan/Lainnya dan drawer kelompok Konfigurasi/Administrasi. |
 | **Not‑Found / 404** | `*` | Graceful fallback. | Large illustration, `button-primary` (Kembali ke Home) |
 
 ## 5. Components
@@ -77,6 +77,8 @@
 | **Tablet (640‑1024 px)** | - Shift‑cards 2‑up grid. <br> - Feature‑cards 2‑up. <br> - Photo‑upload thumbnail grid 2‑col. |
 | **Desktop (≥1024 px)** | - Shift‑cards 3‑up. <br> - Feature‑cards 3‑up. <br> - Modal dialogs use `Dialog` component, larger width (600 px). |
 | **Wide (>1280 px)** | - Content max‑width 1200 px, side margins increase. |
+
+Khusus halaman admin: sidebar tampil pada desktop dan tidak menutupi konten; di HP sidebar diganti bottom navigation dengan empat tautan inti serta drawer untuk tautan lainnya. Beri ruang bawah pada konten admin agar bottom navigation tidak menutupi aksi.
 
 All interactive elements respect the **48 px minimum touch target** rule.  Typography scales per design system (display sizes shrink on smaller breakpoints).
 

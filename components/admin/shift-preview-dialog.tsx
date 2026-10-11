@@ -19,11 +19,16 @@ interface ShiftPreviewDialogProps {
 }
 
 const INPUT_TYPE_LABEL: Record<string, string> = {
-  centang: 'Centang',
+  centang: 'Centang checklist',
   foto: 'Foto',
-  teks: 'Teks',
+  teks: 'Jawaban singkat',
   angka: 'Angka',
   ok_tidak_ok: 'OK / Tidak OK',
+  paragraf: 'Paragraf',
+  pilihan_ganda: 'Pilihan ganda',
+  kotak_centang: 'Pilihan jamak',
+  dropdown: 'Dropdown',
+  tanggal_waktu: 'Tanggal dan waktu',
 };
 
 const FIELD_TYPE_LABEL: Record<string, string> = {
@@ -31,6 +36,12 @@ const FIELD_TYPE_LABEL: Record<string, string> = {
   angka: 'Angka',
   pilihan: 'Pilihan',
   ya_tidak: 'Ya / Tidak',
+  pilihan_ganda: 'Pilihan ganda',
+  kotak_centang: 'Pilihan jamak',
+  dropdown: 'Dropdown',
+  paragraf: 'Paragraf',
+  tanggal_waktu: 'Tanggal dan waktu',
+  foto: 'Foto',
 };
 
 /**
@@ -111,7 +122,10 @@ export function ShiftPreviewDialog({ open, onOpenChange, shiftId }: ShiftPreview
                             <p className="text-xs text-ink-muted">{p.instruction}</p>
                           )}
                           <p className="text-xs text-ink-muted">
-                            {INPUT_TYPE_LABEL[p.inputType] ?? p.inputType}
+                            {(p.inputTypes?.length ? p.inputTypes : [p.inputType])
+                              .map((type) => INPUT_TYPE_LABEL[type] ?? type)
+                              .join(' + ')}
+                            {p.options?.length ? ` · ${p.options.join(', ')}` : ''}
                             {p.targetTime ? ` · target ${p.targetTime}` : ''}
                             {p.toleranceMinutes !== null
                               ? ` · toleransi ${p.toleranceMinutes} menit`
@@ -136,7 +150,9 @@ export function ShiftPreviewDialog({ open, onOpenChange, shiftId }: ShiftPreview
                       <span>{f.label}</span>
                       {f.isRequired && <span className="text-danger">*</span>}
                       <Badge variant="secondary">
-                        {FIELD_TYPE_LABEL[f.fieldType] ?? f.fieldType}
+                        {(f.inputTypes?.length ? f.inputTypes : [f.fieldType])
+                          .map((type) => FIELD_TYPE_LABEL[type] ?? type)
+                          .join(' + ')}
                       </Badge>
                     </li>
                   ))}

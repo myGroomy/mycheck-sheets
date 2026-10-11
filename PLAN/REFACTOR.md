@@ -765,12 +765,12 @@ Akibatnya 791 error TypeScript dan 9 halaman + 2 komponen gagal render karena
 - [x] `.env.example` ditulis ulang (masih mendokumentasikan Supabase/PIN)
 
 **Dokumentasi:**
-- [x] `AGENTS.md` §4 Stack, §5 Aturan Data, §12 Perintah ditulis ulang;
+- [x] `AGENTS.md` S4 Stack, S5 Aturan Data, S12 Perintah ditulis ulang;
       BR-01/05/12/43 dan aturan foto disesuaikan ke Sheets
 - [x] `DATABASE_SCHEMA.md` ditulis ulang (890 baris skema PostgreSQL → skema Sheets)
 - [x] `TRD.md` diberi banner v3 + tabel keputusan v2 vs v3, 8 bagian usang dipatch
-- [x] `TESTING.md` §9 Data Layer ditulis ulang untuk guard Sheets
-- [x] `IMPLEMENTATION_PLAN.md` diberi banner "SUDAH SELESAI" → arahkan ke REFACTOR.md
+- [x] `TESTING.md` S9 Data Layer ditulis ulang untuk guard Sheets
+- [x] `PLAN/IMPLEMENTATION_PLAN.md` diberi banner "SUDAH SELESAI" → arahkan ke `PLAN/REFACTOR.md`
 - [x] `PRD.md`, `UI-UX.md`, `APP_FLOW.md` **tidak diubah** (dokumen produk, masih valid)
 
 **Verifikasi akhir:**

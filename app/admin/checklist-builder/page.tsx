@@ -52,11 +52,16 @@ import {
 } from '@/lib/admin/api';
 
 const INPUT_TYPE_LABEL: Record<string, string> = {
-  centang: 'Centang',
+  centang: 'Centang checklist',
   foto: 'Foto',
-  teks: 'Teks',
+  teks: 'Jawaban singkat',
   angka: 'Angka',
   ok_tidak_ok: 'OK / Tidak OK',
+  paragraf: 'Paragraf',
+  pilihan_ganda: 'Pilihan ganda',
+  kotak_centang: 'Pilihan jamak',
+  dropdown: 'Dropdown',
+  tanggal_waktu: 'Tanggal dan waktu',
 };
 
 interface CategoryFormValues {
@@ -142,7 +147,7 @@ export default function ChecklistBuilderPage() {
         prev && withPoints.some((c) => c.id === prev) ? prev : (withPoints[0]?.id ?? null)
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Gagal memuat kategori SOP');
+      toast.error(err instanceof Error ? err.message : 'Gagal memuat section SOP');
     } finally {
       setLoading(false);
     }
@@ -159,15 +164,15 @@ export default function ChecklistBuilderPage() {
     try {
       if (editingCategory) {
         await updateCategory(editingCategory.id, values);
-        toast.success('Kategori SOP diperbarui');
+        toast.success('Section diperbarui');
       } else {
         await createCategory(shiftId, values);
-        toast.success('Kategori SOP ditambahkan');
+        toast.success('Section ditambahkan');
       }
       setCategoryOpen(false);
       await loadTree(shiftId);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal menyimpan kategori SOP';
+      const message = err instanceof Error ? err.message : 'Gagal menyimpan section SOP';
       setCategoryError(message);
       toast.error(message);
     } finally {
@@ -186,7 +191,7 @@ export default function ChecklistBuilderPage() {
       }
       await loadTree(shiftId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Gagal mengubah status kategori');
+      toast.error(err instanceof Error ? err.message : 'Gagal mengubah status section');
     }
   };
 
@@ -220,7 +225,7 @@ export default function ChecklistBuilderPage() {
       setPointOpen(false);
       await loadTree(shiftId);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal menyimpan item checklist';
+      const message = err instanceof Error ? err.message : 'Gagal menyimpan pertanyaan';
       setPointError(message);
       toast.error(message);
     } finally {
@@ -235,7 +240,7 @@ export default function ChecklistBuilderPage() {
       toast.success(`Kategori "${cat.name}" diduplikasi beserta itemnya`);
       await loadTree(shiftId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Gagal menduplikasi kategori');
+      toast.error(err instanceof Error ? err.message : 'Gagal menduplikasi section');
     } finally {
       setBusyId(null);
     }
@@ -268,10 +273,10 @@ export default function ChecklistBuilderPage() {
     try {
       await updateCategory(a.id, { sortOrder: b.sortOrder ?? 0 });
       await updateCategory(b.id, { sortOrder: a.sortOrder ?? 0 });
-      toast.success('Urutan kategori diperbarui');
+      toast.success('Urutan section diperbarui');
     } catch (err) {
       setCategories(prev);
-      toast.error(err instanceof Error ? err.message : 'Gagal mengubah urutan kategori');
+      toast.error(err instanceof Error ? err.message : 'Gagal mengubah urutan section');
     }
   };
 
@@ -349,35 +354,26 @@ export default function ChecklistBuilderPage() {
     }
   };
 
-  const changeInputType = async (newType: string) => {
-    if (!selectedPoint) return;
-    setBusyId(selectedPoint.id);
-    try {
-      await updatePoint(selectedPoint.id, { inputType: newType as ChecklistPoint['inputType'] });
-      toast.success('Tipe input diubah');
-      await loadTree(shiftId);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Gagal mengubah tipe input');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const selectedPoint = categories
     .flatMap((c) => c.points)
     .find((p) => p.id === selectedPointId) ?? null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 pb-24 sm:px-6 sm:py-7 md:pb-10 lg:px-8 xl:px-10">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5 sm:items-end">
         <div>
-          <h1 className="text-xl font-bold">Checklist Builder</h1>
-          <p className="text-xs text-ink-muted">
-            Susun kategori SOP dan item checklist per definisi shift. Seret baris untuk
-            mengubah urutan.
+          <h1 className="text-2xl font-bold tracking-tight">Form Builder SOP</h1>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
+            Susun section dan pertanyaan SOP per shift. Tambahkan sebanyak mungkin pertanyaan
+            dalam setiap section.
           </p>
         </div>
-        <Button variant="outline" disabled={!shiftId} onClick={() => setPreviewOpen(true)}>
+        <Button
+          variant="outline"
+          className="min-h-12 px-5"
+          disabled={!shiftId}
+          onClick={() => setPreviewOpen(true)}
+        >
           <ExternalLink className="h-4 w-4" />
           Pratinjau
         </Button>
@@ -385,15 +381,18 @@ export default function ChecklistBuilderPage() {
 
       <TemplateNotice />
 
-      <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)_320px_280px]">
-        <section className="space-y-2" aria-label="Pilih cabang dan shift">
-          <h2 className="text-sm font-semibold">1. Cabang &amp; Shift</h2>
-          <div className="space-y-1">
-            <label htmlFor="cb-branch" className="text-xs font-medium text-ink-muted">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,2fr)] xl:gap-5">
+        <section
+          className="space-y-4 rounded-lg border border-border bg-surface p-4"
+          aria-label="Pilih cabang dan shift"
+        >
+          <h2 className="text-sm font-semibold">Cabang dan shift</h2>
+          <div className="space-y-2">
+            <label htmlFor="cb-branch" className="text-sm font-medium text-ink-muted">
               Cabang
             </label>
             <Select value={branchId} onValueChange={setBranchId}>
-              <SelectTrigger id="cb-branch">
+              <SelectTrigger id="cb-branch" className="min-h-12">
                 <SelectValue placeholder="Pilih cabang" />
               </SelectTrigger>
               <SelectContent>
@@ -405,12 +404,12 @@ export default function ChecklistBuilderPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <label htmlFor="cb-shift" className="text-xs font-medium text-ink-muted">
+          <div className="space-y-2">
+            <label htmlFor="cb-shift" className="text-sm font-medium text-ink-muted">
               Shift
             </label>
             <Select value={shiftId} onValueChange={setShiftId}>
-              <SelectTrigger id="cb-shift">
+              <SelectTrigger id="cb-shift" className="min-h-12">
                 <SelectValue placeholder="Pilih shift" />
               </SelectTrigger>
               <SelectContent>
@@ -422,16 +421,18 @@ export default function ChecklistBuilderPage() {
               </SelectContent>
             </Select>
           </div>
-          <p className="text-xs text-ink-muted">
+          <p className="text-sm leading-6 text-ink-muted">
             Definisi shift dibuat di halaman <span className="font-medium">Shift</span>.
           </p>
         </section>
 
-        <section className="space-y-2" aria-label="Kategori dan item checklist">
-          <h2 className="text-sm font-semibold sm:hidden">2. Kategori &amp; Item</h2>
+        <section
+          className="min-w-0 space-y-3 rounded-lg border border-border bg-surface p-4 xl:col-start-2 xl:row-span-2"
+          aria-label="Form builder section dan pertanyaan"
+        >
           {!shiftId && (
-            <p className="rounded-lg border border-dashed border-border p-3 text-sm text-ink-muted">
-              Pilih shift untuk melihat kategori SOP
+            <p className="rounded-lg border border-dashed border-border p-4 text-sm text-ink-muted">
+              Pilih shift untuk mulai menyusun formulir SOP
             </p>
           )}
           {shiftId && loading && <p className="text-sm text-ink-muted">Memuat...</p>}
@@ -480,15 +481,18 @@ export default function ChecklistBuilderPage() {
           )}
         </section>
 
-        <section className="space-y-2" aria-label="Detail item checklist">
-          <h2 className="text-sm font-semibold sm:hidden">3. Detail Item</h2>
+        <section
+          className="hidden"
+          aria-label="Detail pertanyaan checklist"
+        >
+          <h2 className="text-sm font-semibold">Detail Item</h2>
           {!selectedPoint && (
-            <p className="rounded-lg border border-dashed border-border p-3 text-sm text-ink-muted">
+            <p className="rounded-lg border border-dashed border-border p-4 text-sm text-ink-muted">
               Pilih item pada pohon untuk melihat detailnya
             </p>
           )}
           {selectedPoint && (
-            <div className="space-y-3 rounded-lg border border-border bg-surface p-3">
+            <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   {editingTitle ? (
@@ -523,25 +527,11 @@ export default function ChecklistBuilderPage() {
                       <Pencil className="h-3 w-3 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" />
                     </button>
                   )}
-                  <div className="mt-1">
-                    <Select
-                      value={selectedPoint.inputType}
-                      onValueChange={(v) => void changeInputType(v)}
-                    >
-                      <SelectTrigger className="h-7 text-xs">
-                        <SelectValue>
-                          {INPUT_TYPE_LABEL[selectedPoint.inputType] ?? selectedPoint.inputType}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(INPUT_TYPE_LABEL).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <p className="mt-1 text-sm text-ink-muted">
+                    {(selectedPoint.inputTypes?.length ? selectedPoint.inputTypes : [selectedPoint.inputType])
+                      .map((type) => INPUT_TYPE_LABEL[type] ?? type)
+                      .join(' + ')}
+                  </p>
                 </div>
                 <Badge variant={selectedPoint.isActive ? 'default' : 'secondary'}>
                   {selectedPoint.isActive ? 'Aktif' : 'Nonaktif'}
@@ -608,57 +598,13 @@ export default function ChecklistBuilderPage() {
           )}
         </section>
 
-        <section className="space-y-2" aria-label="Pratinjau langsung">
-          <h2 className="text-sm font-semibold">4. Pratinjau</h2>
-          <div className="rounded-lg border border-border bg-surface p-3">
-            {!shiftId ? (
-              <p className="text-sm text-ink-muted">Pilih shift untuk melihat pratinjau</p>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-ink-muted">
-                  Template seperti dilihat petugas:
-                </p>
-                {categories.length === 0 ? (
-                  <p className="text-sm text-ink-muted">Belum ada konten</p>
-                ) : (
-                  <div className="space-y-2">
-                    {categories
-                      .filter((c) => c.isActive)
-                      .map((cat) => (
-                        <div key={cat.id} className="space-y-1">
-                          <p className="text-xs font-semibold text-primary">{cat.name}</p>
-                          <ul className="space-y-0.5">
-                            {cat.points
-                              .filter((p) => p.isActive)
-                              .map((point) => (
-                                <li key={point.id} className="text-xs text-ink-muted">
-                                  <span className="mr-1">
-                                    {point.inputType === 'centang' && '☐'}
-                                    {point.inputType === 'foto' && '📷'}
-                                    {point.inputType === 'teks' && '📝'}
-                                    {point.inputType === 'angka' && '🔢'}
-                                    {point.inputType === 'ok_tidak_ok' && '✓/✗'}
-                                  </span>
-                                  {point.title}
-                                  {point.isRequired && <span className="text-danger"> *</span>}
-                                </li>
-                              ))}
-                          </ul>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </section>
       </div>
 
       <Dialog open={categoryOpen} onOpenChange={setCategoryOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingCategory ? 'Ubah kategori SOP' : 'Tambah kategori SOP'}
+              {editingCategory ? 'Ubah section' : 'Tambah section'}
             </DialogTitle>
           </DialogHeader>
           <form
@@ -674,7 +620,7 @@ export default function ChecklistBuilderPage() {
             className="space-y-3"
           >
             <div className="space-y-1">
-              <Label htmlFor="cb-category-name">Nama kategori</Label>
+              <Label htmlFor="cb-category-name">Nama section</Label>
               <Input
                 id="cb-category-name"
                 value={categoryName}

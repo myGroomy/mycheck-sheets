@@ -5,6 +5,7 @@
 
 import {
   readSheetData,
+  readSheetDataRaw,
   sheetToObjects,
   writeCells,
   appendRows,
@@ -50,7 +51,7 @@ const CABANG_HEADERS = [
   'Spreadsheet_ID',
   'Folder_Drive_ID',
   'Aktif',
-  // PRD ADM-BR-01 / PRD §10 menyebut "alamat singkat". Ditambahkan di akhir
+  // PRD ADM-BR-01 / PRD S10 menyebut "alamat singkat". Ditambahkan di akhir
   // supaya kolom lama tidak bergeser dan data existing tidak perlu dimigrasi.
   'Alamat',
 ];
@@ -123,6 +124,25 @@ export async function updateCabangCells(
     return { row: rowNumber, col, value };
   });
   await writeRegistryCells(registryId, CABANG_SHEET, cells);
+  resetRegistryCache();
+}
+
+export async function updateCabangFolderId(
+  cabangId: string,
+  folderId: string
+): Promise<void> {
+  const registryId = getRegistrySpreadsheetId();
+  const { headers, rows } = await readSheetDataRaw(registryId, CABANG_SHEET);
+  const branchColumn = headers.indexOf('Cabang_ID');
+  const folderColumn = headers.indexOf('Folder_Drive_ID');
+  if (branchColumn < 0 || folderColumn < 0) {
+    throw new Error('Kolom cabang atau folder tidak ditemukan di Registry');
+  }
+  const rowIndex = rows.findIndex((row) => asStr(row[branchColumn]) === cabangId);
+  if (rowIndex < 0) throw new Error('CABANG_TIDAK_DITEMUKAN: ' + cabangId);
+  await writeRegistryCells(registryId, CABANG_SHEET, [
+    { row: rowIndex + 2, col: folderColumn, value: folderId },
+  ]);
   resetRegistryCache();
 }
 

@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/lib/admin/api';
+import { IncidentSectionTabs } from '@/components/admin/incident-section-tabs';
 
 interface IncidentRow {
   id: string;
@@ -184,6 +185,7 @@ export default function IncidentAdminPage() {
           Daftar incident lintas cabang {openCount} masih open dari {filtered.length} tampil
         </p>
       </div>
+      <IncidentSectionTabs />
 
       {/* Filter (ADM-IN-01) */}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">

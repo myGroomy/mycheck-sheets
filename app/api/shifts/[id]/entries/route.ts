@@ -34,12 +34,14 @@ interface Validation {
 }
 
 const MAX_TEXT_LENGTH = 2000;
+const CHOICE_INPUT_TYPES = new Set(['pilihan_ganda', 'kotak_centang', 'dropdown']);
 
 function validateValue(
   inputType: string,
   raw: EntryBody['value'],
   min: number | null,
-  max: number | null
+  max: number | null,
+  options: string[] | null | undefined
 ): Validation | { error: string } {
   if (inputType === 'centang' || inputType === 'ok_tidak_ok') {
     if (typeof raw === 'boolean') return { value: raw ? 'true' : 'false', outOfRange: false };
@@ -50,7 +52,7 @@ function validateValue(
     return { error: 'Nilai harus true/false' };
   }
 
-  if (inputType === 'teks') {
+  if (inputType === 'teks' || inputType === 'paragraf') {
     if (typeof raw !== 'string' || raw.trim() === '') {
       return { error: 'Nilai teks wajib diisi' };
     }
@@ -75,6 +77,46 @@ function validateValue(
       return { error: 'Nilai foto harus berupa id foto' };
     }
     return { value: raw.trim(), outOfRange: false };
+  }
+
+  if (CHOICE_INPUT_TYPES.has(inputType)) {
+    if (!Array.isArray(options) || options.length === 0) {
+      return { error: 'Opsi jawaban pertanyaan tidak tersedia' };
+    }
+    if (inputType === 'kotak_centang') {
+      if (typeof raw !== 'string') return { error: 'Pilih minimal satu jawaban' };
+      let selected: unknown;
+      try {
+        selected = JSON.parse(raw);
+      } catch {
+        return { error: 'Jawaban pilihan tidak valid' };
+      }
+      if (
+        !Array.isArray(selected) ||
+        selected.length === 0 ||
+        selected.some((choice) => typeof choice !== 'string' || !options.includes(choice)) ||
+        new Set(selected).size !== selected.length
+      ) {
+        return { error: 'Jawaban harus berupa opsi yang tersedia' };
+      }
+      return { value: JSON.stringify(selected), outOfRange: false };
+    }
+    if (typeof raw !== 'string' || !options.includes(raw)) {
+      return { error: 'Pilih salah satu opsi yang tersedia' };
+    }
+    return { value: raw, outOfRange: false };
+  }
+
+  if (inputType === 'tanggal_waktu') {
+    if (
+      typeof raw !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(raw) ||
+      Number.isNaN(new Date(raw).getTime()) ||
+      new Date(raw).toISOString() !== raw
+    ) {
+      return { error: 'Tanggal dan waktu harus valid' };
+    }
+    return { value: raw, outOfRange: false };
   }
 
   return { error: `Tipe input tidak dikenal: ${inputType}` };
@@ -180,17 +222,78 @@ withAuth(async (_req, ctx, _session) => {
   let value: string | null = null;
   let outOfRange = false;
   if (action === 'selesai' || action === 'ubah_nilai') {
-    const validated = validateValue(
-      point.input_type,
-      body.value,
-      point.number_min,
-      point.number_max
-    );
-    if ('error' in validated) {
-      return NextResponse.json({ error: validated.error }, { status: 400 });
+    const inputTypes = Array.isArray(point.input_types) && point.input_types.length
+      ? point.input_types
+      : [point.input_type];
+    if (inputTypes.length > 1) {
+      let rawValues: unknown;
+      try {
+        rawValues = typeof body.value === 'string' ? JSON.parse(body.value) : body.value;
+      } catch {
+        return NextResponse.json({ error: 'Nilai kombinasi tidak valid.' }, { status: 400 });
+      }
+      if (!rawValues || typeof rawValues !== 'object' || Array.isArray(rawValues)) {
+        return NextResponse.json({ error: 'Nilai kombinasi tidak valid.' }, { status: 400 });
+      }
+      const values = rawValues as Record<string, unknown>;
+      if (Object.keys(values).length !== inputTypes.length || inputTypes.some((type) => !(type in values))) {
+        return NextResponse.json({ error: 'Semua komponen input wajib diisi.' }, { status: 400 });
+      }
+      const normalized: Record<string, unknown> = {};
+      const photoIds = new Set<string>();
+      for (const type of inputTypes) {
+        const raw = values[type];
+        if (type === 'foto') {
+          if (!Array.isArray(raw) || raw.length < 1 || raw.length > 5 || raw.some((id) => typeof id !== 'string')) {
+            return NextResponse.json({ error: 'Komponen foto wajib berisi 1 sampai 5 foto.' }, { status: 400 });
+          }
+          raw.forEach((id) => photoIds.add(id as string));
+          normalized[type] = raw;
+          continue;
+        }
+        const rawValue = type === 'kotak_centang' && Array.isArray(raw)
+          ? JSON.stringify(raw)
+          : raw as EntryBody['value'];
+        const checked = validateValue(type, rawValue, point.number_min, point.number_max, point.options);
+        if ('error' in checked) return NextResponse.json({ error: checked.error }, { status: 400 });
+        normalized[type] = type === 'kotak_centang'
+          ? JSON.parse(checked.value ?? '[]')
+          : checked.value;
+        outOfRange ||= checked.outOfRange;
+      }
+      const suppliedPhotos = values['foto'];
+      if (photoIds.size !== (Array.isArray(suppliedPhotos) ? suppliedPhotos.length : 0)) {
+        return NextResponse.json({ error: 'Daftar foto tidak valid.' }, { status: 400 });
+      }
+      if (photoIds.size) {
+        const storedPhotos = await listMonthlyRows(spreadsheetId, 'Photos', tabMonth);
+        const allowed = new Set(storedPhotos
+          .filter((photo) =>
+            String(photo['owner_type']) === 'entry' &&
+            String(photo['owner_id']) === pointRef &&
+            String(photo['shift_instance_id']) === shiftInstanceId &&
+            String(photo['status']) === 'uploaded'
+          )
+          .map((photo) => String(photo['id'])));
+        if ([...photoIds].some((id) => !allowed.has(id))) {
+          return NextResponse.json({ error: 'Foto tidak terhubung dengan pertanyaan ini.' }, { status: 400 });
+        }
+      }
+      value = JSON.stringify(normalized);
+    } else {
+      const validated = validateValue(
+        point.input_type,
+        body.value,
+        point.number_min,
+        point.number_max,
+        point.options
+      );
+      if ('error' in validated) {
+        return NextResponse.json({ error: validated.error }, { status: 400 });
+      }
+      value = validated.value;
+      outOfRange = validated.outOfRange;
     }
-    value = validated.value;
-    outOfRange = validated.outOfRange;
   }
 
   const now = getServerTime();

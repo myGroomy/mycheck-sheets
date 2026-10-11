@@ -79,6 +79,7 @@ export default async function PublicReportPage({
         participants: d.participants,
         handover: d.handover
           ? {
+              id: d.handover.id,
               values: d.handover.values,
               freeText: d.handover.free_text || null,
               submittedAt: new Date(d.handover.submitted_at),
@@ -96,6 +97,15 @@ export default async function PublicReportPage({
           note: a.note,
           authorName: a.authorName,
           createdAt: new Date(a.createdAt),
+        })),
+        photos: d.photos.map((photo) => ({
+          id: photo.id,
+          ownerType: photo.ownerType,
+          ownerId: photo.ownerId,
+          mime: photo.mime,
+          uploadedAt: photo.uploadedAt,
+          status: photo.status,
+          src: `/api/public/report/${encodeURIComponent(token)}/photos/${encodeURIComponent(photo.id)}`,
         })),
       }}
     />

@@ -5,8 +5,8 @@
 export const STATIC_SHEETS: Record<string, string[]> = {
   ShiftDefinitions: ['id', 'name', 'start_time', 'end_time', 'crosses_midnight', 'sort_order', 'is_active', 'created_at', 'updated_at', 'version'],
   SopCategories: ['id', 'shift_definition_id', 'name', 'sort_order', 'is_active', 'created_at', 'updated_at', 'version'],
-  ChecklistPoints: ['id', 'sop_category_id', 'title', 'instruction', 'input_type', 'is_required', 'target_time', 'tolerance_minutes', 'active_days', 'number_min', 'number_max', 'sort_order', 'is_active', 'created_at', 'updated_at', 'version'],
-  HandoverFields: ['id', 'shift_definition_id', 'label', 'field_type', 'options', 'is_required', 'sort_order', 'is_active', 'created_at', 'updated_at', 'version'],
+  ChecklistPoints: ['id', 'sop_category_id', 'title', 'instruction', 'input_type', 'input_types', 'options', 'is_required', 'target_time', 'tolerance_minutes', 'active_days', 'number_min', 'number_max', 'sort_order', 'is_active', 'created_at', 'updated_at', 'version'],
+  HandoverFields: ['id', 'shift_definition_id', 'label', 'field_type', 'input_types', 'options', 'is_required', 'sort_order', 'is_active', 'created_at', 'updated_at', 'version'],
   ShiftInstances: ['id', 'shift_definition_id', 'shift_date', 'tab_month', 'status', 'pj_user_id', 'opened_by', 'opened_at', 'opened_outside_hours', 'closed_at', 'closed_by', 'close_type', 'force_close_reason', 'is_incomplete', 'no_incident_confirmed', 'void_reason', 'void_by', 'void_at', 'is_test', 'snapshot_encoding', 'template_snapshot', 'snapshot_hash', 'created_at', 'updated_at', 'version'],
   Participants: ['id', 'shift_instance_id', 'user_id', 'first_action_at', 'first_action_type', 'created_at'],
   Reports: ['id', 'shift_instance_id', 'report_number', 'generated_by', 'generated_at', 'is_locked', 'summary_stats', 'content_hash', 'unlock_count', 'last_unlocked_at', 'last_unlocked_by', 'created_at', 'updated_at', 'version'],

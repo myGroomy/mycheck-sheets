@@ -30,6 +30,7 @@ interface ReportResponse {
     template_snapshot: Snapshot;
   };
   handover: {
+    id: string;
     values: unknown;
     freeText: string | null;
     submittedAt: string;
@@ -52,6 +53,14 @@ interface ReportResponse {
   }>;
   participants: Array<{ id: string; name: string; isPj: boolean; itemsDone: number }>;
   addenda: Array<{ id: string; note: string; authorName: string; createdAt: string }>;
+  photos: Array<{
+    id: string;
+    ownerType: string;
+    ownerId: string;
+    mime: string;
+    uploadedAt: string;
+    status: string;
+  }>;
 }
 
 export function ReportDetail({ reportId }: { reportId: string }) {
@@ -103,6 +112,10 @@ export function ReportDetail({ reportId }: { reportId: string }) {
           addenda: result.addenda.map((item) => ({
             ...item,
             createdAt: new Date(item.createdAt),
+          })),
+          photos: (result.photos ?? []).map((photo) => ({
+            ...photo,
+            src: `/api/photos/${encodeURIComponent(photo.id)}?reportId=${encodeURIComponent(reportId)}`,
           })),
         });
       } catch (cause) {

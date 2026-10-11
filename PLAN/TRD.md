@@ -11,8 +11,8 @@ Acuan fungsional: `PRD.md`. Jika konflik, PRD.md berlaku untuk perilaku produk; 
 >
 > Acuan yang benar untuk arsitektur saat ini:
 > - Struktur data → `DATABASE_SCHEMA.md`
-> - Stack & aturan kerja → `AGENTS.md` §4–§5
-> - Alasan &Riwayat perubahan → `REFACTOR.md`
+> - Stack & aturan kerja → `AGENTS.md` S4–S5
+> - Alasan &Riwayat perubahan → `PLAN/REFACTOR.md`
 >
 > Ringkasan keputusan teknis v3:
 >
@@ -416,7 +416,7 @@ Semua endpoint cron dilindungi header `Authorization: Bearer {CRON_SECRET}`.
 ## 17. Keputusan Terbuka
 
 1. Apakah severity incident dipakai? (kolom opsional sudah ada di schema)
-2. Target metrik keberhasilan numerik final (PRD §12).
+2. Target metrik keberhasilan numerik final (PRD S12).
 3. Apakah web push diimplementasikan di Fase awal atau belakangan?
 
 ---

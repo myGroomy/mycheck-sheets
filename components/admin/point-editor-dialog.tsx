@@ -11,13 +11,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { ChecklistPoint, InputType } from '@/lib/admin/api';
 
@@ -25,6 +18,8 @@ export interface PointFormValues {
   title: string;
   instruction: string | null;
   inputType: InputType;
+  inputTypes: InputType[];
+  options: string[];
   isRequired: boolean;
   targetTime: string | null;
   toleranceMinutes: number | null;
@@ -58,17 +53,24 @@ const DAYS: { key: string; label: string }[] = [
 ];
 
 const INPUT_TYPES: { value: InputType; label: string }[] = [
-  { value: 'centang', label: 'Centang' },
+  { value: 'centang', label: 'Centang checklist' },
   { value: 'foto', label: 'Foto' },
-  { value: 'teks', label: 'Teks' },
+  { value: 'teks', label: 'Jawaban singkat' },
+  { value: 'paragraf', label: 'Paragraf' },
   { value: 'angka', label: 'Angka' },
   { value: 'ok_tidak_ok', label: 'OK / Tidak OK' },
+  { value: 'pilihan_ganda', label: 'Pilihan ganda' },
+  { value: 'kotak_centang', label: 'Kotak centang (pilihan jamak)' },
+  { value: 'dropdown', label: 'Dropdown' },
+  { value: 'tanggal_waktu', label: 'Tanggal dan waktu' },
 ];
 
 const EMPTY: PointFormValues = {
   title: '',
   instruction: null,
   inputType: 'centang',
+  inputTypes: ['centang'],
+  options: [],
   isRequired: true,
   targetTime: null,
   toleranceMinutes: null,
@@ -101,6 +103,8 @@ export function PointEditorDialog({
       title: point.title,
       instruction: point.instruction,
       inputType: point.inputType,
+      inputTypes: point.inputTypes?.length ? point.inputTypes : [point.inputType],
+      options: point.options ?? [],
       isRequired: point.isRequired,
       targetTime: point.targetTime,
       toleranceMinutes: point.toleranceMinutes,
@@ -130,28 +134,58 @@ export function PointEditorDialog({
     onSubmit({ ...values, title: values.title.trim() });
   };
 
-  const showNumber = values.inputType === 'angka';
+  const showNumber = values.inputTypes.includes('angka');
+  const showOptions = values.inputTypes.some((type) => ['pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type));
+  const hasDuplicateOptions = new Set(values.options).size !== values.options.length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {point ? 'Ubah item checklist' : 'Tambah item checklist'}
+            {point ? 'Ubah pertanyaan' : 'Tambah pertanyaan'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="point-title">Judul item</Label>
+            <Label htmlFor="point-title">Pertanyaan</Label>
             <Input
               id="point-title"
               value={values.title}
               onChange={(e) => set('title', e.target.value)}
-              placeholder="mis. Cek suhu kulkas"
+              placeholder="mis. Berapa suhu chiller saat ini?"
               required
               minLength={2}
             />
           </div>
+
+          {showOptions && (
+            <div className="space-y-1">
+              <Label htmlFor="point-options">Opsi jawaban</Label>
+              <Textarea
+                id="point-options"
+                value={values.options.join('\n')}
+                onChange={(event) =>
+                  set(
+                    'options',
+                    event.target.value
+                      .split('\n')
+                      .map((option) => option.trim())
+                      .filter(Boolean)
+                  )
+                }
+                rows={4}
+                placeholder={'Bersih\nPerlu dibersihkan\nTidak dapat digunakan'}
+              />
+              <p className="text-xs text-ink-muted">Satu opsi per baris. Minimal satu opsi jawaban.</p>
+              {values.options.length === 0 && (
+                <p className="text-xs text-danger">Tambahkan minimal satu opsi</p>
+              )}
+              {hasDuplicateOptions && (
+                <p className="text-xs text-danger">Opsi jawaban tidak boleh duplikat</p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-1">
             <Label htmlFor="point-instruction">Petunjuk (opsional)</Label>
@@ -166,24 +200,27 @@ export function PointEditorDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="point-type">Tipe input</Label>
-              <Select
-                value={values.inputType}
-                onValueChange={(v) => set('inputType', v as InputType)}
-              >
-                <SelectTrigger id="point-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {INPUT_TYPES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Tipe input (pilih satu atau lebih)</legend>
+              <div className="grid grid-cols-2 gap-2">
+                {INPUT_TYPES.map((type) => (
+                  <label key={type.value} className="flex min-h-10 items-center gap-2 rounded border border-border px-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={values.inputTypes.includes(type.value)}
+                      onChange={(event) => {
+                        const next = event.target.checked
+                          ? [...values.inputTypes, type.value]
+                          : values.inputTypes.filter((selected) => selected !== type.value);
+                        if (next.length) setValues((current) => ({ ...current, inputTypes: next, inputType: next[0] }));
+                      }}
+                    />
+                    {type.label}
+                  </label>
+                ))}
+              </div>
+              {!values.inputTypes.length && <p className="text-xs text-danger">Pilih minimal satu tipe input.</p>}
+            </fieldset>
             <div className="space-y-1">
               <Label htmlFor="point-target">Target waktu (HH:mm)</Label>
               <Input
@@ -297,7 +334,15 @@ export function PointEditorDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Batal
             </Button>
-            <Button type="submit" disabled={saving || values.activeDays.length === 0}>
+            <Button
+              type="submit"
+              disabled={
+                saving ||
+                values.inputTypes.length === 0 ||
+                values.activeDays.length === 0 ||
+                (showOptions && (values.options.length === 0 || hasDuplicateOptions))
+              }
+            >
               {saving ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </DialogFooter>

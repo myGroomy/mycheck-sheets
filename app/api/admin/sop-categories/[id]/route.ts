@@ -47,6 +47,7 @@ withAuth(async (_req, ctx, _session) => {
       id: p.id,
       title: p.title,
       inputType: p.input_type,
+      inputTypes: p.input_types,
       isRequired: p.is_required,
       sortOrder: p.sort_order,
       isActive: p.is_active,

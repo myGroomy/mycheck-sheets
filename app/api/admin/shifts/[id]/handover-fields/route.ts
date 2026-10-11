@@ -11,6 +11,7 @@ const toApiField = (f: {
   id: string;
   label: string;
   field_type: string;
+  input_types: string[];
   options: string[] | null;
   is_required: boolean;
   sort_order: number;
@@ -22,6 +23,7 @@ const toApiField = (f: {
   id: f.id,
   label: f.label,
   fieldType: f.field_type,
+  inputTypes: f.input_types,
   options: f.options,
   isRequired: f.is_required,
   sortOrder: f.sort_order,
@@ -88,9 +90,16 @@ withAuth(async (_req, ctx, _session) => {
     );
   }
   const fieldType = fieldTypeParsed.data;
+  const rawInputTypes = body['inputTypes'];
+  const inputTypes = Array.isArray(rawInputTypes) ? rawInputTypes : [fieldType];
+  if (!inputTypes.length || new Set(inputTypes).size !== inputTypes.length || inputTypes.some((type) => !handoverFieldTypeSchema.safeParse(type).success)) {
+    return NextResponse.json({ error: 'Daftar tipe input tidak valid.' }, { status: 400 });
+  }
+  const primaryType = String(inputTypes[0]);
+  const choiceType = inputTypes.some((type) => ['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(String(type)));
 
   const rawOptions = (body['options'] ?? null) as string[] | null;
-  if (fieldType === 'pilihan' && (!rawOptions || rawOptions.length === 0)) {
+  if (choiceType && (!rawOptions || rawOptions.length === 0)) {
     return NextResponse.json(
       { error: 'Field bertipe pilihan wajib memiliki minimal satu opsi.' },
       { status: 400 }
@@ -105,7 +114,8 @@ withAuth(async (_req, ctx, _session) => {
   const created = await createHandoverField(loc.spreadsheetId, {
     shift_definition_id: shiftId,
     label,
-    field_type: fieldType,
+    field_type: primaryType,
+    input_types: inputTypes.map(String),
     options: rawOptions,
     is_required: Boolean(body['isRequired'] ?? body['is_required'] ?? true),
     sort_order: Number(body['sortOrder'] ?? body['sort_order'] ?? 0) || 0,

@@ -33,7 +33,7 @@ Acuan perilaku: `PRD.md`. Dokumen ini memetakan layar, modal, dan alur UI.
 - Bottom nav disembunyikan di layar kerja penuh (checklist aktif, form incident); diganti sticky action bar.
 - Safe-area iOS, target sentuh minimal 48px.
 
-**Admin:** desktop = sidebar 13 modul + topbar (pemilih cabang, mode pratinjau, avatar); HP = sidebar jadi Sheet geser, tabel jadi kartu.
+**Admin:** desktop = sidebar berkelompok + topbar (identitas admin, keluar); HP = bottom navigation (Dashboard, Operasi, Incident, Laporan, Lainnya) dan drawer kelompok Konfigurasi/Administrasi. Drawer, bottom navigation, dan halaman admin tetap memakai otorisasi admin yang sama. Tabel beralih menjadi kartu pada layar sempit.
 
 ## 3. Alur Utama Petugas
 
@@ -123,6 +123,8 @@ Akun: profil, cabang, ganti PIN, preferensi notifikasi, logout (semua perangkat)
 
 ## 6. Layar Admin
 
+Navigasi desktop diurutkan: Dashboard; **Operasional** (Operasi Shift, Incident); Laporan; **Konfigurasi** (Cabang, Shift, Checklist/SOP, Handover); **Administrasi** (Akun, Pengaturan, Audit Log). Dashboard berdiri sendiri. Di HP, Dashboard, Operasi, Incident, dan Laporan menjadi empat tujuan langsung bottom navigation; Lainnya membuka drawer dengan kelompok Konfigurasi dan Administrasi. Kategori Incident adalah tab di area Incident, bukan tautan global tersendiri. Mode pratinjau tetap berupa aksi kontekstual di builder, bukan halaman navigasi.
+
 Pola: tabel + filter + tombol tambah; edit di Sheet samping (desktop) atau halaman penuh (HP).
 
 | Modul | Isi utama |
@@ -133,10 +135,9 @@ Pola: tabel + filter + tombol tambah; edit di Sheet samping (desktop) atau halam
 | Shift | Daftar per cabang, form jam (lewat tengah malam), salin |
 | Checklist Builder | 3 panel: `Cabang > Shift` / pohon Kategori SOP + item (drag & drop) / editor item; duplikasi; pratinjau sebagai petugas. HP: navigasi bertingkat |
 | Handover Builder | Daftar field drag & drop + editor + pratinjau |
-| Kategori Incident | Tabel dengan edit inline |
 | Operasi Shift | Shift berjalan lintas cabang; menu: Tutup paksa, Ganti PJ, Buka atas nama, Void, Addendum, Buka kunci laporan |
-| Incident | Tabel + filter; ubah status, catatan admin, tautkan ke shift |
-| Laporan dan Statistik | Tab Daftar dan Statistik (KPI, grafik); ekspor PDF/CSV; kelola tautan publik |
+| Incident | Tab **Daftar Incident** (tabel + filter; ubah status, catatan admin, tautkan ke shift) dan **Kategori** (tabel dengan edit inline). Route kategori tetap dapat dibuka langsung. |
+| Laporan | Daftar laporan, detail, ekspor, dan kelola tautan publik. Statistik tetap kebutuhan produk pada ADM-RP-04; tab Statistik belum menjadi bagian dari navigasi yang diterapkan sampai metrik dan datanya tersedia. |
 | Pengaturan | Form berkelompok: waktu/toleransi, PIN/sesi, tautan publik, template WhatsApp (pratinjau variabel), incident, foto |
 | Audit Log | Read-only, filter pelaku/aksi/objek/tanggal, ekspansi sebelum/sesudah |
 | Mode pratinjau | Tombol topbar; banner permanen "Mode Pratinjau, data uji" |

@@ -15,6 +15,7 @@ import {
 } from '../store';
 import { deleteSheetRows } from '../google/registry';
 import { asBool, asNum, asStr } from '../store';
+import { normalizeInputTypes } from '../shared';
 
 export interface ShiftDefinition {
   id: string;
@@ -46,6 +47,8 @@ export interface ChecklistPoint {
   title: string;
   instruction: string | null;
   input_type: string;
+  input_types: string[];
+  options: string[] | null;
   is_required: boolean;
   target_time: string | null;
   tolerance_minutes: number | null;
@@ -64,6 +67,7 @@ export interface HandoverField {
   shift_definition_id: string;
   label: string;
   field_type: string;
+  input_types: string[];
   options: string[] | null;
   is_required: boolean;
   sort_order: number;
@@ -212,6 +216,7 @@ export async function duplicateShiftDefinition(
       shift_definition_id: copy.id,
       label: f.label,
       field_type: f.field_type,
+      input_types: f.input_types,
       options: f.options,
       is_required: f.is_required,
       sort_order: f.sort_order,
@@ -340,6 +345,8 @@ export async function listChecklistPoints(
       title: asStr(r['title']),
       instruction: asStr(r['instruction']) || null,
       input_type: asStr(r['input_type']),
+      input_types: normalizeInputTypes(r['input_types'], asStr(r['input_type'])),
+      options: parseOptions(r['options']),
       is_required: asBool(r['is_required']),
       target_time: asStr(r['target_time']) || null,
       tolerance_minutes: asNum(r['tolerance_minutes']),
@@ -403,6 +410,8 @@ export async function duplicateChecklistPoint(
     title: `${asStr(source['title'])} (copy)`,
     instruction: asStr(source['instruction']) || null,
     input_type: asStr(source['input_type']),
+    input_types: normalizeInputTypes(source['input_types'], asStr(source['input_type'])),
+    options: parseOptions(source['options']),
     is_required: asBool(source['is_required']),
     target_time: asStr(source['target_time']) || null,
     tolerance_minutes: asNum(source['tolerance_minutes']),
@@ -507,6 +516,7 @@ export async function listHandoverFields(
       shift_definition_id: asStr(r['shift_definition_id']),
       label: asStr(r['label']),
       field_type: asStr(r['field_type']),
+      input_types: normalizeInputTypes(r['input_types'], asStr(r['field_type'])),
       options: parseOptions(r['options']),
       is_required: asBool(r['is_required']),
       sort_order: asNum(r['sort_order']) ?? 0,
@@ -524,6 +534,7 @@ export async function createHandoverField(
     shift_definition_id: string;
     label: string;
     field_type: string;
+    input_types?: string[] | null;
     options?: string[] | null;
     is_required?: boolean;
     sort_order?: number;
@@ -535,6 +546,7 @@ export async function createHandoverField(
     shift_definition_id: input.shift_definition_id,
     label: input.label,
     field_type: input.field_type,
+    input_types: input.input_types?.length ? input.input_types : [input.field_type],
     options: input.options && input.options.length > 0 ? input.options : null,
     is_required: input.is_required ?? false,
     sort_order: input.sort_order ?? 0,
@@ -544,7 +556,11 @@ export async function createHandoverField(
     version: 1,
   };
   await insertRow(spreadsheetId, 'HandoverFields', row);
-  return { ...row, options: input.options ?? null } as HandoverField;
+  return {
+    ...row,
+    input_types: input.input_types?.length ? input.input_types : [input.field_type],
+    options: input.options ?? null,
+  } as HandoverField;
 }
 
 export async function updateHandoverField(
@@ -580,4 +596,3 @@ export async function templateChildCounts(
     handover_fields: await childCount(spreadsheetId, 'HandoverFields', shiftDefinitionId),
   };
 }
-

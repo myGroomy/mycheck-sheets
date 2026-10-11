@@ -74,7 +74,13 @@ withAuth(async (_req, ctx, _session) => {
   // Build snapshot from template
   let snapshot: {
     categories?: Array<{ points?: Array<{ point_ref: string; is_required?: boolean }> }>;
-    handover_fields?: Array<{ id: string; is_required?: boolean }>;
+    handover_fields?: Array<{
+      id: string;
+      field_type: string;
+      input_types?: string[];
+      options?: string[] | null;
+      is_required?: boolean;
+    }>;
   };
   try {
     snapshot = JSON.parse(String(instance['template_snapshot'] ?? '{}'));
@@ -107,32 +113,94 @@ withAuth(async (_req, ctx, _session) => {
     );
   }
 
-  const requiredHandoverFields = (snapshot.handover_fields ?? []).filter((field) => field.is_required);
+  const handoverTab = await ensureMonthlySheet(spreadsheetId, 'Handovers', tabMonth);
+  const existingHandover = (await listMonthlyRows(spreadsheetId, 'Handovers', tabMonth)).find(
+    (r) => String(r['shift_instance_id']) === shiftInstanceId
+  ) ?? null;
+  const allHandoverFields = snapshot.handover_fields ?? [];
   const handoverValues = body.values ?? {};
-  const missingHandover = requiredHandoverFields.filter((field) => {
-    const val = handoverValues[field.id];
-    return val === undefined || val === null || String(val).trim() === '';
-  });
+  const configuredFieldIds = new Set(allHandoverFields.map((field) => field.id));
+  if (Object.keys(handoverValues).some((id) => !configuredFieldIds.has(id))) {
+    return NextResponse.json({ error: 'Field handover tidak sesuai dengan konfigurasi shift.' }, { status: 400 });
+  }
+  const missingHandover: string[] = [];
+  const invalidHandover: string[] = [];
+  const handoverPhotoIds: string[] = [];
+  for (const field of allHandoverFields) {
+    const types = field.input_types?.length ? field.input_types : [field.field_type];
+    const raw = handoverValues[field.id];
+    const values = types.length > 1 && raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? raw as Record<string, unknown>
+      : types.length === 1 ? { [types[0]]: raw } : {};
+    const complete: Record<string, unknown> = {};
+    for (const type of types) {
+      const value = values[type];
+      const empty = value === undefined || value === null ||
+        (typeof value === 'string' && value.trim() === '') ||
+        (Array.isArray(value) && value.length === 0);
+      if (empty) {
+        if (field.is_required) missingHandover.push(field.id);
+        continue;
+      }
+      let valid = true;
+      if (type === 'foto') {
+        valid = Array.isArray(value) && value.length <= 5 && value.every((id) => typeof id === 'string');
+        if (valid) handoverPhotoIds.push(...value as string[]);
+      } else if (type === 'angka') {
+        valid = Number.isFinite(Number(value));
+      } else if (['pilihan', 'pilihan_ganda', 'dropdown'].includes(type)) {
+        valid = typeof value === 'string' && (field.options ?? []).includes(value);
+      } else if (type === 'kotak_centang') {
+        valid = Array.isArray(value) && value.length > 0 &&
+          value.every((item) => typeof item === 'string' && (field.options ?? []).includes(item)) &&
+          new Set(value).size === value.length;
+      } else if (type === 'ya_tidak') {
+        valid = value === 'Ya' || value === 'Tidak' || value === 'ya' || value === 'tidak';
+      } else if (type === 'tanggal_waktu') {
+        valid = typeof value === 'string' && !Number.isNaN(new Date(value).getTime());
+      } else {
+        valid = typeof value === 'string' && value.trim().length <= 2000;
+      }
+      if (!valid) invalidHandover.push(field.id);
+      complete[type] = value;
+    }
+    if (types.length > 1) handoverValues[field.id] = complete;
+  }
 
-  if (missingHandover.length > 0) {
+  if (missingHandover.length > 0 || invalidHandover.length > 0) {
     return NextResponse.json(
-      { error: 'Field handover wajib belum diisi.', missing: missingHandover.map((field) => field.id) },
+      {
+        error: missingHandover.length ? 'Semua komponen handover wajib diisi.' : 'Nilai handover tidak sesuai dengan tipe input.',
+        missing: [...new Set(missingHandover)],
+        invalid: [...new Set(invalidHandover)],
+      },
       { status: 400 }
     );
+  }
+  if (handoverPhotoIds.length) {
+    if (!existingHandover) {
+      return NextResponse.json({ error: 'Foto handover belum terhubung dengan handover shift ini.' }, { status: 400 });
+    }
+    const storedPhotos = await listMonthlyRows(spreadsheetId, 'Photos', tabMonth);
+    const allowed = new Set(storedPhotos.filter((photo) =>
+      String(photo['owner_type']) === 'handover' &&
+      String(photo['owner_id']) === String(existingHandover['id']) &&
+      String(photo['shift_instance_id']) === shiftInstanceId &&
+      String(photo['status']) === 'uploaded'
+    ).map((photo) => String(photo['id'])));
+    if (handoverPhotoIds.some((id) => !allowed.has(id)) || new Set(handoverPhotoIds).size !== handoverPhotoIds.length) {
+      return NextResponse.json({ error: 'Foto handover tidak valid.' }, { status: 400 });
+    }
   }
 
   const now = getServerTime();
 
   // Upsert handover (tab bulanan Handovers_<YYYY-MM>)
-  const handoversTab = await ensureMonthlySheet(spreadsheetId, 'Handovers', tabMonth);
-  const existingHandover = await listMonthlyRows(spreadsheetId, 'Handovers', tabMonth).then((rows) =>
-    rows.filter((r) => String(r['shift_instance_id']) === shiftInstanceId)
-  );
   const handoverValuesJson = JSON.stringify(handoverValues);
-  if (existingHandover[0]) {
-    const handoverRow = await findRow(spreadsheetId, handoversTab, 'shift_instance_id', shiftInstanceId);
+  if (existingHandover) {
+    const handoverRow = await findRow(spreadsheetId, handoverTab, 'shift_instance_id', shiftInstanceId);
     if (handoverRow) {
-      await updateRow(spreadsheetId, handoversTab, handoverRow.rowNumber, {
+      await updateRow(spreadsheetId, handoverTab, handoverRow.rowNumber, {
         values: handoverValuesJson,
         free_text: body.free_text ?? '',
         submitted_by: ctx.user.id,
@@ -141,7 +209,7 @@ withAuth(async (_req, ctx, _session) => {
       });
     }
   } else {
-    await insertRow(spreadsheetId, handoversTab, {
+    await insertRow(spreadsheetId, handoverTab, {
       id: ulid(),
       shift_instance_id: shiftInstanceId,
       values: handoverValuesJson,

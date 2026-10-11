@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { inputTypeSchema } from '@/lib/shared';
+import { normalizeInputTypes } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { locateChecklistPoint } from '../../../../../lib/admin/resolve-config';
 import {
@@ -13,6 +14,8 @@ const toApiPoint = (p: {
   title: string;
   instruction: string | null;
   input_type: string;
+  input_types: string[];
+  options: string[] | null;
   is_required: boolean;
   target_time: string | null;
   tolerance_minutes: number | null;
@@ -29,6 +32,8 @@ const toApiPoint = (p: {
   title: p.title,
   instruction: p.instruction,
   inputType: p.input_type,
+  inputTypes: p.input_types,
+  options: p.options,
   isRequired: p.is_required,
   targetTime: p.target_time,
   toleranceMinutes: p.tolerance_minutes,
@@ -94,41 +99,93 @@ withAuth(async (_req, ctx, _session) => {
   if (body['instruction'] !== undefined) {
     updates['instruction'] = body['instruction'] ? String(body['instruction']) : null;
   }
-  if (body['inputType'] ?? body['input_type']) {
-    const parsed = inputTypeSchema.safeParse(body['inputType'] ?? body['input_type']);
+  const inputType = body['inputType'] ?? body['input_type'];
+  const rawInputTypes = body['inputTypes'];
+  let nextInputTypes: string[] | undefined;
+  if (rawInputTypes !== undefined) {
+    if (!Array.isArray(rawInputTypes) || rawInputTypes.length === 0 || !rawInputTypes.every((type) => inputTypeSchema.safeParse(type).success) || new Set(rawInputTypes).size !== rawInputTypes.length) {
+      return NextResponse.json({ error: 'Daftar tipe input tidak valid.' }, { status: 400 });
+    }
+    nextInputTypes = rawInputTypes as string[];
+    updates['input_types'] = nextInputTypes;
+    updates['input_type'] = nextInputTypes[0];
+  }
+  if (inputType !== undefined) {
+    const parsed = inputTypeSchema.safeParse(inputType);
     if (!parsed.success) {
       return NextResponse.json(
         { error: 'inputType tidak valid', details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+    if (nextInputTypes === undefined) {
+      nextInputTypes = [parsed.data];
+      updates['input_types'] = nextInputTypes;
+    }
     updates['input_type'] = parsed.data;
   }
-  if (body['isRequired'] ?? body['is_required']) {
+  const current =
+    body['options'] !== undefined || inputType !== undefined || rawInputTypes !== undefined
+      ? (await listChecklistPoints(loc.spreadsheetId, loc.sopCategoryId)).find((point) => point.id === id)
+      : undefined;
+  const effectiveInputTypes = nextInputTypes ?? normalizeInputTypes(current?.input_types, current?.input_type ?? '');
+  const requiresOptions = effectiveInputTypes.some((type) => ['pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type));
+  if (body['options'] !== undefined) {
+    const rawOptions = body['options'];
+    if (
+      !Array.isArray(rawOptions) ||
+      !rawOptions.every((option: unknown) => typeof option === 'string')
+    ) {
+      return NextResponse.json({ error: 'options harus berupa daftar teks' }, { status: 400 });
+    }
+    const options = rawOptions.map((option: string) => option.trim()).filter(Boolean);
+    if (requiresOptions && options.length === 0) {
+      return NextResponse.json({ error: 'Tambahkan minimal satu opsi jawaban' }, { status: 400 });
+    }
+    if (new Set(options).size !== options.length) {
+      return NextResponse.json({ error: 'Opsi jawaban tidak boleh duplikat' }, { status: 400 });
+    }
+    updates['options'] = options.length ? options : null;
+  } else if (
+    updates['input_type'] !== undefined &&
+    !requiresOptions
+  ) {
+    updates['options'] = null;
+  } else if (
+    updates['input_type'] !== undefined &&
+    requiresOptions &&
+    (!current?.options || current.options.length === 0)
+  ) {
+    return NextResponse.json(
+      { error: 'Tambahkan opsi jawaban sebelum mengubah tipe menjadi pilihan' },
+      { status: 400 }
+    );
+  }
+  if ((body['isRequired'] ?? body['is_required']) !== undefined) {
     updates['is_required'] = Boolean(body['isRequired'] ?? body['is_required']);
   }
   if (body['targetTime'] !== undefined) {
     updates['target_time'] = body['targetTime'] ? String(body['targetTime']) : null;
   }
-  if (body['toleranceMinutes'] ?? body['tolerance_minutes']) {
+  if ((body['toleranceMinutes'] ?? body['tolerance_minutes']) !== undefined) {
     const v = Number(body['toleranceMinutes'] ?? body['tolerance_minutes']);
     updates['tolerance_minutes'] = Number.isFinite(v) ? v : null;
   }
   if (body['activeDays'] !== undefined) {
     updates['active_days'] = body['activeDays'] ? String(body['activeDays']) : null;
   }
-  if (body['numberMin'] ?? body['number_min']) {
+  if ((body['numberMin'] ?? body['number_min']) !== undefined) {
     const v = Number(body['numberMin'] ?? body['number_min']);
     updates['number_min'] = Number.isFinite(v) ? v : null;
   }
-  if (body['numberMax'] ?? body['number_max']) {
+  if ((body['numberMax'] ?? body['number_max']) !== undefined) {
     const v = Number(body['numberMax'] ?? body['number_max']);
     updates['number_max'] = Number.isFinite(v) ? v : null;
   }
-  if (body['sortOrder'] ?? body['sort_order']) {
+  if ((body['sortOrder'] ?? body['sort_order']) !== undefined) {
     updates['sort_order'] = Number(body['sortOrder'] ?? body['sort_order']) || 0;
   }
-  if (body['isActive'] ?? body['is_active']) {
+  if ((body['isActive'] ?? body['is_active']) !== undefined) {
     updates['is_active'] = Boolean(body['isActive'] ?? body['is_active']);
   }
 

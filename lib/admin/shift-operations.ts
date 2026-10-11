@@ -1,5 +1,5 @@
 // lib/admin/shift-operations.ts
-// Aksi admin terhadap shift instance yang sedang berjalan (PRD §7.8).
+// Aksi admin terhadap shift instance yang sedang berjalan (PRD S7.8).
 //
 // Empat aksi:
 //   - Tutup paksa (ADM-OP-02, BR-34) syarat BR-30 tidak diberlakukan,

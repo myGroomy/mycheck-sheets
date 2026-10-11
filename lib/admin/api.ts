@@ -89,7 +89,17 @@ export interface SopCategory {
   isActive: boolean;
 }
 
-export type InputType = 'centang' | 'foto' | 'teks' | 'angka' | 'ok_tidak_ok';
+export type InputType =
+  | 'centang'
+  | 'foto'
+  | 'teks'
+  | 'angka'
+  | 'ok_tidak_ok'
+  | 'paragraf'
+  | 'pilihan_ganda'
+  | 'kotak_centang'
+  | 'dropdown'
+  | 'tanggal_waktu';
 
 export interface ChecklistPoint {
   id: string;
@@ -97,6 +107,8 @@ export interface ChecklistPoint {
   title: string;
   instruction: string | null;
   inputType: InputType;
+  inputTypes: InputType[];
+  options: string[] | null;
   isRequired: boolean;
   targetTime: string | null;
   toleranceMinutes: number | null;
@@ -107,13 +119,14 @@ export interface ChecklistPoint {
   isActive: boolean;
 }
 
-export type HandoverFieldType = 'teks' | 'angka' | 'pilihan' | 'ya_tidak';
+export type HandoverFieldType = 'teks' | 'angka' | 'pilihan' | 'ya_tidak' | 'pilihan_ganda' | 'kotak_centang' | 'dropdown' | 'paragraf' | 'tanggal_waktu' | 'foto';
 
 export interface HandoverField {
   id: string;
   shiftDefinitionId: string;
   label: string;
   fieldType: HandoverFieldType;
+  inputTypes: HandoverFieldType[];
   options: string[] | null;
   isRequired: boolean;
   sortOrder: number;

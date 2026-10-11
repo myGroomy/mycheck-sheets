@@ -65,7 +65,7 @@ export interface ReportDetail {
     status: string;
     severity: string | null;
   }[];
-  photos: { id: string; fileRef: string; ownerType: string; ownerId: string; mime: string; uploadedAt: string }[];
+  photos: { id: string; fileRef: string; ownerType: string; ownerId: string; mime: string; uploadedAt: string; status: string }[];
   addenda: { id: string; note: string; authorId: string; authorName: string; createdAt: string }[];
 }
 
@@ -186,6 +186,7 @@ export async function buildReportDetail(
       ownerId: asStr(p['owner_id']),
       mime: asStr(p['mime']),
       uploadedAt: asStr(p['uploaded_at']),
+      status: asStr(p['status']),
     }));
 
   // Addenda

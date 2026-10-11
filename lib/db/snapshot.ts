@@ -8,6 +8,8 @@ interface SnapshotPoint {
   title: string;
   instruction: string | null;
   input_type: string;
+  input_types?: string[];
+  options?: string[] | null;
   is_required: boolean;
   target_time: string | null;
   tolerance_minutes: number | null;
@@ -29,7 +31,7 @@ export interface Snapshot {
   shift: { id: string; name: string; start_time: string; end_time: string; crosses_midnight: boolean };
   settings: { tolerance_default_minutes: number; timezone: string };
   categories: SnapshotCategory[];
-  handover_fields: { id: string; label: string; field_type: string; options: string[] | null; is_required: boolean; sort_order: number }[];
+  handover_fields: { id: string; label: string; field_type: string; input_types?: string[]; options: string[] | null; is_required: boolean; sort_order: number }[];
 }
 
 /**
@@ -87,6 +89,22 @@ export async function buildTemplateSnapshot(
           title: asStr(p['title']),
           instruction: p['instruction'] ? asStr(p['instruction']) : null,
           input_type: asStr(p['input_type']),
+          input_types: (() => {
+            try {
+              const parsed = JSON.parse(asStr(p['input_types']));
+              return Array.isArray(parsed) ? parsed.map(String) : [asStr(p['input_type'])];
+            } catch {
+              return [asStr(p['input_type'])];
+            }
+          })(),
+          options: (() => {
+            try {
+              const parsed = JSON.parse(asStr(p['options']));
+              return Array.isArray(parsed) ? parsed.map(String) : null;
+            } catch {
+              return null;
+            }
+          })(),
           is_required: asBool(p['is_required']),
           target_time: p['target_time'] ? asStr(p['target_time']) : null,
           tolerance_minutes: asNum(p['tolerance_minutes']),
@@ -100,6 +118,14 @@ export async function buildTemplateSnapshot(
       id: asStr(f['id']),
       label: asStr(f['label']),
       field_type: asStr(f['field_type']),
+      input_types: (() => {
+        try {
+          const parsed = JSON.parse(asStr(f['input_types']));
+          return Array.isArray(parsed) ? parsed.map(String) : [asStr(f['field_type'])];
+        } catch {
+          return [asStr(f['field_type'])];
+        }
+      })(),
       options: f['options'] ? (() => { try { const o = JSON.parse(asStr(f['options'])); return Array.isArray(o) ? o : null; } catch { return null; } })() : null,
       is_required: asBool(f['is_required']),
       sort_order: asNum(f['sort_order']) ?? 0,

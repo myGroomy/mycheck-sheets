@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { FileText, Link2, Loader2, RefreshCw, XCircle } from 'lucide-react';
+import { Download, FileText, Link2, Loader2, RefreshCw, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/admin/api';
 
@@ -18,6 +19,7 @@ interface ReportRow {
   shiftDate: string;
   shiftStatus: string;
   pjName: string | null;
+  tokens: ShareToken[];
 }
 
 interface BranchRow {
@@ -32,16 +34,20 @@ interface ShareToken {
   expired: boolean;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminReportsPage() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [branches, setBranches] = useState<BranchRow[]>([]);
   const [branchId, setBranchId] = useState('');
   const [date, setDate] = useState('');
+  const [pjName, setPjName] = useState('');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
-  const [activeTokens, setActiveTokens] = useState<Record<string, ShareToken[]>>({});
   const [newShareLinks, setNewShareLinks] = useState<Record<string, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadReports = useCallback(async () => {
     setLoading(true);
@@ -49,7 +55,14 @@ export default function AdminReportsPage() {
     try {
       const params = new URLSearchParams();
       if (branchId) params.set('branchId', branchId);
-      if (date) params.set('date', date);
+      if (date) {
+        const start = new Date(`${date}T00:00:00Z`);
+        const end = new Date(`${date}T23:59:59Z`);
+        params.set('days', '1');
+        params.set('dateFrom', start.toISOString());
+        params.set('dateTo', end.toISOString());
+      }
+      if (pjName.trim()) params.set('pjName', pjName.trim());
       const query = params.size ? `?${params.toString()}` : '';
       const [reportResult, branchResult] = await Promise.all([
         apiFetch<{ reports: ReportRow[] }>(`/api/admin/reports${query}`),
@@ -57,6 +70,7 @@ export default function AdminReportsPage() {
       ]);
       setReports(reportResult.reports);
       setBranches(branchResult.branches);
+      setCurrentPage(1);
     } catch (error) {
       setNotice({
         text: error instanceof Error ? error.message : 'Gagal memuat laporan.',
@@ -65,28 +79,19 @@ export default function AdminReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, [branchId, date]);
+  }, [branchId, date, pjName]);
 
   useEffect(() => {
     void loadReports();
   }, [loadReports]);
 
-  const loadTokens = async (reportId: string) => {
-    try {
-      const result = await apiFetch<{ tokens: ShareToken[] }>(
-        `/api/admin/reports/${reportId}/share`
-      );
-      setActiveTokens((current) => ({ ...current, [reportId]: result.tokens }));
-    } catch {
-      setNotice({ text: 'Gagal memuat status tautan berbagi.', error: true });
-    }
-  };
+  const totalPages = Math.ceil(reports.length / ITEMS_PER_PAGE);
+  const paginatedReports = reports.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
-  useEffect(() => {
-    for (const report of reports) void loadTokens(report.id);
-    // Tokens are refreshed when the visible report rows change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reports]);
+  // Tokens are now loaded inline with reports (no per-report API calls)
 
   const createShare = async (report: ReportRow) => {
     setBusyId(report.id);
@@ -104,7 +109,6 @@ export default function AdminReportsPage() {
       } catch {
         setNotice({ text: 'Tautan dibuat. Gunakan tombol salin tautan di bawah.', error: false });
       }
-      await loadTokens(report.id);
     } catch (error) {
       setNotice({
         text: error instanceof Error ? error.message : 'Gagal membuat tautan laporan.',
@@ -132,7 +136,6 @@ export default function AdminReportsPage() {
     try {
       await apiFetch(`/api/admin/reports/${reportId}/share/${tokenId}`, { method: 'DELETE' });
       setNotice({ text: 'Tautan laporan sudah dicabut.', error: false });
-      await loadTokens(reportId);
     } catch (error) {
       setNotice({
         text: error instanceof Error ? error.message : 'Gagal mencabut tautan laporan.',
@@ -153,6 +156,43 @@ export default function AdminReportsPage() {
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   };
 
+  const exportCsv = async (report: ReportRow) => {
+    setExportingId(report.id);
+    setNotice(null);
+    try {
+      const query = new URLSearchParams({ branchId: report.branchId });
+      const response = await fetch(
+        `/api/admin/reports/${encodeURIComponent(report.id)}/export?${query}`,
+        { headers: { 'X-Requested-With': 'fetch' } }
+      );
+      if (!response.ok) {
+        const result = (await response.json().catch(() => null)) as
+          | { error?: { message?: string } }
+          | null;
+        throw new Error(result?.error?.message || 'Gagal mengekspor laporan.');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      const filename = report.reportNumber.replace(/[^a-zA-Z0-9_-]/g, '_') || report.id;
+      anchor.href = url;
+      anchor.download = `laporan-${filename}.csv`;
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice({ text: 'Laporan berhasil diekspor ke CSV.', error: false });
+    } catch (error) {
+      setNotice({
+        text: error instanceof Error ? error.message : 'Gagal mengekspor laporan.',
+        error: true,
+      });
+    } finally {
+      setExportingId(null);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -167,7 +207,7 @@ export default function AdminReportsPage() {
         </Button>
       </header>
 
-      <section className="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-[1fr_1fr_auto]">
+      <section className="grid gap-3 rounded-xl border border-border bg-surface p-4 sm:grid-cols-[1fr_1fr_1fr_auto]">
         <label className="space-y-1 text-sm font-medium">
           Cabang
           <select
@@ -188,7 +228,17 @@ export default function AdminReportsPage() {
             className="min-h-11 w-full rounded-lg border border-border bg-canvas px-3 text-base"
           />
         </label>
-        <Button type="button" variant="outline" className="self-end" onClick={() => { setBranchId(''); setDate(''); }}>
+        <label className="space-y-1 text-sm font-medium">
+          Nama PJ
+          <input
+            type="text"
+            value={pjName}
+            onChange={(event) => setPjName(event.target.value)}
+            placeholder="Cari nama PJ..."
+            className="min-h-11 w-full rounded-lg border border-border bg-canvas px-3 text-base"
+          />
+        </label>
+        <Button type="button" variant="outline" className="self-end" onClick={() => { setBranchId(''); setDate(''); setPjName(''); }}>
           Hapus filter
         </Button>
       </section>
@@ -210,8 +260,8 @@ export default function AdminReportsPage() {
             <h2 className="mt-3 font-semibold">Belum ada laporan</h2>
             <p className="mt-1 text-sm text-ink-muted">Ubah filter atau periksa kembali setelah shift ditutup.</p>
           </div>
-        ) : reports.map((report) => {
-          const tokens = activeTokens[report.id] ?? [];
+        ) : paginatedReports.map((report) => {
+          const tokens = report.tokens ?? [];
           const usableToken = tokens.find((token) => !token.expired);
           return (
             <article key={report.id} className="rounded-xl border border-border bg-surface p-4 shadow-sm">
@@ -248,6 +298,22 @@ export default function AdminReportsPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Button asChild type="button" variant="outline">
+                    <Link href={`/report/${encodeURIComponent(report.id)}`}>
+                      <FileText className="mr-2 h-4 w-4" /> Lihat laporan
+                    </Link>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void exportCsv(report)}
+                    disabled={exportingId === report.id}
+                  >
+                    {exportingId === report.id
+                      ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      : <Download className="mr-2 h-4 w-4" />}
+                    Unduh CSV
+                  </Button>
                   <Button type="button" onClick={() => void createShare(report)} disabled={busyId === report.id}>
                     {busyId === report.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
                     {usableToken ? 'Buat tautan baru' : 'Bagikan laporan'}
@@ -271,6 +337,30 @@ export default function AdminReportsPage() {
           );
         })}
       </section>
+
+      {totalPages > 1 && (
+        <nav className="flex items-center justify-center gap-2" aria-label="Navigasi halaman">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          >
+            Sebelumnya
+          </Button>
+          <span className="text-sm text-ink-muted">
+            Halaman {currentPage} dari {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          >
+            Berikutnya
+          </Button>
+        </nav>
+      )}
     </div>
   );
 }

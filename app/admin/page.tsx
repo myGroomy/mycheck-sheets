@@ -12,7 +12,7 @@ export default async function AdminIndex() {
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
             Admin • {ctx.user.name}
           </p>
-          <h1 className="mt-1 text-2xl font-bold">Dasbor</h1>
+          <h1 className="mt-1 text-2xl font-bold">Dashboard</h1>
         </div>
       </div>
 

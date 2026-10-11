@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // ============================================
-// Enum Zod harus identik dengan DATABASE_SCHEMA.md §7
+// Enum Zod harus identik dengan DATABASE_SCHEMA.md S7
 // ============================================
 
 export const roleSchema = z.enum(['admin', 'petugas']);
@@ -10,7 +10,18 @@ export const shiftStatusSchema = z.enum(['berjalan', 'ditutup', 'ditutup_paksa',
 
 export const closeTypeSchema = z.enum(['normal', 'paksa']);
 
-export const inputTypeSchema = z.enum(['centang', 'foto', 'teks', 'angka', 'ok_tidak_ok']);
+export const inputTypeSchema = z.enum([
+  'centang',
+  'foto',
+  'teks',
+  'angka',
+  'ok_tidak_ok',
+  'paragraf',
+  'pilihan_ganda',
+  'kotak_centang',
+  'dropdown',
+  'tanggal_waktu',
+]);
 
 export const entryStateSchema = z.enum(['belum', 'selesai', 'skip']);
 
@@ -20,7 +31,36 @@ export const entryActionSchema = z.enum(['selesai', 'batal', 'skip', 'ubah_nilai
 
 export const outcomeSchema = z.enum(['diterima', 'ditolak_kalah']);
 
-export const handoverFieldTypeSchema = z.enum(['teks', 'angka', 'pilihan', 'ya_tidak']);
+export const handoverInputTypeSchema = z.enum([
+  'teks',
+  'angka',
+  'pilihan',
+  'ya_tidak',
+  'pilihan_ganda',
+  'kotak_centang',
+  'dropdown',
+  'paragraf',
+  'tanggal_waktu',
+  'foto',
+]);
+export const handoverFieldTypeSchema = handoverInputTypeSchema;
+
+export function normalizeInputTypes(value: unknown, fallback: string): string[] {
+  if (Array.isArray(value)) {
+    const types = value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+    return types.length ? [...new Set(types)] : [fallback];
+  }
+  if (typeof value === 'string' && value) {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed)) return normalizeInputTypes(parsed, fallback);
+    } catch {
+      return [value];
+    }
+    return [value];
+  }
+  return [fallback];
+}
 
 export const incidentStatusSchema = z.enum(['open', 'selesai']);
 
@@ -50,7 +90,7 @@ export type EntryState = z.infer<typeof entryStateSchema>;
 export type TimingLabel = z.infer<typeof timingLabelSchema>;
 export type EntryAction = z.infer<typeof entryActionSchema>;
 export type Outcome = z.infer<typeof outcomeSchema>;
-export type HandoverFieldType = z.infer<typeof handoverFieldTypeSchema>;
+export type HandoverFieldType = z.infer<typeof handoverInputTypeSchema>;
 export type IncidentStatus = z.infer<typeof incidentStatusSchema>;
 export type LinkSource = z.infer<typeof linkSourceSchema>;
 export type Severity = z.infer<typeof severitySchema>;
@@ -157,7 +197,12 @@ export const sopCategorySchema = z.object({
 export const checklistPointSchema = z.object({
   title: z.string().min(2, 'Judul checklist minimal 2 karakter'),
   instruction: z.string().optional().nullable(),
-  inputType: z.enum(['centang', 'foto', 'teks', 'angka', 'ok_tidak_ok']),
+  inputType: inputTypeSchema,
+  inputTypes: z.array(inputTypeSchema).min(1).optional().refine(
+    (types) => types === undefined || new Set(types).size === types.length,
+    'Tipe input tidak boleh duplikat'
+  ),
+  options: z.array(z.string().trim().min(1)).optional().nullable(),
   isRequired: z.boolean().optional(),
   targetTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Format waktu target harus HH:mm').optional().nullable(),
   toleranceMinutes: z.number().int().min(0).optional().nullable(),
@@ -170,7 +215,11 @@ export const checklistPointSchema = z.object({
 
 export const handoverFieldSchema = z.object({
   label: z.string().min(2, 'Label bidang serah terima minimal 2 karakter'),
-  fieldType: z.enum(['teks', 'angka', 'pilihan', 'ya_tidak']),
+  fieldType: handoverFieldTypeSchema,
+  inputTypes: z.array(handoverInputTypeSchema).min(1).optional().refine(
+    (types) => types === undefined || new Set(types).size === types.length,
+    'Tipe input tidak boleh duplikat'
+  ),
   options: z.array(z.string()).optional().nullable(),
   isRequired: z.boolean().optional(),
   sortOrder: z.number().int().optional(),

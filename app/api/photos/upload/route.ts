@@ -12,9 +12,14 @@ import {
 } from '../../../../lib/store';
 import { asStr } from '../../../../lib/store';
 import { getDriveClient } from '../../../../lib/google/client';
+import {
+  DrivePhotoFolderError,
+  ensureBranchPhotoFolder,
+} from '../../../../lib/google/drive-storage';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_INCIDENT_PHOTOS = 5;
+const MAX_ATTACHED_PHOTOS = 5;
 
 function extensionFor(mime: string): string | null {
   if (mime === 'image/webp') return 'webp';
@@ -166,11 +171,33 @@ withAuth(async (_req, ctx, _session) => {
         return NextResponse.json({ error: 'Handover tidak ditemukan.' }, { status: 404 });
       }
     }
+
+    if (ownerType === 'entry' || ownerType === 'handover') {
+      await ensureMonthlySheet(spreadsheetId, 'Photos', tabMonth);
+      const existing = await listMonthlyRows(spreadsheetId, 'Photos', tabMonth);
+      const count = existing.filter(
+        (photo) => asStr(photo['owner_type']) === ownerType && asStr(photo['owner_id']) === ownerId
+      ).length;
+      if (count >= MAX_ATTACHED_PHOTOS) {
+        return NextResponse.json({ error: `Maksimal ${MAX_ATTACHED_PHOTOS} foto untuk satu ${ownerType === 'entry' ? 'pertanyaan' : 'handover'}.` }, { status: 400 });
+      }
+    }
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const photoId = ulid();
-  const { folderId } = await resolveCabang(branchId);
+  let folderId: string;
+  try {
+    folderId = await ensureBranchPhotoFolder(branchId);
+  } catch (error) {
+    if (error instanceof DrivePhotoFolderError) {
+      return NextResponse.json(
+        { error: `${error.message}. Hubungi admin untuk memeriksa konfigurasi Drive.` },
+        { status: 503 }
+      );
+    }
+    throw error;
+  }
   const filename = `mycheck-${branchId}-${resolvedShiftId ?? 'general'}-${photoId}.${ext}`;
 
   const drive = getDriveClient();
@@ -182,12 +209,13 @@ withAuth(async (_req, ctx, _session) => {
   const res = await drive.files.create({
     requestBody: { name: filename, parents: [folderId] },
     media: { mimeType: file.type, body: bodyStream },
-    fields: 'id, webViewLink',
+    supportsAllDrives: true,
+    fields: 'id',
   });
-  const uploaded = {
-    id: String(res.data.id),
-    url: String(res.data.webViewLink ?? ''),
-  };
+  const uploadedId = String(res.data.id ?? '');
+  if (!uploadedId) {
+    return NextResponse.json({ error: 'Foto gagal disimpan di Google Drive.' }, { status: 502 });
+  }
 
   const photosTab = await ensureMonthlySheet(spreadsheetId, 'Photos', tabMonth);
   const photoRowId = ulid();
@@ -197,7 +225,7 @@ withAuth(async (_req, ctx, _session) => {
     owner_type: ownerType,
     owner_id: ownerId,
     storage: 'drive',
-    file_ref: uploaded.id,
+    file_ref: uploadedId,
     mime: file.type,
     size_bytes: buffer.length,
     sort_order: 0,
@@ -210,7 +238,5 @@ withAuth(async (_req, ctx, _session) => {
   return NextResponse.json({
     status: 'uploaded',
     photo_id: photoRowId,
-    file_ref: uploaded.id,
-    url: uploaded.url,
   });
 });

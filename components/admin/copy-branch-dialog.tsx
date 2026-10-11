@@ -34,7 +34,7 @@ interface CopyBranchDialogProps {
 
 /**
  * Salin seluruh template (shift, kategori SOP, checklist point, handover field)
- * dari cabang lain. Modul APP_FLOW §7: modal "Salin dari cabang lain (sumber, cakupan)".
+ * dari cabang lain. Modul APP_FLOW S7: modal "Salin dari cabang lain (sumber, cakupan)".
  */
 export function CopyBranchDialog({
   open,

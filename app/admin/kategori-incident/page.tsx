@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { apiFetch } from '@/lib/admin/api';
+import { IncidentSectionTabs } from '@/components/admin/incident-section-tabs';
 
 interface IncidentCategory {
   id: string;
@@ -108,6 +109,7 @@ export default function KategoriIncidentPage() {
           Kategori dipakai pada form incident petugas
         </p>
       </div>
+      <IncidentSectionTabs />
 
       <form
         onSubmit={addCategory}

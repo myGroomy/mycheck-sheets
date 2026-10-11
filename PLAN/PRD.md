@@ -179,23 +179,27 @@ flowchart TD
 
 ### 5.2 Navigasi admin
 
-Admin memakai menu admin tersendiri (sidebar di layar lebar, menu geser di HP) dan dapat beralih ke **mode pratinjau petugas**.
+Admin memakai navigasi admin tersendiri: sidebar berkelompok pada desktop; di HP, bottom navigation menampilkan Dashboard, Operasi, Incident, Laporan, dan Lainnya, dengan drawer untuk konfigurasi dan administrasi. Incident dan Kategori Incident berada dalam satu area dengan tab Daftar Incident dan Kategori; URL kategori tetap dapat dibuka langsung. Admin juga dapat beralih ke **mode pratinjau petugas** dari konteks builder.
 
 ```mermaid
 flowchart TD
     AD["ADMIN"] --> A1["Dashboard"]
-    AD --> A2["Cabang"]
-    AD --> A3["Akun"]
-    AD --> A4["Shift"]
-    AD --> A5["Checklist Builder"]
-    AD --> A6["Handover Builder"]
-    AD --> A7["Kategori Incident"]
-    AD --> A8["Operasi Shift"]
-    AD --> A9["Incident"]
-    AD --> A10["Laporan"]
-    AD --> A11["Pengaturan"]
-    AD --> A12["Audit Log"]
-    AD --> A13["Pratinjau sebagai petugas"]
+    AD --> OP["Operasional"]
+    OP --> OP1["Operasi Shift"]
+    OP --> OP2["Incident"]
+    OP2 --> OP21["Tab: Daftar Incident"]
+    OP2 --> OP22["Tab: Kategori"]
+    AD --> A2["Laporan"]
+    AD --> CFG["Konfigurasi"]
+    CFG --> CFG1["Cabang"]
+    CFG --> CFG2["Shift"]
+    CFG --> CFG3["Checklist / SOP"]
+    CFG --> CFG4["Handover"]
+    AD --> ADM["Administrasi"]
+    ADM --> A3["Akun"]
+    ADM --> A4["Pengaturan"]
+    ADM --> A5["Audit Log"]
+    CFG3 -. "aksi kontekstual" .-> PREVIEW["Pratinjau sebagai petugas"]
 ```
 
 ---
@@ -699,5 +703,4 @@ Hal yang sengaja belum ditetapkan di dokumen ini:
 | Pengaturan sistem                                         | Tidak                      | Ya                                     |
 | Lihat audit log                                           | Tidak                      | Ya                                     |
 | Statistik dan ekspor                                      | Tidak                      | Ya                                     |
-
 

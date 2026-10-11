@@ -104,6 +104,9 @@ Uji minimal: 320px, HP besar, tablet, desktop.
 - [ ] [Manual] Keypad numerik muncul untuk PIN
 - [ ] [Manual] Checklist Builder dapat dipakai di layar target admin
 - [ ] [Manual] Label input, fokus terlihat, navigasi keyboard di admin
+- [ ] [Manual] Sidebar desktop menampilkan kelompok/urutan Dashboard, Operasional, Laporan, Konfigurasi, Administrasi; setiap tautan membuka route yang benar.
+- [ ] [Manual] Bottom navigation admin di HP membuka Dashboard, Operasi, Incident, Laporan; drawer menampilkan Konfigurasi dan Administrasi tanpa menutupi aksi halaman.
+- [ ] [Manual] Tab Daftar Incident/Kategori menandai tab aktif dengan benar; kedua URL langsung tetap membuka tab yang sesuai.
 - [ ] [Manual] Status tidak hanya dengan warna (ada ikon + teks)
 - [ ] [Manual] Kontras terbaca di bawah cahaya terang
 
@@ -139,4 +142,4 @@ Jangan rilis bila:
 - Jalankan pengujian konkurensi dengan dua akun/perangkat nyata, bukan hanya satu tab.
 - Uji dengan dua cabang agar isolasi data terverifikasi.
 - Gunakan spreadsheet Registry + spreadsheet cabang **uji terpisah** dari produksi (salin template, jangan sentuh template master).
-- Setiap fase di IMPLEMENTATION_PLAN.md menjalankan bagian TESTING.md yang relevan sebelum lanjut.
+- Setiap fase di `PLAN/IMPLEMENTATION_PLAN.md` menjalankan bagian TESTING.md yang relevan sebelum lanjut.

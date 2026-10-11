@@ -12,6 +12,8 @@ interface ProgressEntry {
   title: string;
   instruction: string | null;
   input_type: string;
+  input_types?: string[];
+  options?: string[] | null;
   is_required: boolean;
   target_time: string | null;
   number_min: number | null;
@@ -92,6 +94,8 @@ withAuth(async (_req, ctx, _session) => {
           title: p.title,
           instruction: p.instruction,
           input_type: p.input_type,
+          input_types: p.input_types ?? [p.input_type],
+          options: p.options ?? null,
           is_required: p.is_required,
           target_time: p.target_time,
           number_min: p.number_min,

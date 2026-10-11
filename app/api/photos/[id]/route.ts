@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../lib/google/registry';
-import { getDriveClient } from '../../../../lib/google/client';
 import { listMonthlyRows, asStr } from '../../../../lib/store';
+import { buildReportDetail } from '../../../../lib/report-detail';
+import { drivePhotoResponse } from '../../../../lib/google/drive-photo-response';
+import { containsPhotoId } from '../../../../lib/shared/report-values';
 
 /**
  * Sajikan foto.
@@ -14,7 +16,37 @@ import { listMonthlyRows, asStr } from '../../../../lib/store';
 export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 withAuth(async (_req, ctx, _session) => {
-  const photoId = new URL(_req.url).pathname.split('/').slice(-2)[0];
+  const photoId = new URL(_req.url).pathname.split('/').at(-1) ?? '';
+  const reportId = new URL(_req.url).searchParams.get('reportId');
+
+  if (reportId) {
+    for (const branchId of ctx.branchIds) {
+      let spreadsheetId = '';
+      try {
+        spreadsheetId = (await resolveCabang(branchId)).spreadsheetId;
+      } catch {
+        continue;
+      }
+      const detail = await buildReportDetail(spreadsheetId, branchId, reportId);
+      if (!detail) continue;
+      const photo = detail.photos.find((item) => item.id === photoId && item.status === 'uploaded');
+      const pointRefs = new Set(
+        (detail.shift.template_snapshot?.categories ?? []).flatMap((category) =>
+          category.points.map((point) => point.point_ref)
+        )
+      );
+      const attached = photo?.ownerType === 'entry'
+        ? pointRefs.has(photo.ownerId) && detail.entries.some(
+            (entry) => entry.state === 'selesai' && containsPhotoId(entry.value, photoId)
+          )
+        : photo?.ownerType === 'handover'
+          ? detail.handover?.id === photo.ownerId && containsPhotoId(detail.handover.values, photoId)
+          : photo?.ownerType === 'incident' && detail.incidents.some((incident) => incident.id === photo.ownerId);
+      if (!photo || !attached) continue;
+      return drivePhotoResponse(photo.fileRef, photo.mime || 'image/jpeg');
+    }
+    return NextResponse.json({ error: 'Lampiran foto tidak ditemukan' }, { status: 404 });
+  }
 
   const cabangs = await getCabangList();
   let located: {
@@ -64,22 +96,5 @@ withAuth(async (_req, ctx, _session) => {
     return NextResponse.json({ error: 'File foto tidak tersimpan' }, { status: 404 });
   }
 
-  const drive = getDriveClient();
-  const res = await drive.files.get(
-    { fileId: located.fileRef, alt: 'media' },
-    { responseType: 'arraybuffer' }
-  );
-
-  const data = res.data as unknown as ArrayBuffer;
-  const bytes = Buffer.from(data);
-
-  return new NextResponse(new Uint8Array(bytes), {
-    status: 200,
-    headers: {
-      'Content-Type': located.mime,
-      'Content-Length': String(bytes.length),
-      'Cache-Control': 'private, max-age=3600',
-      Vary: 'Cookie',
-    },
-  });
+  return drivePhotoResponse(located.fileRef, located.mime);
 });

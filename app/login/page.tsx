@@ -2,15 +2,21 @@
 
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
-  const from = searchParams.get('from') || '/daftar-shift';
+  const requestedFrom = searchParams.get('from');
+  const from =
+    requestedFrom?.startsWith('/') &&
+    !requestedFrom.startsWith('//') &&
+    !requestedFrom.includes('\\') &&
+    requestedFrom !== '/login'
+      ? requestedFrom
+      : '/daftar-shift';
 
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
@@ -34,17 +40,22 @@ function LoginForm() {
     try {
       const result = await login(username.trim(), pin);
       if (!result.success) {
-        setError(result.error);
+        setError(result.error || 'Login gagal');
         setPin('');
+        setLoading(false);
         return;
       }
 
+      // Akun baru/reset harus mengganti PIN sebelum memakai aplikasi.
       if (result.mustChangePin) {
-        router.push(result.role === 'admin' ? '/admin' : '/daftar-shift');
+        window.location.assign('/ganti-pin');
       } else {
-        router.push(from);
+        // Muat ulang agar halaman server memverifikasi cookie sesi yang baru diterbitkan.
+        window.location.assign(from);
       }
-    } finally {
+      // Jangan set loading=false di sini — biar tombol "Memproses..." tetap muncul sampai redirect
+    } catch {
+      setError('Terjadi kesalahan. Silakan coba lagi.');
       setLoading(false);
     }
   };
@@ -77,40 +88,25 @@ function LoginForm() {
         <label htmlFor="pin" className="block text-xs font-medium text-ink-muted mb-2">
           PIN (6 Digit) <span className="text-red-500">*</span>
         </label>
-        <div className="relative w-full">
-          <div className="flex gap-2" aria-hidden="true">
-            {Array.from({ length: 6 }, (_, index) => (
-              <span
-                key={index}
-                className={`flex h-12 min-w-0 flex-1 items-center justify-center rounded-lg border bg-canvas text-xl font-semibold text-ink transition-colors ${
-                  index === Math.min(pin.length, 5)
-                    ? 'border-ink ring-1 ring-ink'
-                    : 'border-border'
-                }`}
-              >
-                {pin[index] ? '•' : ''}
-              </span>
-            ))}
-          </div>
-          <input
-            id="pin"
-            type="password"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
-            value={pin}
-            onChange={(e) => setPin(e.currentTarget.value.replace(/\D/g, '').slice(0, 6))}
-            autoComplete="current-password"
-            className="absolute inset-0 z-10 h-full w-full cursor-text opacity-0"
-            required
-          />
-        </div>
+        <input
+          id="pin"
+          type="password"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={6}
+          value={pin}
+          onChange={(e) => setPin(e.currentTarget.value.replace(/\D/g, '').slice(0, 6))}
+          autoComplete="current-password"
+          placeholder="••••••"
+          className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-center text-xl font-semibold text-ink tracking-[0.5em] placeholder:text-ink-light/30 focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink"
+          required
+        />
       </div>
 
       <button
         type="submit"
-        disabled={loading || pin.length !== 6 || !username.trim()}
-        className="w-full h-12 rounded-lg bg-ink text-canvas font-semibold text-sm disabled:opacity-50 transition-opacity flex items-center justify-center"
+        disabled={loading}
+        className="w-full h-12 rounded-lg bg-ink text-canvas font-semibold text-sm hover:bg-ink/90 transition-colors flex items-center justify-center"
       >
         {loading ? 'Memproses...' : 'Masuk'}
       </button>

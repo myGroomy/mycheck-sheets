@@ -8,5 +8,5 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   await requireAdmin();
-  return <>{children}</>;
+  return <div className="md:pl-64">{children}</div>;
 }

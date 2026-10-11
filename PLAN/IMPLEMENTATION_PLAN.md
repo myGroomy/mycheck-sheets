@@ -5,7 +5,7 @@
 > Rencana ini ditulis untuk versi **PostgreSQL/Supabase** dan **tidak lagi dipakai**
 > sebagai acuan. Seluruh fase telah dikerjakan ulang ke arsitektur Google Sheets.
 >
-> Untuk status dan keputusan teknis yang berlaku, baca **`REFACTOR.md`**
+> Untuk status dan keputusan teknis yang berlaku, baca **`PLAN/REFACTOR.md`**
 > (rencana migrasi + catatan tiap fase). Untuk struktur data, **`DATABASE_SCHEMA.md`**.
 >
 > Ringkasan: Fase 0 (restruktur ke single project) ✅ · Fase 1 (auth + Google client)
@@ -35,7 +35,7 @@ Tugas:
 - [ ] `[DATABASE]` Drizzle schema awal (semua tabel sesuai DATABASE\_SCHEMA.md), push ke Supabase.
 - [ ] `[DATABASE]` Seed `settings` default ke tabel settings.
 - [ ] `[BACKEND]` Google Drive service account: buat SA di Google Cloud Console, simpan credential, buat folder root `MyCheck-archive/` di Drive, bagikan ke SA sebagai Editor.
-- [ ] `[BACKEND]` File `.env.example` lengkap (semua variabel dari TRD.md §13).
+- [ ] `[BACKEND]` File `.env.example` lengkap (semua variabel dari TRD.md S13).
 - [ ] `[FRONTEND|BACKEND]` Vercel project (satu), link ke repo, set env vars di Vercel dashboard.
 - [ ] `[BACKEND]` Health check endpoint: `GET /api/health` → return `{db: 'ok', storage: 'ok', timestamp}`.
 
@@ -389,4 +389,3 @@ npx tsc --noEmit -p packages/shared/tsconfig.json
 # Build
 npm run build --workspace=apps/web
 ```
-

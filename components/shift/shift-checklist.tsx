@@ -9,13 +9,25 @@ import { ChecklistPointControls } from '@/components/shift/checklist-point-contr
 import { ShiftCloseDialog } from '@/components/shift/shift-close-dialog';
 
 type EntryState = 'belum' | 'selesai' | 'skip';
-type InputType = 'centang' | 'foto' | 'teks' | 'angka' | 'ok_tidak_ok';
+type InputType =
+  | 'centang'
+  | 'foto'
+  | 'teks'
+  | 'angka'
+  | 'ok_tidak_ok'
+  | 'paragraf'
+  | 'pilihan_ganda'
+  | 'kotak_centang'
+  | 'dropdown'
+  | 'tanggal_waktu';
 
 interface ProgressPoint {
   point_ref: string;
   title: string;
   instruction: string | null;
   input_type: InputType;
+  input_types?: InputType[];
+  options: string[] | null;
   is_required: boolean;
   target_time: string | null;
   number_min: number | null;
@@ -161,6 +173,8 @@ export function ShiftChecklistClient({
           throw new Error('Alasan skip minimal 3 karakter.');
         }
         payload.skip_reason = reason;
+      } else if ((point.input_types?.length ?? 1) > 1) {
+        payload.value = rawValue ?? null;
       } else if (point.input_type === 'angka') {
         const numeric = Number(rawValue ?? '');
         if (Number.isNaN(numeric)) {
@@ -171,6 +185,12 @@ export function ShiftChecklistClient({
         payload.value = rawValue === 'true' || rawValue === 'ya' || rawValue === 'ok';
       } else if (point.input_type === 'teks') {
         payload.value = (rawValue ?? '').trim();
+      } else if (point.input_type === 'tanggal_waktu') {
+        const date = new Date(rawValue ?? '');
+        if (Number.isNaN(date.getTime())) {
+          throw new Error('Tanggal dan waktu tidak valid.');
+        }
+        payload.value = date.toISOString();
       } else {
         payload.value = rawValue ?? null;
       }
