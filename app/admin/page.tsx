@@ -9,14 +9,14 @@ export default async function AdminIndex() {
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted sm:text-xs">
             Admin • {ctx.user.name}
           </p>
-          <h1 className="mt-1 text-2xl font-bold">Dashboard</h1>
+          <h1 className="mt-1 truncate text-xl font-bold sm:text-2xl">Dashboard</h1>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="Cabang aktif" value={stats.branches} helper="Total cabang" />
         <MetricCard label="Shift berjalan" value={stats.activeShifts} helper="Dalam proses" />
         <MetricCard label="Incident terbuka" value={stats.openIncidents} helper="Perlu tindak lanjut" />
@@ -91,10 +91,12 @@ export default async function AdminIndex() {
 
 function MetricCard({ label, value, helper }: { label: string; value: number; helper: string }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">{label}</p>
-      <div className="mt-3 text-3xl font-bold">{value}</div>
-      <p className="mt-1 text-xs text-ink-muted">{helper}</p>
+    <div className="rounded-xl border border-border bg-surface p-4 text-center">
+      <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.14em] text-ink-muted sm:text-xs">
+        {label}
+      </p>
+      <div className="mt-2 text-2xl font-bold sm:mt-3 sm:text-3xl">{value}</div>
+      <p className="mt-1 text-[11px] text-ink-muted sm:text-xs">{helper}</p>
     </div>
   );
 }

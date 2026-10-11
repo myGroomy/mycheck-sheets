@@ -168,12 +168,12 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
-      <header className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">MyCheck</p>
-          <h1 className="mt-1 text-2xl font-bold text-ink">Halo, {userName}</h1>
+      <header className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted sm:text-xs">MyCheck</p>
+          <h1 className="mt-1 text-xl font-bold text-ink sm:text-2xl">Halo, {userName}</h1>
         </div>
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-canvas px-3 py-2 text-sm text-ink-muted">
+        <div className="flex shrink-0 items-center gap-2 rounded-lg border border-border bg-canvas px-3 py-2 text-sm text-ink-muted">
           <Clock3 className="h-4 w-4" />
           {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -186,18 +186,18 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
         </div>
       )}
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Cabang akses</p>
           <p className="mt-2 text-2xl font-bold text-ink">{branches.length}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Shift berjalan</p>
           <p className="mt-2 text-2xl font-bold text-ink">
             {shifts.filter((item) => item.instance && item.instance.status === 'berjalan').length}
           </p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+        <div className="col-span-2 rounded-2xl border border-border bg-surface p-4 text-center md:col-span-1">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Status</p>
           <p className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
             <CheckCircle2 className="h-4 w-4" />
@@ -221,11 +221,11 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
             return (
               <div key={branch.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-ink-muted">{branch.code}</p>
-                    <h2 className="mt-1 text-lg font-bold text-ink">{branch.name}</h2>
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wide text-ink-muted sm:text-xs">{branch.code}</p>
+                    <h2 className="mt-1 truncate text-base font-bold text-ink sm:text-lg">{branch.name}</h2>
                   </div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-border bg-canvas px-2.5 py-1 text-xs text-ink-muted">
+                  <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-canvas px-2.5 py-1 text-[10px] text-ink-muted sm:text-xs">
                     <FolderKanban className="h-3.5 w-3.5" />
                     {branch.timezone}
                   </div>
@@ -249,9 +249,9 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
                       return (
                         <div key={item.id} className="rounded-xl border border-border bg-canvas p-3">
                           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-ink">{item.name}</h3>
+                            <div className="min-w-0">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <h3 className="min-w-0 truncate font-semibold text-ink">{item.name}</h3>
                                 <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold uppercase text-ink-muted">
                                   {statusText}
                                 </span>
@@ -261,7 +261,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
                                 <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" />{instance ? 'Aktif' : 'Siap dibuka'}</span>
                               </div>
                             </div>
-                            <div className="flex min-w-[180px] items-center justify-end">
+                            <div className="flex w-full min-w-0 items-center justify-end sm:w-auto sm:min-w-[180px]">
                               {renderShiftAction(item)}
                             </div>
                           </div>

@@ -101,10 +101,10 @@ function StatCard({
   const toneClass =
     tone === 'warning' ? 'text-amber-700' : tone === 'ok' ? 'text-emerald-700' : 'text-ink';
   return (
-    <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
-        <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-        {label}
+    <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+      <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-wide text-ink-muted sm:text-xs">
+        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 truncate">{label}</span>
       </div>
       <p className={`mt-2 text-2xl font-bold ${toneClass}`}>{value}</p>
       {hint && <p className="mt-1 text-[11px] text-ink-light">{hint}</p>}
@@ -200,11 +200,11 @@ export function PetugasHome({
 
       {/* Sapaan */}
       <header className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted sm:text-xs">
           MyCheck
         </p>
-        <h1 className="mt-1 text-2xl font-bold text-ink">Halo, {userName}</h1>
-        <p className="mt-1 text-sm text-ink-muted">{formatTanggal(serverTime)}</p>
+        <h1 className="mt-1 truncate text-xl font-bold text-ink sm:text-2xl">Halo, {userName}</h1>
+        <p className="mt-1 text-xs text-ink-muted sm:text-sm">{formatTanggal(serverTime)}</p>
       </header>
 
       {notice && (
@@ -214,7 +214,7 @@ export function PetugasHome({
       )}
 
       {/* Ringkasan shift hari ini */}
-      <section aria-label="Ringkasan shift hari ini" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Ringkasan shift hari ini" className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard label="Total shift" value={shift.total} icon={ClipboardCheck} />
         <StatCard
           label="Sedang berjalan"
@@ -227,13 +227,11 @@ export function PetugasHome({
       </section>
 
       {/* Incident + item belum selesai */}
-      <section aria-label="Yang perlu diperhatikan" className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
-              <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />
-              Incident open
-            </div>
+      <section aria-label="Yang perlu diperhatikan" className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-wide text-ink-muted sm:text-xs">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 truncate">Incident open</span>
             {incident.open > 0 && <Badge variant="outline">{incident.open}</Badge>}
           </div>
           <p className={`mt-2 text-2xl font-bold ${incident.open > 0 ? 'text-amber-700' : 'text-ink'}`}>
@@ -241,21 +239,21 @@ export function PetugasHome({
           </p>
           <Link
             href="/incident"
-            className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-ink underline"
+            className="mt-2 inline-flex min-h-11 items-center justify-center text-sm font-semibold text-ink underline"
           >
             Lihat incident
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-ink-muted">
-            <ListTodo className="h-3.5 w-3.5" aria-hidden="true" />
-            Item belum selesai
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[11px] font-medium uppercase leading-tight tracking-wide text-ink-muted sm:text-xs">
+            <ListTodo className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 truncate">Item belum selesai</span>
           </div>
           <p className="mt-2 text-2xl font-bold text-ink">{items.belumSelesai}</p>
           <Link
             href="/daftar-shift"
-            className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-ink underline"
+            className="mt-2 inline-flex min-h-11 items-center justify-center text-sm font-semibold text-ink underline"
           >
             Buka checklist
           </Link>
@@ -335,21 +333,21 @@ export function PetugasHome({
       </section>
 
       {/* Jalan pintas */}
-      <section aria-label="Jalan pintas" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <section aria-label="Jalan pintas" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {shortcuts.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            className="flex min-h-12 items-center gap-3 rounded-2xl border border-border bg-surface px-4 text-sm font-semibold text-ink transition hover:bg-canvas"
+            className="flex min-h-12 items-center gap-2 rounded-2xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-ink transition hover:bg-canvas sm:gap-3 sm:px-4"
           >
-            <item.icon className="h-5 w-5" aria-hidden="true" />
-            {item.label}
+            <item.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 truncate">{item.label}</span>
           </Link>
         ))}
       </section>
 
       {/* Profil singkat */}
-      <section aria-label="Profil" className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+      <section aria-label="Profil" className="rounded-2xl border border-border bg-surface p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-ink-muted">Akun saya</p>

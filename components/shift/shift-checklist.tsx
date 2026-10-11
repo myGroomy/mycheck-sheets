@@ -297,16 +297,16 @@ export function ShiftChecklistClient({
         </div>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Progress</p>
           <p className="mt-2 text-2xl font-bold text-ink">{totalDone + totalSkip}/{data.progress.total}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Belum</p>
           <p className="mt-2 text-2xl font-bold text-ink">{data.progress.belum}</p>
         </div>
-        <div className="rounded-2xl border border-border bg-surface px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+        <div className="rounded-2xl border border-border bg-surface p-4 text-center">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Peserta</p>
           <p className="mt-2 text-2xl font-bold text-ink">{data.participants.length}</p>
         </div>

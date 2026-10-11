@@ -167,17 +167,17 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
     <>
       {/* Header desktop */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
+        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-3 sm:px-4">
           <Link
             href={isAdminArea ? '/admin' : '/'}
             prefetch={false}
-            className="text-sm font-bold tracking-tight text-ink"
+            className="shrink-0 text-sm font-bold tracking-tight text-ink"
           >
             MyCheck
           </Link>
 
           {!isAdminArea && (
-            <div ref={desktopMenuRef} className="relative">
+            <div ref={desktopMenuRef} className="relative hidden md:block">
               <button
                 onClick={() => setDesktopMenuOpen((v) => !v)}
                 className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink"
@@ -185,7 +185,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 aria-label="Menu navigasi"
               >
                 {desktopMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                <span className="hidden sm:inline">Menu</span>
+                <span>Menu</span>
               </button>
               {desktopMenuOpen && (
                 <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-border bg-surface py-1 shadow-lg">
@@ -234,16 +234,16 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
           )}
 
           {/* Sisi kanan */}
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {user && (
-              <span className="hidden text-xs text-ink-muted sm:inline">
+              <span className="hidden min-w-0 truncate text-xs text-ink-muted sm:inline">
                 {user.nama} · {user.role}
               </span>
             )}
             {user && (
               <button
                 onClick={logout}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink"
+                className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink"
                 title="Keluar"
               >
                 <LogOut className="h-4 w-4" />
@@ -307,7 +307,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
       )}
 
       {/* Bar bawah HP */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 backdrop-blur md:hidden" aria-label="Navigasi bawah">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Navigasi bawah">
         <div className="mx-auto grid max-w-lg grid-cols-5">
           {coreItems.slice(0, 4).map((item) => {
             const Icon = item.icon;
@@ -319,25 +319,25 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 prefetch={false}
                 aria-current={active ? 'page' : undefined}
                 onClick={() => setMoreOpen(false)}
-                className={`flex min-h-12 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[10px] font-medium leading-tight ${
                   active ? 'text-ink' : 'text-ink-muted'
                 }`}
               >
-                <Icon className="h-5 w-5" />
-                <span>{item.name}</span>
+                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <span className="w-full truncate text-center">{item.name}</span>
               </Link>
             );
           })}
           <button
             onClick={() => setMoreOpen((v) => !v)}
-            className={`flex min-h-12 flex-col items-center justify-center gap-0.5 py-1.5 text-[11px] font-medium ${
+            className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[10px] font-medium leading-tight ${
               moreOpen ? 'text-ink' : 'text-ink-muted'
             }`}
             aria-label="Menu lainnya"
             aria-expanded={moreOpen}
           >
-            <MoreHorizontal className="h-5 w-5" />
-            <span>Lainnya</span>
+            <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="w-full truncate text-center">Lainnya</span>
           </button>
         </div>
       </nav>

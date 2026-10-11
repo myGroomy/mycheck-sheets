@@ -164,7 +164,7 @@ export function PublicReportView({
         </div>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 print:grid-cols-4 print:gap-2" aria-label="Ringkasan laporan">
+      <section className="grid grid-cols-2 gap-3 sm:gap-3 lg:grid-cols-4 print:grid-cols-4 print:gap-2" aria-label="Ringkasan laporan">
         <Metric label="Progress checklist" value={`${done + skipped}/${allPoints.length}`} detail={`${progressPercent}% terselesaikan`} />
         <Metric label="Selesai" value={String(done)} detail="Item dikerjakan" />
         <Metric label="Skip" value={String(skipped)} detail="Dengan alasan tercatat" />
@@ -352,7 +352,7 @@ function Meta({ label, value }: { label: string; value: string }) {
 }
 
 function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <div className="rounded-xl border border-border bg-surface p-4 print:rounded-none print:border print:bg-white print:p-2"><p className="text-xs uppercase tracking-wide text-ink-muted">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-ink-muted">{detail}</p></div>;
+  return <div className="rounded-xl border border-border bg-surface p-4 text-center print:rounded-none print:border print:bg-white print:p-2"><p className="text-[11px] uppercase leading-tight tracking-wide text-ink-muted sm:text-xs">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-[11px] text-ink-muted sm:text-xs">{detail}</p></div>;
 }
 
 function statusText(status: string) {

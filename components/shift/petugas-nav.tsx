@@ -94,7 +94,7 @@ export function PetugasNav() {
 
       <nav
         aria-label="Navigasi petugas"
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur md:hidden"
       >
         <div className="mx-auto grid max-w-lg grid-cols-3">
           {BOTTOM_LINKS.map((link) => {
@@ -104,12 +104,12 @@ export function PetugasNav() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
-                className={`flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[10px] font-medium leading-tight ${
                   active ? 'text-ink' : 'text-ink-muted'
                 }`}
               >
-                <link.icon className="h-5 w-5" aria-hidden="true" />
-                {link.label}
+                <link.icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <span className="w-full truncate text-center">{link.label}</span>
               </Link>
             );
           })}
