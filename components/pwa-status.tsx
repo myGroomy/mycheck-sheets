@@ -2,27 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-};
+import { usePwaInstall } from '@/lib/pwa-install';
 
 const DISMISS_KEY = 'pwa-install-dismissed';
 const SNOOZE_KEY = 'pwa-install-snoozed';
 
 export function PwaStatus() {
   const [isOnline, setIsOnline] = useState(true);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  // Dibaca lewat state, bukan langsung dari storage saat render: nilai storage
-  // tidak memicu re-render, dan membaca localStorage saat render bisa
-  // menimbulkan hydration mismatch.
+  const { deferredPrompt, isStandalone, install } = usePwaInstall();
   const [dismissedForever, setDismissedForever] = useState(false);
   const [snoozed, setSnoozed] = useState(false);
-  // Kalau aplikasi sudah terpasang, tidak perlu lagi/install banner. Dicek
-  // setelah mount: di server nilai ini selalu false, jadi mengeceknya saat
-  // render akanhydration mismatch.
-  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     const updateOnlineStatus = () => setIsOnline(navigator.onLine);
@@ -31,21 +20,9 @@ export function PwaStatus() {
     // Pulihkan keputusan yang sudah dibuat pengguna pada kunjungan sebelumnya.
     setDismissedForever(localStorage.getItem(DISMISS_KEY) === 'true');
     setSnoozed(sessionStorage.getItem(SNOOZE_KEY) === 'true');
-    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
-
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
-    };
-
-    const handleAppInstalled = () => {
-      setDeferredPrompt(null);
-    };
 
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
 
     if ('serviceWorker' in navigator) {
       if (process.env.NODE_ENV === 'production') {
@@ -65,7 +42,7 @@ export function PwaStatus() {
           )
           .catch((error: unknown) => console.error('Gagal membersihkan service worker development:', error));
 
-        if ('caches' in window) {
+        if ('caches' in navigator) {
           window.caches
             .keys()
             .then((keys) =>
@@ -83,31 +60,24 @@ export function PwaStatus() {
     return () => {
       window.removeEventListener('online', updateOnlineStatus);
       window.removeEventListener('offline', updateOnlineStatus);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
   const installApp = async () => {
-    if (!deferredPrompt) return;
-
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
+    await install();
+    setSnoozed(true);
   };
 
   // "Nanti" sembunyi sampai tab ini ditutup, tapi akan muncul lagi lain kali.
   const snooze = () => {
     sessionStorage.setItem(SNOOZE_KEY, 'true');
     setSnoozed(true);
-    setDeferredPrompt(null);
   };
 
-  // "Jangan tampilkan lagi" permanen, tidak akan muncul lagi di perangkat ini.
+  // "Jangan tampilkan lagi" permanen di banner, tapi masih bisa dari settings.
   const dismissPermanently = () => {
     localStorage.setItem(DISMISS_KEY, 'true');
     setDismissedForever(true);
-    setDeferredPrompt(null);
   };
 
   if (isStandalone) {

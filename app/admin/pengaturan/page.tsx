@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/lib/admin/api';
+import { usePwaInstall } from '@/lib/pwa-install';
+import { Download, CheckCircle2, Smartphone } from 'lucide-react';
 
 interface Setting {
   key: string;
@@ -111,6 +113,8 @@ export default function PengaturanPage() {
   const [settings, setSettings] = useState<Record<string, Setting>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const { canInstall, isStandalone, isSupported, install } = usePwaInstall();
 
   const load = async () => {
     setLoading(true);
@@ -242,6 +246,62 @@ export default function PengaturanPage() {
             </CardContent>
           </Card>
         ))}
+
+        {/* PWA Install — selalu tampil di settings walau banner sudah di-dismiss */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Install Aplikasi</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center gap-2 text-sm">
+              {isStandalone ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <span className="text-emerald-700">Aplikasi sudah terpasang</span>
+                </>
+              ) : canInstall ? (
+                <>
+                  <Smartphone className="h-4 w-4 text-ink-muted" />
+                  <span>Siap dipasang sebagai aplikasi</span>
+                </>
+              ) : (
+                <>
+                  <Smartphone className="h-4 w-4 text-ink-muted" />
+                  <span className="text-ink-muted">
+                    {isSupported
+                      ? 'Browser belum menawarkan install. Coba buka di Chrome/Edge Android atau Safari iOS.'
+                      : 'Browser tidak mendukung PWA install.'}
+                  </span>
+                </>
+              )}
+            </div>
+            {canInstall && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={installing}
+                onClick={async () => {
+                  setInstalling(true);
+                  try {
+                    await install();
+                    toast.success('Aplikasi berhasil dipasang.');
+                  } catch {
+                    toast.error('Gagal memasang aplikasi.');
+                  } finally {
+                    setInstalling(false);
+                  }
+                }}
+              >
+                <Download className="h-4 w-4" />
+                {installing ? 'Memasang...' : 'Pasang sekarang'}
+              </Button>
+            )}
+            <p className="text-[11px] text-ink-light">
+              Banner install bisa disembunyikan, tapi tombol ini selalu tersedia di settings.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
