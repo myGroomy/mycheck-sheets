@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { updateUserSchema, sensitiveActionSchema } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
+import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
 import { verifyAdminPin, countActiveAdmins } from '../../../../../lib/admin/sensitive-action';
 import {
-  deleteUserRow,
   getCabangList,
   listAllUsers,
   updateUserCells,
@@ -119,38 +119,9 @@ withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(_req.url).pathname.split('/');
-  const targetUserId = pathParts[pathParts.length - 1];
-
-  const existing = (await listAllUsers()).find((u) => u.User_ID === targetUserId);
-  if (!existing) {
-    return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 });
-  }
-
-  if (existing.User_ID === ctx.user.id) {
-    return NextResponse.json(
-      { error: 'Tidak bisa menghapus akun Anda sendiri.' },
-      { status: 400 }
-    );
-  }
-
-  if (existing.Role === 'admin') {
-    const pinErr = await verifyAdminPin(ctx.user.id, new URL(_req.url).searchParams.get('pin') ?? '');
-    if (pinErr) return NextResponse.json({ error: pinErr }, { status: 403 });
-    if ((await countActiveAdmins(targetUserId)) < 1) {
-      return NextResponse.json(
-        { error: 'Operasi ditolak. Sistem harus memiliki setidaknya 1 admin aktif.' },
-        { status: 400 }
-      );
-    }
-  }
-
-  const rowNumber = await findUserRowNumber(targetUserId);
-  if (rowNumber == null) {
-    return NextResponse.json({ error: 'User tidak ditemukan' }, { status: 404 });
-  }
-
-  await deleteUserRow(rowNumber);
-
-  return NextResponse.json({ message: 'User berhasil dihapus' });
+  const decision = decidePermanentDelete('user');
+  return NextResponse.json(
+    { error: decision.message, reason: decision.reason },
+    { status: decision.status }
+  );
 });

@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "oxlint",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
     "setup:registry": "tsx --env-file=.env scripts/setup-registry.ts",
     "setup:branch": "tsx --env-file=.env scripts/setup-branch.ts",
     "seed:admin": "tsx --env-file=.env scripts/seed-admin.ts"

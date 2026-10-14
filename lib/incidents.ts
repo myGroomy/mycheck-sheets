@@ -5,6 +5,7 @@
 
 import { ulid } from 'ulid';
 import type { AuthContext } from './api-auth';
+import { getSheetsClient } from './google/client';
 import { getCabangList, resolveCabang } from './google/registry';
 import { listAllUsers } from './google/registry-admin';
 import {
@@ -14,6 +15,8 @@ import {
   ensureMonthlySheet,
   filterRows,
   insertRow,
+  listRows,
+  listRowsFresh,
   listMonthlyRows,
 } from './store';
 
@@ -194,36 +197,63 @@ export async function listActiveCategoriesAcrossBranches(
   return [...seen.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
 }
 
-/** Cek apakah kategori dipakai oleh incident mana pun (untuk guard hapus). */
-export async function isCategoryInUse(
-  ctx: AuthContext,
-  categoryId: string
-): Promise<boolean> {
-  const cabangs = await getCabangList();
-  for (const cabang of cabangs) {
-    if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;
-    let spreadsheetId = '';
-    try {
-      spreadsheetId = (await resolveCabang(cabang.Cabang_ID)).spreadsheetId;
-    } catch {
-      continue;
-    }
-    try {
-      const hits = await filterRows(
-        spreadsheetId,
-        'IncidentIndex',
-        (r) => asStr(r['category_id']) === categoryId
-      );
-      if (hits.length > 0) return true;
-    } catch {
-      // abaikan, cek tab bulanan
-    }
-    for (const month of candidateMonths()) {
-      const rows = await listMonthlyRows(spreadsheetId, 'Incidents', month);
-      if (rows.some((r) => asStr(r['category_id']) === categoryId)) return true;
+async function listIncidentCategoryIdsInSpreadsheet(
+  spreadsheetId: string,
+  fresh = false
+): Promise<Set<string>> {
+  const used = new Set<string>();
+  const sheets = getSheetsClient();
+  const metadata = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: 'sheets.properties.title',
+  });
+  const titles = (metadata.data.sheets ?? [])
+    .map((sheet) => sheet.properties?.title ?? '')
+    .filter(Boolean);
+  const incidentSheets = [
+    ...(titles.includes('IncidentIndex') ? ['IncidentIndex'] : []),
+    ...titles.filter((title) => /^Incidents_\d{4}-\d{2}$/.test(title)),
+  ];
+
+  for (let offset = 0; offset < incidentSheets.length; offset += 3) {
+    const batch = incidentSheets.slice(offset, offset + 3);
+    const rowsBySheet = await Promise.all(
+      batch.map((title) =>
+        fresh ? listRowsFresh(spreadsheetId, title) : listRows(spreadsheetId, title)
+      )
+    );
+    for (const rows of rowsBySheet) {
+      for (const row of rows) {
+        const categoryId = asStr(row['category_id']);
+        if (categoryId) used.add(categoryId);
+      }
     }
   }
-  return false;
+  return used;
+}
+
+/** Daftar semua kategori yang dirujuk histori incident pada cabang admin. */
+export async function listIncidentCategoryIdsInUse(
+  ctx: AuthContext,
+  fresh = false
+): Promise<Set<string>> {
+  const cabangs = await getCabangList();
+  const used = new Set<string>();
+  for (const cabang of cabangs) {
+    if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;
+    const { spreadsheetId } = await resolveCabang(cabang.Cabang_ID);
+    const branchUsed = await listIncidentCategoryIdsInSpreadsheet(spreadsheetId, fresh);
+    for (const categoryId of branchUsed) used.add(categoryId);
+  }
+  return used;
+}
+
+/** Cek apakah kategori dipakai oleh incident mana pun (untuk guard hapus). */
+export async function isCategoryInUse(
+  spreadsheetId: string,
+  categoryId: string
+): Promise<boolean> {
+  return (await listIncidentCategoryIdsInSpreadsheet(spreadsheetId, true)).has(categoryId);
 }
 export interface NotifyInput {
   userId: string;

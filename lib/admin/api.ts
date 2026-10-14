@@ -79,6 +79,9 @@ export interface ShiftDefinition {
   crossesMidnight: boolean;
   sortOrder: number | null;
   isActive: boolean;
+  canDelete?: boolean;
+  hasShiftHistory?: boolean;
+  hasChildren?: boolean;
 }
 
 export interface SopCategory {
@@ -87,6 +90,7 @@ export interface SopCategory {
   name: string;
   sortOrder: number | null;
   isActive: boolean;
+  hasShiftHistory?: boolean;
 }
 
 export type InputType =
@@ -117,6 +121,7 @@ export interface ChecklistPoint {
   numberMax: number | null;
   sortOrder: number;
   isActive: boolean;
+  canDelete?: boolean;
 }
 
 export type HandoverFieldType = 'teks' | 'angka' | 'pilihan' | 'ya_tidak' | 'pilihan_ganda' | 'kotak_centang' | 'dropdown' | 'paragraf' | 'tanggal_waktu' | 'foto';
@@ -131,6 +136,7 @@ export interface HandoverField {
   isRequired: boolean;
   sortOrder: number;
   isActive: boolean;
+  canDelete?: boolean;
 }
 
 export interface ShiftPreview {
@@ -155,7 +161,10 @@ export const updateShift = (id: string, body: unknown) =>
   apiFetch<{ message: string }>(`/api/admin/shifts/${id}`, { method: 'PUT', json: body });
 
 export const deactivateShift = (id: string) =>
-  apiFetch<{ message: string }>(`/api/admin/shifts/${id}`, { method: 'DELETE' });
+  apiFetch<{ message: string }>(`/api/admin/shifts/${id}`, {
+    method: 'PUT',
+    json: { isActive: false },
+  });
 
 export const copyFromBranch = (targetBranchId: string, sourceBranchId: string) =>
   apiFetch<{ message: string }>(`/api/admin/branches/${targetBranchId}/copy-from/${sourceBranchId}`, {
@@ -175,7 +184,10 @@ export const updateCategory = (id: string, body: unknown) =>
   apiFetch<{ message: string }>(`/api/admin/sop-categories/${id}`, { method: 'PUT', json: body });
 
 export const deactivateCategory = (id: string) =>
-  apiFetch<{ message: string }>(`/api/admin/sop-categories/${id}`, { method: 'DELETE' });
+  apiFetch<{ message: string }>(`/api/admin/sop-categories/${id}`, {
+    method: 'PUT',
+    json: { isActive: false },
+  });
 
 export const listPoints = (categoryId: string) =>
   apiFetch<{ points: ChecklistPoint[] }>(`/api/admin/sop-categories/${categoryId}/points`);
@@ -190,7 +202,10 @@ export const updatePoint = (id: string, body: unknown) =>
   apiFetch<{ message: string }>(`/api/admin/checklist-points/${id}`, { method: 'PUT', json: body });
 
 export const deactivatePoint = (id: string) =>
-  apiFetch<{ message: string }>(`/api/admin/checklist-points/${id}`, { method: 'DELETE' });
+  apiFetch<{ message: string }>(`/api/admin/checklist-points/${id}`, {
+    method: 'PUT',
+    json: { isActive: false },
+  });
 
 export const listHandoverFields = (shiftId: string) =>
   apiFetch<{ fields: HandoverField[] }>(`/api/admin/shifts/${shiftId}/handover-fields`);
@@ -205,6 +220,21 @@ export const updateHandoverField = (id: string, body: unknown) =>
   apiFetch<{ message: string }>(`/api/admin/handover-fields/${id}`, { method: 'PUT', json: body });
 
 export const deactivateHandoverField = (id: string) =>
+  apiFetch<{ message: string }>(`/api/admin/handover-fields/${id}`, {
+    method: 'PUT',
+    json: { isActive: false },
+  });
+
+export const deleteShift = (id: string) =>
+  apiFetch<{ message: string }>(`/api/admin/shifts/${id}`, { method: 'DELETE' });
+
+export const deleteCategory = (id: string) =>
+  apiFetch<{ message: string }>(`/api/admin/sop-categories/${id}`, { method: 'DELETE' });
+
+export const deletePoint = (id: string) =>
+  apiFetch<{ message: string }>(`/api/admin/checklist-points/${id}`, { method: 'DELETE' });
+
+export const deleteHandoverField = (id: string) =>
   apiFetch<{ message: string }>(`/api/admin/handover-fields/${id}`, { method: 'DELETE' });
 
 export const duplicateShift = (id: string) =>

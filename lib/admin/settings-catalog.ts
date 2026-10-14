@@ -56,6 +56,12 @@ export const SETTINGS_CATALOG: SettingDefinition[] = [
     valueType: 'text',
     description: 'Pengumuman yang tampil di halaman login.',
   },
+  {
+    key: 'maintenance_mode',
+    value: 'FALSE',
+    valueType: 'bool',
+    description: 'Aktifkan untuk menonaktifkan akses seluruh user (kecuali admin).',
+  },
 ];
 
 const BY_KEY = new Map(SETTINGS_CATALOG.map((s) => [s.key, s]));

@@ -148,14 +148,65 @@ export default function AdminReportsPage() {
     }
   };
 
-  const whatsappShare = (report: ReportRow) => {
-    const message = [
-      `Laporan ${report.shiftName}`,
-      `Cabang: ${report.branchName}`,
-      `Tanggal: ${new Date(`${report.shiftDate}T00:00:00`).toLocaleDateString('id-ID')}`,
-      `Nomor: ${report.reportNumber}`,
-    ].join('\n');
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+  const whatsappShare = async (report: ReportRow) => {
+    setBusyId(report.id);
+    setNotice(null);
+    try {
+      // 1. Buat share token dulu untuk dapat link laporan
+      const shareResult = await apiFetch<{ token: string }>(
+        `/api/admin/reports/${report.id}/share`,
+        { method: 'POST', json: { expiresHours: 720 } }
+      );
+      const reportUrl = `${window.location.origin}/r/${shareResult.token}`;
+
+      // 2. Baca template WhatsApp dari settings
+      let template = '';
+      try {
+        const settingsData = await apiFetch<{ settings: { key: string; value: string }[] }>(
+          '/api/admin/settings'
+        );
+        const tplSetting = settingsData.settings.find((s) => s.key === 'whatsapp_template');
+        template = tplSetting?.value || '';
+      } catch {
+        // Template tidak bisa dibaca → fallback ke format default
+      }
+
+      // 3. Replace variables di template
+      const dateStr = new Date(`${report.shiftDate}T00:00:00`).toLocaleDateString('id-ID');
+      const ringkasan = `${report.shiftName} · ${report.branchName}`;
+      let message: string;
+      if (template.trim()) {
+        message = template
+          .replaceAll('{cabang}', report.branchName)
+          .replaceAll('{tanggal}', dateStr)
+          .replaceAll('{shift}', report.shiftName)
+          .replaceAll('{pj}', report.pjName ?? '-')
+          .replaceAll('{ringkasan}', ringkasan)
+          .replaceAll('{tautan}', reportUrl);
+      } else {
+        // Fallback: format default
+        message = [
+          `Laporan ${report.shiftName}`,
+          `Cabang: ${report.branchName}`,
+          `Tanggal: ${dateStr}`,
+          `Nomor: ${report.reportNumber}`,
+          ringkasan,
+          reportUrl,
+        ].join('\n');
+      }
+
+      // 4. Buka WhatsApp
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+      setNewShareLinks((current) => ({ ...current, [report.id]: reportUrl }));
+      setNotice({ text: 'Tautan laporan dibuat dan dibuka di WhatsApp.', error: false });
+    } catch (error) {
+      setNotice({
+        text: error instanceof Error ? error.message : 'Gagal membagikan ke WhatsApp.',
+        error: true,
+      });
+    } finally {
+      setBusyId(null);
+    }
   };
 
   const exportCsv = async (report: ReportRow) => {

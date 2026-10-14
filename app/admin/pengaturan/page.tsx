@@ -32,6 +32,21 @@ interface FieldDef {
 
 const GROUPS: { title: string; fields: FieldDef[] }[] = [
   {
+    title: 'Umum',
+    fields: [
+      {
+        key: 'app_notice',
+        label: 'Pengumuman',
+        hint: 'Tampil di halaman login. Kosongkan untuk menyembunyikan.',
+      },
+      {
+        key: 'maintenance_mode',
+        label: 'Mode maintenance',
+        hint: 'Aktifkan untuk menonaktifkan akses seluruh user (kecuali admin).',
+      },
+    ],
+  },
+  {
     title: 'Waktu & Toleransi',
     fields: [
       { key: 'tolerance_default_minutes', label: 'Toleransi baku item (menit)' },

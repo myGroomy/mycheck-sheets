@@ -1,12 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, FolderPlus, GripVertical, Pencil, Plus, Power } from 'lucide-react';
+import { Copy, FolderPlus, GripVertical, Pencil, Plus, Power, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ChecklistPoint, SopCategory } from '@/lib/admin/api';
 
-export type CategoryWithPoints = SopCategory & { points: ChecklistPoint[] };
+export type CategoryWithPoints = SopCategory & {
+  points: ChecklistPoint[];
+  canDelete?: boolean;
+  hasChecklistPoints?: boolean;
+};
 
 interface CategoryTreeProps {
   categories: CategoryWithPoints[];
@@ -15,14 +19,18 @@ interface CategoryTreeProps {
   onAddCategory: () => void;
   onEditCategory: (category: SopCategory) => void;
   onToggleCategory: (category: SopCategory) => void;
+  onDeleteCategory: (category: SopCategory) => void;
   onAddPoint: (categoryId: string) => void;
   onEditPoint: (point: ChecklistPoint) => void;
   onTogglePoint: (point: ChecklistPoint) => void;
+  onDeletePoint: (point: ChecklistPoint) => void;
   onDuplicateCategory: (category: SopCategory) => void;
   onDuplicatePoint: (point: ChecklistPoint) => void;
   onReorderCategory: (from: number, to: number) => void;
   onReorderPoint: (categoryId: string, from: number, to: number) => void;
   busyId?: string | null;
+  archivedView?: boolean;
+  emptyMessage?: string;
 }
 
 const INPUT_TYPE_LABEL: Record<string, string> = {
@@ -49,14 +57,18 @@ export function CategoryTree({
   onAddCategory,
   onEditCategory,
   onToggleCategory,
+  onDeleteCategory,
   onAddPoint,
   onEditPoint,
   onTogglePoint,
+  onDeletePoint,
   onDuplicateCategory,
   onDuplicatePoint,
   onReorderCategory,
   onReorderPoint,
   busyId,
+  archivedView = false,
+  emptyMessage,
 }: CategoryTreeProps) {
   const [dragCategory, setDragCategory] = useState<number | null>(null);
   const [dragPoint, setDragPoint] = useState<{ categoryId: string; index: number } | null>(
@@ -67,15 +79,17 @@ export function CategoryTree({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Section</h2>
-        <Button size="sm" className="min-h-12 px-4" onClick={onAddCategory}>
-          <FolderPlus className="h-3.5 w-3.5" />
-          Tambah section
-        </Button>
+        {!archivedView && (
+          <Button size="sm" className="min-h-12 px-4" onClick={onAddCategory}>
+            <FolderPlus className="h-3.5 w-3.5" />
+            Tambah section
+          </Button>
+        )}
       </div>
 
       {categories.length === 0 && (
         <p className="rounded-lg border border-dashed border-border p-4 text-sm text-ink-muted">
-          Belum ada section. Tambahkan section untuk mengelompokkan pertanyaan SOP.
+          {emptyMessage ?? 'Belum ada section. Tambahkan section untuk mengelompokkan pertanyaan SOP.'}
         </p>
       )}
 
@@ -83,11 +97,11 @@ export function CategoryTree({
         {categories.map((cat, catIndex) => (
           <li
             key={cat.id}
-            draggable
-            onDragStart={() => setDragCategory(catIndex)}
-            onDragOver={(e) => e.preventDefault()}
+            draggable={!archivedView}
+            onDragStart={() => !archivedView && setDragCategory(catIndex)}
+            onDragOver={(e) => !archivedView && e.preventDefault()}
             onDrop={() => {
-              if (dragCategory !== null) onReorderCategory(dragCategory, catIndex);
+              if (!archivedView && dragCategory !== null) onReorderCategory(dragCategory, catIndex);
               setDragCategory(null);
             }}
             onDragEnd={() => setDragCategory(null)}
@@ -98,7 +112,9 @@ export function CategoryTree({
             }`}
           >
             <div className="flex min-h-12 flex-wrap items-center gap-2 p-3">
-              <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-ink-muted" aria-hidden />
+              {!archivedView && (
+                <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-ink-muted" aria-hidden />
+              )}
               <button
                 type="button"
                 onClick={() => onSelectCategory(cat.id)}
@@ -113,7 +129,7 @@ export function CategoryTree({
                 {cat.isActive ? 'Aktif' : 'Nonaktif'}
               </Badge>
               <div className="ml-auto flex items-center gap-1.5">
-                <Button
+                {!archivedView && <Button
                   size="sm"
                   variant="outline"
                   className="h-12 w-12 shrink-0 p-0"
@@ -121,8 +137,8 @@ export function CategoryTree({
                   onClick={() => onAddPoint(cat.id)}
                 >
                   <Plus className="h-3.5 w-3.5" />
-                </Button>
-                <Button
+                </Button>}
+                {!archivedView && <Button
                   size="sm"
                   variant="outline"
                   className="h-12 w-12 shrink-0 p-0"
@@ -131,8 +147,8 @@ export function CategoryTree({
                   onClick={() => onDuplicateCategory(cat)}
                 >
                   <Copy className="h-3.5 w-3.5" />
-                </Button>
-                <Button
+                </Button>}
+                {!archivedView && <Button
                   size="sm"
                   variant="outline"
                   className="h-12 w-12 shrink-0 p-0"
@@ -140,16 +156,38 @@ export function CategoryTree({
                   onClick={() => onEditCategory(cat)}
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-12 w-12 shrink-0 p-0"
-                  aria-label={`${cat.isActive ? 'Nonaktifkan' : 'Aktifkan'} section ${cat.name}`}
-                  onClick={() => onToggleCategory(cat)}
-                >
-                  <Power className="h-3.5 w-3.5" />
-                </Button>
+                </Button>}
+                {(!archivedView || !cat.isActive) && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-12 w-12 shrink-0 p-0"
+                    aria-label={`${cat.isActive ? 'Arsipkan' : 'Pulihkan'} section ${cat.name}`}
+                    onClick={() => onToggleCategory(cat)}
+                  >
+                    <Power className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {archivedView && !cat.isActive && cat.canDelete && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-12 w-12 shrink-0 p-0"
+                    aria-label={`Hapus permanen section ${cat.name}`}
+                    onClick={() => onDeleteCategory(cat)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {archivedView && !cat.isActive && !cat.canDelete && (
+                  <span className="self-center text-xs text-ink-muted">
+                    {cat.hasShiftHistory
+                      ? 'Ada riwayat shift: hanya dapat dipulihkan'
+                      : cat.hasChecklistPoints
+                        ? 'Hapus item checklist terkait terlebih dahulu'
+                        : 'Tidak dapat dihapus'}
+                  </span>
+                )}
               </div>
             </div>
             {cat.points.length > 0 && (
@@ -157,11 +195,13 @@ export function CategoryTree({
                 {cat.points.map((point, pointIndex) => (
                   <li
                     key={point.id}
-                    draggable
-                    onDragStart={() => setDragPoint({ categoryId: cat.id, index: pointIndex })}
-                    onDragOver={(e) => e.preventDefault()}
+                    draggable={!archivedView}
+                    onDragStart={() =>
+                      !archivedView && setDragPoint({ categoryId: cat.id, index: pointIndex })
+                    }
+                    onDragOver={(e) => !archivedView && e.preventDefault()}
                     onDrop={() => {
-                      if (dragPoint && dragPoint.categoryId === cat.id) {
+                      if (!archivedView && dragPoint && dragPoint.categoryId === cat.id) {
                         onReorderPoint(cat.id, dragPoint.index, pointIndex);
                       }
                       setDragPoint(null);
@@ -169,10 +209,12 @@ export function CategoryTree({
                     onDragEnd={() => setDragPoint(null)}
                     className="m-3 flex min-h-14 flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2"
                   >
-                    <GripVertical
-                      className="h-4 w-4 shrink-0 cursor-grab text-ink-muted"
-                      aria-hidden
-                    />
+                    {!archivedView && (
+                      <GripVertical
+                        className="h-4 w-4 shrink-0 cursor-grab text-ink-muted"
+                        aria-hidden
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => onSelectCategory(cat.id)}
@@ -195,17 +237,19 @@ export function CategoryTree({
                       </Badge>
                     )}
                     <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-12 w-12 shrink-0 p-0"
-                        aria-label={`Duplikasi pertanyaan ${point.title}`}
-                        disabled={busyId === point.id}
-                        onClick={() => onDuplicatePoint(point)}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
+                      {!archivedView && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-12 w-12 shrink-0 p-0"
+                          aria-label={`Duplikasi pertanyaan ${point.title}`}
+                          disabled={busyId === point.id}
+                          onClick={() => onDuplicatePoint(point)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {!archivedView && <Button
                         size="sm"
                         variant="outline"
                         className="h-12 w-12 shrink-0 p-0"
@@ -213,7 +257,7 @@ export function CategoryTree({
                         onClick={() => onEditPoint(point)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      </Button>}
                       <Button
                         size="sm"
                         variant="outline"
@@ -223,6 +267,24 @@ export function CategoryTree({
                       >
                         <Power className="h-3.5 w-3.5" />
                       </Button>
+                      {archivedView && point.canDelete && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-12 w-12 shrink-0 p-0"
+                          aria-label={`Hapus permanen pertanyaan ${point.title}`}
+                          onClick={() => onDeletePoint(point)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {archivedView && !point.canDelete && (
+                        <span className="self-center text-xs text-ink-muted">
+                          {cat.hasShiftHistory
+                            ? 'Ada riwayat shift: hanya dapat dipulihkan'
+                            : 'Masih direferensikan histori entry'}
+                        </span>
+                      )}
                     </div>
                   </li>
                 ))}

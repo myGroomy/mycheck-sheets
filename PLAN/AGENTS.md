@@ -107,12 +107,23 @@ diinginkan:
 - Perbarui dokumen yang diminta setelah membandingkan klaimnya dengan source.
   Tandai dengan jelas mana requirement, implementasi, rencana, dan hasil yang
   benar-benar diuji.
-- Tidak ada script `test` maupun berkas test/spec aplikasi yang ditemukan
-  dalam audit 14 Oktober 2026. Jangan menandai skenario otomatis lulus tanpa
-  menambahkan/menjalankan test yang nyata.
-- Script repository: `npm run lint`, `npm run typecheck`, `npm run build`.
-  Jalankan pemeriksaan paling relevan dan catat skenario runtime yang belum
-  dilakukan.
+- Script `test` (tsx + node:test) memakai fake Google Sheets API in-memory di
+  `tests/helpers/fake-sheets.ts`; tidak ada request ke spreadsheet sungguhan.
+  Cakupan saat ini:
+  - `tests/lifecycle-policy.test.ts` — keputusan arsip/hapus permanen.
+  - `tests/store.test.ts` — pemetaan nomor baris fisik, baca segar vs cache,
+    penulisan batch.
+  - `tests/template-service.test.ts` — arsip/pulihkan, hitung dependensi, dan
+    hard delete pada baris yang benar.
+  - `tests/admin-delete-routes.test.ts` — route handler DELETE dipanggil
+    langsung (stub session di `tests/helpers/mock-auth.ts`), termasuk 401/403,
+    penolakan berbasis histori/dependensi, fail-closed, dan audit log.
+  - Belum ada uji komponen React, uji halaman, dan belum ada uji terhadap
+    spreadsheet/izin Drive sungguhan. Jangan menyatakan alur runtime Sheets
+    sebagai lulus tanpa menjalankannya.
+- Script repository: `npm run test`, `npm run lint`, `npm run typecheck`,
+  `npm run build`. Jalankan pemeriksaan paling relevan dan catat skenario
+  runtime yang belum dilakukan.
 - Jangan commit atau push kecuali diminta pengguna.
 
 ## 8. Perintah
@@ -121,6 +132,7 @@ Jalankan dari root `mycheck/`:
 
 ```bash
 npm run dev
+npm run test
 npm run lint
 npm run typecheck
 npm run build

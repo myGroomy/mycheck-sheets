@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import { handoverFieldTypeSchema } from '@/lib/shared';
 import { normalizeInputTypes } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
-import { locateHandoverField } from '../../../../../lib/admin/resolve-config';
+import { appendAuditLogFor } from '../../../../../lib/db/audit';
+import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
+import {
+  locateHandoverField,
+} from '../../../../../lib/admin/resolve-config';
 import {
   deleteHandoverField,
+  getShiftDefinition,
   listHandoverFields,
   shiftInstanceCount,
   updateHandoverField,
@@ -161,20 +166,39 @@ withAuth(async (_req, ctx, _session) => {
   if (!loc) {
     return NextResponse.json({ error: 'Bidang handover tidak ditemukan' }, { status: 404 });
   }
+  const field = (await listHandoverFields(loc.spreadsheetId, loc.shiftDefinitionId, true))
+    .find((item) => item.id === id);
+  if (!field) {
+    return NextResponse.json({ error: 'Bidang handover tidak ditemukan' }, { status: 404 });
+  }
 
-  const instances = await shiftInstanceCount(loc.spreadsheetId, loc.shiftDefinitionId);
-  if (instances > 0) {
+  const parentVerified = Boolean(
+    await getShiftDefinition(loc.spreadsheetId, loc.shiftDefinitionId, true)
+  );
+  const instances = await shiftInstanceCount(loc.spreadsheetId, loc.shiftDefinitionId, true);
+
+  const decision = decidePermanentDelete('handover_field', {
+    isActive: field.is_active,
+    parentVerified,
+    hasShiftHistory: instances > 0,
+  });
+  if (!decision.allowed) {
     return NextResponse.json(
-      {
-        error:
-          'Bidang handover sudah dipakai shift instance sehingga tidak bisa dihapus. Nonaktifkan saja.',
-        shiftInstances: instances,
-      },
-      { status: 409 }
+      { error: decision.message, reason: decision.reason, shiftInstances: instances },
+      { status: decision.status }
     );
   }
 
   await deleteHandoverField(loc.spreadsheetId, id);
+  await appendAuditLogFor(loc.spreadsheetId, {
+    actorId: ctx.user.id,
+    action: 'delete_handover_field',
+    objectType: 'handover_field',
+    objectId: id,
+    branchId: loc.branchId,
+    before: { id, label: field.label, isActive: field.is_active },
+    after: { deleted: true },
+  });
 
   return NextResponse.json({ message: 'Bidang handover berhasil dihapus' });
 });

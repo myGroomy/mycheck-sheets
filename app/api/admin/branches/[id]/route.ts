@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { branchSchema } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
+import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
 import { isValidTimeZone } from '../../../../../lib/valid-timezone';
 import {
-  deleteCabangRow,
   getCabangList,
   updateCabangCells,
 } from '../../../../../lib/google/registry-admin';
@@ -97,6 +97,15 @@ withAuth(async (_req, ctx, _session) => {
   if ((body as { isActive?: boolean }).isActive !== undefined) {
     updates['Aktif'] = (body as { isActive: boolean }).isActive;
   }
+  if (updates['Aktif'] === false && existing.Aktif) {
+    const activeCount = (await getCabangList()).filter((branch) => branch.Aktif).length;
+    if (activeCount <= 1) {
+      return NextResponse.json(
+        { error: 'Tidak boleh menonaktifkan cabang aktif terakhir.' },
+        { status: 409 }
+      );
+    }
+  }
 
   // Cabang tidak boleh aktif tanpa Spreadsheet_ID
   const nextSpreadsheetId = (updates['Spreadsheet_ID'] as string) ?? existing.Spreadsheet_ID;
@@ -118,33 +127,9 @@ withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const pathParts = new URL(_req.url).pathname.split('/');
-  const id = pathParts[pathParts.length - 1];
-
-  const existing = (await getCabangList()).find((b) => b.Cabang_ID === id);
-  if (!existing) {
-    return NextResponse.json({ error: 'Cabang tidak ditemukan' }, { status: 404 });
-  }
-
-  const rowNumber = await findCabangRowNumber(id);
-  if (rowNumber == null) {
-    return NextResponse.json({ error: 'Cabang tidak ditemukan' }, { status: 404 });
-  }
-
-  // Jangan hapus cabang yang Spreadsheet_ID-nya dipakai user sebagai akses
-  const { listAllUsers } = await import('../../../../../lib/google/registry-admin');
-  const users = await listAllUsers();
-  const usedBy = users
-    .filter((u) => String(u.Cabang_ID).split(',').map((s) => s.trim()).includes(id))
-    .map((u) => u.Username);
-  if (usedBy.length > 0) {
-    return NextResponse.json(
-      { error: `Cabang masih diakses oleh user: ${usedBy.join(', ')}. Hapus aksesnya dulu.` },
-      { status: 409 }
-    );
-  }
-
-  await deleteCabangRow(rowNumber);
-
-  return NextResponse.json({ message: 'Cabang berhasil dihapus' });
+  const decision = decidePermanentDelete('branch');
+  return NextResponse.json(
+    { error: decision.message, reason: decision.reason },
+    { status: decision.status }
+  );
 });

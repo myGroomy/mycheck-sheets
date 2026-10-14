@@ -282,5 +282,23 @@ withAuth(async (_req, ctx, _session) => {
     },
   });
 
-  return NextResponse.json({ status: 'ditutup', report_number: reportNumber });
+  // Ambil report yang baru dibuat untuk popup
+  const reportRow = (await filterRows(
+    spreadsheetId,
+    'Reports',
+    (r) => String(r['report_number']) === reportNumber
+  ))[0];
+
+  return NextResponse.json({
+    status: 'ditutup',
+    report_number: reportNumber,
+    report_id: reportRow ? String(reportRow['id']) : null,
+    summary_stats: reportRow
+      ? (JSON.parse(String(reportRow['summary_stats'] ?? '{}')) as {
+          total_required: number;
+          done: number;
+          skipped: number;
+        })
+      : null,
+  });
 });

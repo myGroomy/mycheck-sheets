@@ -6,6 +6,8 @@ import { resolveCabang, getCabangList } from '../../../../lib/google/registry';
 import { appendAuditLogFor } from '../../../../lib/db/audit';
 import { asStr, filterRows } from '../../../../lib/store';
 import { createIncidentCategory, listIncidentCategories } from '../../../../lib/admin/template-service';
+import { canDeleteConfig } from '../../../../lib/admin/lifecycle-policy';
+import { listIncidentCategoryIdsInUse } from '../../../../lib/incidents';
 import { ensureSheet } from '../../../../lib/google/sheets';
 import { STATIC_SHEETS } from '../../../../lib/google/branch-schema';
 
@@ -31,7 +33,19 @@ withAuth(async (_req, ctx, _session) => {
       });
     }
   }
-  categories.sort((a, b) => (Number(a['sortOrder']) ?? 0) - (Number(b['sortOrder']) ?? 0));
+  const archivedCategories = categories.filter((category) => category['isActive'] === false);
+  const usedCategoryIds = archivedCategories.length > 0
+    ? await listIncidentCategoryIdsInUse(ctx)
+    : new Set<string>();
+  for (const category of categories) {
+    // Kelayakan memakai policy yang sama dengan route DELETE, supaya tombol di
+    // UI tidak pernah berbeda dengan keputusan server.
+    category['canDelete'] = canDeleteConfig('incident_category', {
+      isActive: category['isActive'] === true,
+      inUse: usedCategoryIds.has(asStr(category['id'])),
+    });
+  }
+  categories.sort((a, b) => (Number(a['sortOrder']) || 0) - (Number(b['sortOrder']) || 0));
   return NextResponse.json({ categories });
 });
 

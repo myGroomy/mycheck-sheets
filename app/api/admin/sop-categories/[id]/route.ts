@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
+import { appendAuditLogFor } from '../../../../../lib/db/audit';
+import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
 import { locateSopCategory } from '../../../../../lib/admin/resolve-config';
 import {
   deleteSopCategory,
@@ -78,10 +80,10 @@ withAuth(async (_req, ctx, _session) => {
 
   const updates: Record<string, unknown> = {};
   if (body['name'] !== undefined) updates['name'] = String(body['name']).trim();
-  if (body['sortOrder'] ?? body['sort_order']) {
+  if ((body['sortOrder'] ?? body['sort_order']) !== undefined) {
     updates['sort_order'] = Number(body['sortOrder'] ?? body['sort_order']) || 0;
   }
-  if (body['isActive'] ?? body['is_active']) {
+  if ((body['isActive'] ?? body['is_active']) !== undefined) {
     updates['is_active'] = Boolean(body['isActive'] ?? body['is_active']);
   }
 
@@ -107,33 +109,38 @@ withAuth(async (_req, ctx, _session) => {
   if (!loc) {
     return NextResponse.json({ error: 'Kategori SOP tidak ditemukan' }, { status: 404 });
   }
-
-  // Kategori yang sudah dipakai shift instance historis tidak bisa dihapus
-  const instances = await shiftInstanceCount(loc.spreadsheetId, loc.shiftDefinitionId);
-  const points = await listChecklistPoints(loc.spreadsheetId, id);
-
-  if (instances > 0) {
-    return NextResponse.json(
-      {
-        error:
-          'Kategori sudah terpotret pada shift instance sehingga tidak bisa dihapus. Nonaktifkan saja.',
-        shiftInstances: instances,
-      },
-      { status: 409 }
-    );
+  const category = (await listSopCategories(loc.spreadsheetId, loc.shiftDefinitionId, true))
+    .find((item) => item.id === id);
+  if (!category) {
+    return NextResponse.json({ error: 'Kategori SOP tidak ditemukan' }, { status: 404 });
   }
 
-  if (points.length > 0) {
+  // Kategori yang sudah dipakai shift instance historis tidak bisa dihapus
+  const instances = await shiftInstanceCount(loc.spreadsheetId, loc.shiftDefinitionId, true);
+  const points = await listChecklistPoints(loc.spreadsheetId, id, true);
+
+  const decision = decidePermanentDelete('sop_category', {
+    isActive: category.is_active,
+    hasShiftHistory: instances > 0,
+    hasChildren: points.length > 0,
+  });
+  if (!decision.allowed) {
     return NextResponse.json(
-      {
-        error: 'Kategori masih memiliki checklist point. Hapus atau pindahkan pointnya dulu.',
-        points: points.length,
-      },
-      { status: 409 }
+      { error: decision.message, reason: decision.reason, shiftInstances: instances, points: points.length },
+      { status: decision.status }
     );
   }
 
   await deleteSopCategory(loc.spreadsheetId, id);
+  await appendAuditLogFor(loc.spreadsheetId, {
+    actorId: ctx.user.id,
+    action: 'delete_sop_category',
+    objectType: 'sop_category',
+    objectId: id,
+    branchId: loc.branchId,
+    before: { id, name: category.name, isActive: category.is_active },
+    after: { deleted: true },
+  });
 
   return NextResponse.json({ message: 'Kategori SOP berhasil dihapus' });
 });

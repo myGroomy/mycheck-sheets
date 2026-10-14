@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Check, ExternalLink, Pencil, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ArchiveFilter } from '@/components/admin/archive-filter';
+import { canDeleteConfig } from '@/lib/admin/lifecycle-policy';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -36,8 +38,8 @@ import { TemplateNotice } from '@/components/admin/template-notice';
 import {
   createCategory,
   createPoint,
-  deactivateCategory,
-  deactivatePoint,
+  deleteCategory,
+  deletePoint,
   duplicateCategory as duplicateCategoryApi,
   duplicatePoint as duplicatePointApi,
   listBranches,
@@ -97,6 +99,8 @@ export default function ChecklistBuilderPage() {
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveQuery, setArchiveQuery] = useState('');
 
   // Inline editing state
   const [editingTitle, setEditingTitle] = useState(false);
@@ -123,7 +127,7 @@ export default function ChecklistBuilderPage() {
     if (!branchId) return;
     setShiftId('');
     listShifts(branchId)
-      .then((data) => setShifts(data.shifts.filter((s) => s.isActive)))
+      .then((data) => setShifts(data.shifts))
       .catch((err: unknown) =>
         toast.error(err instanceof Error ? err.message : 'Gagal memuat shift')
       );
@@ -184,8 +188,8 @@ export default function ChecklistBuilderPage() {
   const toggleCategory = async (cat: SopCategory) => {
     try {
       if (cat.isActive) {
-        await deactivateCategory(cat.id);
-        toast.success('Kategori dinonaktifkan (tidak dihapus)');
+        await updateCategory(cat.id, { isActive: false });
+        toast.success('Kategori diarsipkan. Riwayat checklist tetap tersimpan.');
       } else {
         await updateCategory(cat.id, { isActive: true });
         toast.success('Kategori diaktifkan');
@@ -199,8 +203,8 @@ export default function ChecklistBuilderPage() {
   const togglePoint = async (point: ChecklistPoint) => {
     try {
       if (point.isActive) {
-        await deactivatePoint(point.id);
-        toast.success('Item dinonaktifkan (tidak dihapus)');
+        await updatePoint(point.id, { isActive: false });
+        toast.success('Item diarsipkan. Riwayat checklist tetap tersimpan.');
       } else {
         await updatePoint(point.id, { isActive: true });
         toast.success('Item diaktifkan');
@@ -208,6 +212,44 @@ export default function ChecklistBuilderPage() {
       await loadTree(shiftId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah status item');
+    }
+  };
+
+  const permanentlyDeleteCategory = async (cat: SopCategory) => {
+    if (
+      !window.confirm(
+        `Hapus permanen section "${cat.name}"? Hanya bisa dilakukan bila belum dipakai dan tidak memiliki item checklist.`
+      )
+    ) return;
+    setBusyId(cat.id);
+    try {
+      await deleteCategory(cat.id);
+      if (selectedCategoryId === cat.id) setSelectedCategoryId(null);
+      toast.success(`Section "${cat.name}" dihapus permanen`);
+      await loadTree(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Section tidak dapat dihapus');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const permanentlyDeletePoint = async (point: ChecklistPoint) => {
+    if (
+      !window.confirm(
+        `Hapus permanen item "${point.title}"? Hanya bisa dilakukan bila belum pernah dipakai oleh shift.`
+      )
+    ) return;
+    setBusyId(point.id);
+    try {
+      await deletePoint(point.id);
+      if (selectedPointId === point.id) setSelectedPointId(null);
+      toast.success(`Item "${point.title}" dihapus permanen`);
+      await loadTree(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Item tidak dapat dihapus');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -355,9 +397,40 @@ export default function ChecklistBuilderPage() {
     }
   };
 
-  const selectedPoint = categories
-    .flatMap((c) => c.points)
-    .find((p) => p.id === selectedPointId) ?? null;
+  const normalizedArchiveQuery = archiveQuery.trim().toLowerCase();
+  const visibleCategories = categories
+    .filter((category) =>
+      showArchived
+        ? !category.isActive || category.points.some((point) => !point.isActive)
+        : category.isActive
+    )
+    .map((category) => {
+      const categoryMatches = category.name.toLowerCase().includes(normalizedArchiveQuery);
+      const points = category.points.filter((point) =>
+        point.isActive !== showArchived &&
+        (!showArchived || categoryMatches || point.title.toLowerCase().includes(normalizedArchiveQuery))
+      );
+      return {
+        ...category,
+        // Kelayakan hapus kategori mengikuti policy yang sama dengan route DELETE.
+        canDelete: canDeleteConfig('sop_category', {
+          isActive: category.isActive,
+          hasShiftHistory: category.hasShiftHistory === true,
+          hasChildren: category.points.length > 0,
+        }),
+        hasChecklistPoints: category.points.length > 0,
+        points,
+      };
+    })
+    .filter((category) =>
+      !showArchived ||
+      normalizedArchiveQuery.length === 0 ||
+      category.name.toLowerCase().includes(normalizedArchiveQuery) ||
+      category.points.length > 0
+    );
+  const selectedPoint = visibleCategories
+    .flatMap((category) => category.points)
+    .find((point) => point.id === selectedPointId) ?? null;
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 pb-24 sm:px-6 sm:py-7 md:pb-10 lg:px-8 xl:px-10">
@@ -381,6 +454,31 @@ export default function ChecklistBuilderPage() {
       </div>
 
       <TemplateNotice />
+      <ArchiveFilter
+        archived={showArchived}
+        onChange={(archived) => {
+          setShowArchived(archived);
+          setArchiveQuery('');
+          setShiftId((current) =>
+            shifts.some((shift) => shift.id === current && shift.isActive !== archived)
+              ? current
+              : ''
+          );
+          setSelectedCategoryId(null);
+          setSelectedPointId(null);
+        }}
+        activeCount={categories.reduce(
+          (total, category) => total + Number(category.isActive) + category.points.filter((point) => point.isActive).length,
+          0
+        )}
+        archivedCount={categories.reduce(
+          (total, category) => total + Number(!category.isActive) + category.points.filter((point) => !point.isActive).length,
+          0
+        )}
+        searchValue={archiveQuery}
+        onSearchChange={setArchiveQuery}
+        searchPlaceholder="Cari section atau item checklist arsip..."
+      />
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(240px,0.7fr)_minmax(0,2fr)] xl:gap-5">
         <section
@@ -414,9 +512,9 @@ export default function ChecklistBuilderPage() {
                 <SelectValue placeholder="Pilih shift" />
               </SelectTrigger>
               <SelectContent>
-                {shifts.map((s) => (
+                {shifts.filter((shift) => shift.isActive !== showArchived).map((s) => (
                   <SelectItem key={s.id} value={s.id}>
-                    {s.name} ({s.startTime} - {s.endTime})
+                    {s.name} ({s.startTime} - {s.endTime}){showArchived ? ' · Arsip' : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -439,7 +537,9 @@ export default function ChecklistBuilderPage() {
           {shiftId && loading && <LoadingHint className="justify-start p-0">Memuat formulir…</LoadingHint>}
           {shiftId && !loading && (
             <CategoryTree
-              categories={categories}
+              categories={visibleCategories}
+              archivedView={showArchived}
+              emptyMessage={showArchived ? 'Belum ada konfigurasi di arsip.' : 'Belum ada section aktif.'}
               selectedCategoryId={selectedCategoryId}
               onSelectCategory={setSelectedCategoryId}
               onAddCategory={() => {
@@ -459,6 +559,7 @@ export default function ChecklistBuilderPage() {
                 setCategoryOpen(true);
               }}
               onToggleCategory={toggleCategory}
+              onDeleteCategory={(category) => void permanentlyDeleteCategory(category)}
               onAddPoint={(categoryId) => {
                 setPointCategoryId(categoryId);
                 setEditingPoint(null);
@@ -473,6 +574,7 @@ export default function ChecklistBuilderPage() {
                 setPointOpen(true);
               }}
               onTogglePoint={togglePoint}
+              onDeletePoint={(point) => void permanentlyDeletePoint(point)}
               onDuplicateCategory={(cat) => void duplicateCategory(cat)}
               onDuplicatePoint={(point) => void duplicatePoint(point)}
               onReorderCategory={(from, to) => void swapCategoryOrder(from, to)}

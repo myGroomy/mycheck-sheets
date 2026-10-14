@@ -27,7 +27,7 @@ source, bukan hasil uji penerimaan/production.
 | Incident dan catatan | Ada di source | `/api/incidents/**`, halaman incident petugas/admin. |
 | Laporan, tautan publik, addendum | Ada di source | `/api/reports/**`, `/api/public/report/**`, route admin share/addenda. |
 | Ekspor laporan | Parsial | Route `/api/admin/reports/[id]/export` menghasilkan CSV; PDF export tidak ditemukan. |
-| Admin konfigurasi dan operasi shift | Ada di source | `/api/admin/**` dan halaman `/admin/**`; tindakan sensitif divalidasi sesuai handler. |
+| Admin konfigurasi dan operasi shift | Ada di source; lifecycle arsip tersedia | Halaman cabang, akun, shift, checklist/SOP, handover, dan kategori incident memiliki filter Arsip/pulihkan. Konfigurasi hanya dapat dihapus permanen setelah diarsipkan dan lolos pemeriksaan server; cabang/akun arsip-only. Keputusan hapus terpusat di `lib/admin/lifecycle-policy.ts` dan diuji dengan `npm test`. Perilaku I/O Google Sheets belum diuji. |
 | Dashboard dan statistik | Parsial | Dashboard dan `/api/admin/stats` tersedia; tidak semua metrik PRD/summary terjadwal ditemukan. |
 | Audit log/hash chain | Parsial | Penulisan audit per tab bulanan tersedia. Tidak ditemukan verifier hash-chain terjadwal; `/api/cron/verify` hanya memvalidasi secret. |
 | Notifikasi dalam aplikasi | Parsial | Endpoint baca/mark-read dan daftar notifikasi cabang ada; tidak membuktikan seluruh event/pref tersedia. |

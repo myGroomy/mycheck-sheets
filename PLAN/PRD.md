@@ -156,7 +156,7 @@ stateDiagram-v2
 
 ### 4.6 Aturan data
 
-- **BR-40** Data operasional shift/incident/laporan tidak dihapus melalui alur bisnis; gunakan status/void/addendum. Beberapa route konfigurasi memang memiliki operasi DELETE, jadi setiap perubahan harus mempertahankan kebutuhan riwayat dan tidak boleh diasumsikan append-only.
+- **BR-40** Data operasional shift/incident/laporan tidak dihapus melalui alur bisnis; gunakan status/void/addendum. Cabang dan akun hanya dapat diarsipkan agar relasi dan atribusi histori tetap utuh. Konfigurasi shift, SOP/checklist, handover, dan kategori incident dapat dihapus permanen hanya setelah diarsipkan dan server memastikan tidak ada histori/referensi/dependensi; pemeriksaan yang gagal harus menolak penghapusan.
 - **BR-41** Incident tidak dapat diedit setelah dikirim; koreksi lewat catatan tambahan.
 - **BR-42** Akses data selalu dibatasi di sisi server berdasarkan daftar cabang pada akun.
 - **BR-43** Aplikasi menambahkan audit log dan tidak menyediakan alur edit log. Ini bukan perlindungan terhadap pemilik spreadsheet yang dapat mengubahnya manual; deteksi hash-chain hanya efektif jika verifier benar-benar dijalankan.
@@ -370,7 +370,7 @@ Admin memiliki akses penuh ke semua cabang dan modul berikut. Admin juga dapat m
 
 | ID        | Persyaratan                                                                                                              |
 | --------- | ------------------------------------------------------------------------------------------------------------------------ |
-| ADM-BR-01 | Buat, ubah, nonaktifkan (arsip) cabang: nama, kode, alamat singkat, **zona waktu** (default Asia/Jakarta).               |
+| ADM-BR-01 | Buat, ubah, arsip/pulihkan cabang: nama, kode, alamat singkat, **zona waktu** (default Asia/Jakarta); daftar utama hanya menampilkan cabang aktif. |
 | ADM-BR-02 | **Salin dari cabang lain**: menduplikasi definisi shift, checklist, dan handover sebagai salinan mandiri (bukan tautan). |
 | ADM-BR-03 | Cabang nonaktif tidak dapat dibuka shift barunya; riwayatnya tetap dapat dilihat.                                        |
 
@@ -383,7 +383,7 @@ Admin memiliki akses penuh ke semua cabang dan modul berikut. Admin juga dapat m
 | ADM-AC-01 | Buat akun: nama, username (unik), PIN awal, peran (Petugas/Admin), daftar akses cabang (satu atau lebih). |
 | ADM-AC-02 | Ubah nama, peran, dan akses cabang kapan saja.                                                            |
 | ADM-AC-03 | **Reset PIN**, **buka kunci** akun, **paksa logout** semua sesi.                                          |
-| ADM-AC-04 | Nonaktifkan/aktifkan akun (bukan hapus), sehingga nama pada laporan lama tetap utuh.                      |
+| ADM-AC-04 | Arsipkan/pulihkan akun (bukan hapus), sehingga nama pada laporan lama tetap utuh; daftar utama hanya menampilkan akun aktif. |
 | ADM-AC-05 | Lihat login terakhir dan ringkasan aktivitas.                                                             |
 | ADM-AC-06 | Admin terakhir yang aktif **tidak dapat** dinonaktifkan atau diturunkan perannya.                         |
 
@@ -412,7 +412,7 @@ Hierarki: **Cabang → Shift → Kategori SOP → Checklist Point**.
 | Toleransi                | Default ±15 menit, dapat diubah per item                            |
 | Hari berlaku             | Opsional (mis. hanya Senin)                                         |
 | Urutan                   | Atur dengan seret-lepas                                             |
-| Aktif                    | Nonaktifkan, bukan hapus                                            |
+| Aktif                    | Arsipkan/pulihkan; konfigurasi arsip hanya dapat dihapus permanen bila belum punya histori atau dependensi |
 
 
 
@@ -422,7 +422,7 @@ Hierarki: **Cabang → Shift → Kategori SOP → Checklist Point**.
 | ADM-CK-02 | Duplikasi item, kategori, atau seluruh shift; salin antar cabang.                  |
 | ADM-CK-03 | **Pratinjau sebagai petugas** sebelum menyimpan.                                   |
 | ADM-CK-04 | Perubahan berlaku untuk shift berikutnya; shift berjalan memakai snapshot (BR-05). |
-| ADM-CK-05 | Penonaktifan item tidak menghapus riwayat pengisiannya di laporan lama.            |
+| ADM-CK-05 | Arsipkan/pulihkan kategori dan item tanpa mengubah histori. Hapus permanen hanya tersedia untuk konfigurasi arsip tanpa shift historis atau referensi entry. |
 | ADM-CK-06 | Riwayat versi template (siapa mengubah apa dan kapan) tersedia lewat audit log.    |
 
 
@@ -431,7 +431,7 @@ Hierarki: **Cabang → Shift → Kategori SOP → Checklist Point**.
 
 | ID        | Persyaratan                                                                                                          |
 | --------- | -------------------------------------------------------------------------------------------------------------------- |
-| ADM-HO-01 | Kelola field handover per shift: label, tipe (teks pendek, angka, pilihan, ya/tidak), wajib/opsional, urutan, aktif. |
+| ADM-HO-01 | Kelola dan arsipkan/pulihkan field handover per shift: label, tipe (teks pendek, angka, pilihan, ya/tidak), wajib/opsional, urutan, aktif. |
 | ADM-HO-02 | Kotak teks bebas dan tambah foto selalu tersedia (opsional) di bagian bawah form.                                    |
 | ADM-HO-03 | Salin antar shift dan antar cabang.                                                                                  |
 
@@ -441,7 +441,7 @@ Hierarki: **Cabang → Shift → Kategori SOP → Checklist Point**.
 
 | ID        | Persyaratan                                                                                                                            |
 | --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| ADM-IC-01 | Tambah, ubah, nonaktifkan kategori. Kategori berlaku global; dukungan kategori per cabang dapat ditambahkan tanpa mengubah model data. |
+| ADM-IC-01 | Tambah, ubah, arsipkan/pulihkan kategori. Kategori disimpan per cabang; hard-delete hanya tersedia untuk kategori arsip yang tidak direferensikan incident. |
 
 
 ### 7.8 Operasi Shift
@@ -501,7 +501,7 @@ Hierarki: **Cabang → Shift → Kategori SOP → Checklist Point**.
 ### 7.12 Aturan Pengaman Admin
 
 - **ADM-SEC-01** Aksi sensitif wajib **alasan** dan **konfirmasi ulang PIN**: tutup paksa, ganti PJ, void, buka kunci laporan, reset PIN, ubah peran/akses, nonaktifkan akun.
-- **ADM-SEC-02** Tidak ada hapus permanen (BR-40).
+- **ADM-SEC-02** Tidak ada hard-delete data operasional, cabang, atau akun. Hard-delete konfigurasi arsip hanya diizinkan setelah pemeriksaan server memastikan tidak ada histori/referensi/dependensi; jika data tidak dapat diperiksa, operasi ditolak (BR-40).
 - **ADM-SEC-03** Admin terakhir dilindungi (ADM-AC-06).
 - **ADM-SEC-04** Semua tindakan admin masuk audit log yang dapat dilihat oleh admin lain.
 - **ADM-SEC-05** **Mode pratinjau petugas** untuk menguji tanpa menulis data palsu ke laporan nyata (data uji ditandai dan dikecualikan dari statistik).
@@ -659,6 +659,15 @@ Catatan desain:
 
 
 Target numerik final ditentukan setelah ada data awal.
+
+### Status implementasi lifecycle data Admin
+
+- Source saat ini menyediakan tampilan **Aktif** dan **Arsip** pada halaman cabang, akun, shift, builder checklist/SOP, handover, dan kategori incident; data arsip dapat dicari dan dipulihkan.
+- `lib/admin/lifecycle-policy.ts` adalah satu-satunya tempat yang memutuskan kelayakan hapus permanen; route `DELETE` dan endpoint daftar sama-sama memakainya agar tombol UI tidak berbeda dari keputusan server.
+- Pengujian (`npm test`, 91 skenario) memakai fake Google Sheets API in-memory: mencakup keputusan policy, pemetaan nomor baris fisik pada `lib/store.ts`, arsip/pulihkan/hard delete di `lib/admin/template-service.ts`, serta route handler `DELETE` (401/403, penolakan histori/dependensi, fail-closed, audit log berantai hash). Tidak ada uji komponen React dan tidak ada eksekusi terhadap spreadsheet cabang sungguhan atau izin Drive.
+- Cabang dan akun tidak dapat dihapus permanen. Route `DELETE` menolak permintaan dengan `409`; gunakan arsip/nonaktif.
+- Route hard-delete konfigurasi hanya menerima objek yang sudah diarsipkan. Shift/SOP/checklist/handover dan kategori incident diperiksa terhadap dependensi atau referensi historis di server; UI memakai indikator kelayakan/histori dari API dan route `DELETE` mengulang pemeriksaan.
+- Pemeriksaan source tidak menggantikan uji pada Google Sheets produksi. Tidak ada uji integrasi runtime atas izin sheet, struktur sheet cabang, maupun data historis yang dilakukan dalam perubahan ini.
 
 ---
 

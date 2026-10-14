@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Copy, CopyPlus, ExternalLink, Pencil, Plus, Power } from 'lucide-react';
+import { Copy, CopyPlus, ExternalLink, Pencil, Plus, Power, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ArchiveFilter } from '@/components/admin/archive-filter';
+import { filterArchiveView, splitByArchive } from '@/lib/admin/lifecycle-policy';
 import { SkeletonRows } from '@/components/ui/skeletons';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
@@ -21,7 +23,7 @@ import { TemplateNotice } from '@/components/admin/template-notice';
 import {
   copyFromBranch,
   createShift,
-  deactivateShift,
+  deleteShift,
   duplicateShift,
   listBranches,
   listShifts,
@@ -46,6 +48,8 @@ export default function ShiftPage() {
   const [copyError, setCopyError] = useState<string | null>(null);
   const [previewShiftId, setPreviewShiftId] = useState<string>('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveQuery, setArchiveQuery] = useState('');
 
   useEffect(() => {
     const loadBranches = async () => {
@@ -78,7 +82,31 @@ export default function ShiftPage() {
     if (branchId) loadShifts(branchId);
   }, [branchId, loadShifts]);
 
+  const permanentlyDeleteShift = async (shift: ShiftDefinition) => {
+    if (
+      !window.confirm(
+        `Hapus permanen definisi shift "${shift.name}"? Tindakan ini hanya berhasil jika definisi belum memiliki shift historis atau konfigurasi turunan.`
+      )
+    ) return;
+    setBusyId(shift.id);
+    try {
+      await deleteShift(shift.id);
+      toast.success(`Definisi shift "${shift.name}" dihapus permanen`);
+      await loadShifts(branchId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Definisi shift tidak dapat dihapus');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const targetBranch = branches.find((b) => b.id === branchId) ?? null;
+  const { active: activeShifts, archived: archivedShifts } = splitByArchive(shifts);
+  const visibleShifts = filterArchiveView(shifts, {
+    showArchived,
+    query: archiveQuery,
+    searchFields: (shift) => [shift.name, shift.startTime, shift.endTime],
+  });
 
   const submitShift = async (values: ShiftFormValues) => {
     if (!branchId) return;
@@ -106,8 +134,8 @@ export default function ShiftPage() {
   const toggleActive = async (shift: ShiftDefinition) => {
     try {
       if (shift.isActive) {
-        await deactivateShift(shift.id);
-        toast.success('Shift dinonaktifkan (tidak dihapus)');
+        await updateShift(shift.id, { isActive: false });
+        toast.success('Shift diarsipkan. Riwayat shift yang sudah dibuat tetap tersimpan.');
       } else {
         await updateShift(shift.id, { isActive: true });
         toast.success('Shift diaktifkan');
@@ -201,17 +229,29 @@ export default function ShiftPage() {
 
       <TemplateNotice />
 
+      <ArchiveFilter
+        archived={showArchived}
+        onChange={setShowArchived}
+        activeCount={activeShifts.length}
+        archivedCount={archivedShifts.length}
+        searchValue={archiveQuery}
+        onSearchChange={setArchiveQuery}
+        searchPlaceholder="Cari definisi shift arsip..."
+      />
+
       <div className="rounded-xl border border-border bg-surface">
         {loading && (
           <SkeletonTransition>
             <SkeletonRows count={5} />
           </SkeletonTransition>
         )}
-        {!loading && shifts.length === 0 && (
-          <p className="p-4 text-sm text-ink-muted">Belum ada definisi shift di cabang ini</p>
+        {!loading && visibleShifts.length === 0 && (
+          <p className="p-4 text-sm text-ink-muted">
+            {showArchived ? 'Belum ada definisi shift di arsip' : 'Belum ada definisi shift aktif di cabang ini'}
+          </p>
         )}
         {!loading &&
-          shifts.map((s) => (
+          visibleShifts.map((s) => (
             <div
               key={s.id}
               className="flex flex-wrap items-center gap-2 border-b border-border p-3 last:border-b-0"
@@ -258,8 +298,28 @@ export default function ShiftPage() {
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => toggleActive(s)}>
                   <Power className="h-3.5 w-3.5" />
-                  {s.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                  {s.isActive ? 'Arsipkan' : 'Pulihkan'}
                 </Button>
+                {!s.isActive && s.canDelete && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={busyId === s.id}
+                    onClick={() => void permanentlyDeleteShift(s)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Hapus permanen
+                  </Button>
+                )}
+                {!s.isActive && !s.canDelete && (
+                  <span className="self-center text-xs text-ink-muted">
+                    {s.hasShiftHistory
+                      ? 'Ada riwayat shift: hanya dapat dipulihkan'
+                      : s.hasChildren
+                        ? 'Arsipkan atau hapus konfigurasi turunannya dahulu'
+                        : 'Tidak dapat dihapus'}
+                  </span>
+                )}
               </div>
             </div>
           ))}

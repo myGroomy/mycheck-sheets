@@ -5,7 +5,9 @@ import { locateShiftDefinition } from '../../../../../../lib/admin/resolve-confi
 import {
   createHandoverField,
   listHandoverFields,
+  shiftInstanceCount,
 } from '../../../../../../lib/admin/template-service';
+import { canDeleteConfig } from '../../../../../../lib/admin/lifecycle-policy';
 
 const toApiField = (f: {
   id: string;
@@ -48,12 +50,16 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   const fields = await listHandoverFields(loc.spreadsheetId, shiftId);
+  const hasShiftHistory = (await shiftInstanceCount(loc.spreadsheetId, shiftId)) > 0;
+  const canDelete = (field: { is_active: boolean }) =>
+    canDeleteConfig('handover_field', { isActive: field.is_active, hasShiftHistory });
 
   return NextResponse.json({
     fields: fields.map((f) => ({
       ...toApiField(f),
       shiftDefinitionId: shiftId,
       branchId: loc.branchId,
+      canDelete: canDelete(f),
     })),
   });
 });

@@ -30,6 +30,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ResponsiveRecordCards } from '@/components/ui/responsive-record-cards';
+import { ArchiveFilter } from '@/components/admin/archive-filter';
+import { filterArchiveView, splitByArchive } from '@/lib/admin/lifecycle-policy';
 import {
   Select,
   SelectContent,
@@ -112,6 +114,8 @@ export default function AkunPage() {
   const [job, setJob] = useState<SensitiveJob | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
   const [jobLoading, setJobLoading] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveQuery, setArchiveQuery] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -287,6 +291,13 @@ export default function AkunPage() {
 
   const isLocked = (u: AdminUser) =>
     !!u.lockedUntil && new Date(u.lockedUntil) > new Date();
+  const { active: activeUsers, archived: archivedUsers } = splitByArchive(users);
+  const visibleUsers = filterArchiveView(users, {
+    showArchived,
+    query: archiveQuery,
+    searchFields: (user) => [user.name, user.username, user.role],
+  });
+  const activeUserCount = activeUsers.length;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-4">
@@ -303,10 +314,20 @@ export default function AkunPage() {
         </Button>
       </div>
 
+      <ArchiveFilter
+        archived={showArchived}
+        onChange={setShowArchived}
+        activeCount={activeUserCount}
+        archivedCount={archivedUsers.length}
+        searchValue={archiveQuery}
+        onSearchChange={setArchiveQuery}
+        searchPlaceholder="Cari nama atau username arsip..."
+      />
+
       <ResponsiveRecordCards
         loading={loading}
-        emptyMessage="Belum ada akun"
-        records={users.map((u) => ({
+        emptyMessage={showArchived ? 'Belum ada akun di arsip' : 'Belum ada akun aktif'}
+        records={visibleUsers.map((u) => ({
           key: u.id,
           title: u.name,
           subtitle: `@${u.username}`,
@@ -375,7 +396,7 @@ export default function AkunPage() {
                   }}
                   className="text-error focus:text-error"
                 >
-                  <UserX className="mr-2 h-4 w-4" />{u.isActive ? 'Nonaktifkan akun' : 'Aktifkan akun'}
+                  <UserX className="mr-2 h-4 w-4" />{u.isActive ? 'Arsipkan akun' : 'Pulihkan akun'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -403,14 +424,14 @@ export default function AkunPage() {
                 </TableCell>
               </TableRow>
             )}
-            {!loading && users.length === 0 && (
+            {!loading && visibleUsers.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-ink-muted">
-                  Belum ada akun
+                  {showArchived ? 'Belum ada akun di arsip' : 'Belum ada akun aktif'}
                 </TableCell>
               </TableRow>
             )}
-            {users.map((u) => (
+            {visibleUsers.map((u) => (
               <TableRow key={u.id}>
                 <TableCell className="font-medium">
                   {u.name}
@@ -499,7 +520,7 @@ export default function AkunPage() {
                         className="text-error focus:text-error"
                       >
                         <UserX className="mr-2 h-4 w-4" />
-                        {u.isActive ? 'Nonaktifkan akun' : 'Aktifkan akun'}
+                        {u.isActive ? 'Arsipkan akun' : 'Pulihkan akun'}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -656,4 +677,3 @@ export default function AkunPage() {
     </div>
   );
 }
-

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Pencil, Plus, X } from 'lucide-react';
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ArchiveFilter } from '@/components/admin/archive-filter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeletons';
@@ -17,6 +18,7 @@ interface IncidentCategory {
   sortOrder: number | null;
   isActive: boolean;
   createdAt: string;
+  canDelete: boolean;
 }
 
 export default function KategoriIncidentPage() {
@@ -26,6 +28,8 @@ export default function KategoriIncidentPage() {
   const [adding, setAdding] = useState(false);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveQuery, setArchiveQuery] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -103,6 +107,27 @@ export default function KategoriIncidentPage() {
     }
   };
 
+  const permanentlyDeleteCategory = async (category: IncidentCategory) => {
+    if (
+      !window.confirm(
+        `Hapus permanen kategori "${category.name}"? Kategori yang sudah dipakai incident tidak dapat dihapus.`
+      )
+    ) return;
+    try {
+      await apiFetch(`/api/admin/incident-categories/${category.id}`, { method: 'DELETE' });
+      toast.success(`Kategori "${category.name}" dihapus permanen`);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Kategori tidak dapat dihapus');
+    }
+  };
+
+  const visibleCategories = categories.filter((category) =>
+    category.isActive !== showArchived &&
+    (!showArchived || category.name.toLowerCase().includes(archiveQuery.trim().toLowerCase()))
+  );
+  const activeCount = categories.filter((category) => category.isActive).length;
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-4">
       <div>
@@ -130,17 +155,29 @@ export default function KategoriIncidentPage() {
         </Button>
       </form>
 
+      <ArchiveFilter
+        archived={showArchived}
+        onChange={setShowArchived}
+        activeCount={activeCount}
+        archivedCount={categories.length - activeCount}
+        searchValue={archiveQuery}
+        onSearchChange={setArchiveQuery}
+        searchPlaceholder="Cari kategori incident arsip..."
+      />
+
       <div className="rounded-xl border border-border bg-surface">
         {loading && (
           <SkeletonTransition>
             <SkeletonRows count={5} />
           </SkeletonTransition>
         )}
-        {!loading && categories.length === 0 && (
-          <p className="p-4 text-sm text-ink-muted">Belum ada kategori</p>
+        {!loading && visibleCategories.length === 0 && (
+          <p className="p-4 text-sm text-ink-muted">
+            {showArchived ? 'Belum ada kategori di arsip' : 'Belum ada kategori aktif'}
+          </p>
         )}
         {!loading &&
-          categories.map((c) => {
+          visibleCategories.map((c) => {
             const value = edits[c.id] ?? c.name;
             const dirty = value !== c.name;
             return (
@@ -179,8 +216,23 @@ export default function KategoriIncidentPage() {
                   )}
                   <Button variant="outline" size="sm" onClick={() => toggleActive(c)}>
                     <Pencil className="h-3.5 w-3.5" />
-                    {c.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                    {c.isActive ? 'Arsipkan' : 'Pulihkan'}
                   </Button>
+                  {showArchived && c.canDelete && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void permanentlyDeleteCategory(c)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Hapus permanen
+                    </Button>
+                  )}
+                  {showArchived && !c.canDelete && (
+                    <span className="self-center text-xs text-ink-muted">
+                      Dipakai incident: hanya dapat dipulihkan
+                    </span>
+                  )}
                 </div>
               </div>
             );

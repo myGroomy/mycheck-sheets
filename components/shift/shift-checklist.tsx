@@ -9,6 +9,7 @@ import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import { ChecklistPointControls } from '@/components/shift/checklist-point-controls';
 import { ShiftCloseDialog } from '@/components/shift/shift-close-dialog';
+import { PreviousHandoverCard } from '@/components/shift/previous-handover-card';
 import { useCabang } from '@/lib/CabangContext';
 
 type EntryState = 'belum' | 'selesai' | 'skip';
@@ -508,6 +509,10 @@ export function ShiftChecklistClient({
             </div>
           </div>
 
+          {/* Handover dari shift sebelumnya (PRD 6.3.1). Displaced ke atas
+              supaya petugas membacanya sebelum mulai mengerjakan checklist. */}
+          <PreviousHandoverCard shiftId={shiftId} />
+
           <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
             <h3 className="text-base font-bold text-ink">Handover</h3>
             <div className="mt-3 space-y-2 text-sm text-ink-muted">
@@ -522,6 +527,9 @@ export function ShiftChecklistClient({
                 ))
               )}
             </div>
+            <p className="mt-3 text-xs text-ink-muted">
+              Isian handover diisi saat menutup shift.
+            </p>
           </div>
 
           <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">

@@ -11,6 +11,7 @@ import { AppShell } from '@/components/AppShell';
 import { PageTransition } from '@/components/PageTransition';
 import { AuthTransitionOverlay } from '@/components/AuthTransitionOverlay';
 import { verifySessionToken } from '@/lib/session';
+import { isMaintenanceMode } from '@/lib/maintenance';
 import './globals.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -55,6 +56,27 @@ export default async function RootLayout({
   const token = cookieStore.get('mycheck_session')?.value;
   const session = token ? verifySessionToken(token) : null;
   const initialRole = session?.role === 'admin' ? 'admin' : 'petugas';
+
+  // Cek maintenance mode. Admin tetap bisa akses (untuk menonaktifkan).
+  const maintenance = await isMaintenanceMode();
+  if (maintenance && session?.role !== 'admin') {
+    return (
+      <html lang="id" suppressHydrationWarning>
+        <body className={`${plusJakartaSans.variable} bg-canvas text-ink antialiased`}>
+          <RootProvider>
+            <div className="flex min-h-dvh items-center justify-center bg-canvas p-6">
+              <div className="max-w-md text-center">
+                <p className="text-2xl font-bold text-ink">Sedang maintenance</p>
+                <p className="mt-2 text-sm text-ink-muted">
+                  Aplikasi sedang dalam perawatan. Silakan coba lagi nanti.
+                </p>
+              </div>
+            </div>
+          </RootProvider>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html lang="id" suppressHydrationWarning>

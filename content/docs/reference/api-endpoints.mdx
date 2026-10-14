@@ -87,6 +87,14 @@ aksi tertentu yang membatasi lebih lanjut.
 | `/admin/settings` | `GET`, `PUT` | Membaca dan mengubah pengaturan. |
 | `/admin/audit-log` | `GET` | Membaca audit log. |
 
+### Lifecycle arsip dan penghapusan konfigurasi
+
+- Daftar admin menyediakan mode **Aktif** dan **Arsip**; data arsip dapat dipulihkan.
+- `DELETE` pada `/admin/branches/[id]` dan `/admin/users/[id]` selalu ditolak (`409`). Cabang dan akun dipertahankan untuk menjaga histori serta atribusi.
+- Untuk `/admin/shifts/[id]`, `/admin/sop-categories/[id]`, `/admin/checklist-points/[id]`, `/admin/handover-fields/[id]`, dan `/admin/incident-categories/[id]`, konfigurasi harus diarsipkan terlebih dahulu. Penghapusan hanya berhasil bila pemeriksaan server memastikan tidak ada shift historis, dependensi, atau referensi data; pemeriksaan yang gagal tidak boleh dianggap aman.
+- Endpoint daftar konfigurasi menyediakan `canDelete` atau indikator histori/dependensi untuk mengendalikan visibilitas aksi hapus di UI. Nilainya dihitung dengan fungsi yang sama seperti route `DELETE` (`lib/admin/lifecycle-policy.ts`), sehingga tidak ada dua sumber kebenaran yang bisa berbeda.
+- Route `DELETE` tetap mengulang pemeriksaan pada request itu sendiri dengan pembacaan segar, dan menulis audit log (`delete_shift_definition`, `delete_sop_category`, `delete_checklist_point`, `delete_handover_field`, `delete_incident_category`) bila baris benar-benar terhapus.
+
 ## Pemeriksaan sistem
 
 | Path | Metode | Akses / fungsi |

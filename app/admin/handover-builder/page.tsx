@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, GripVertical, Pencil, Plus, Power, X } from 'lucide-react';
+import { Check, GripVertical, Pencil, Plus, Power, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ArchiveFilter } from '@/components/admin/archive-filter';
+import { filterArchiveView, splitByArchive } from '@/lib/admin/lifecycle-policy';
 import { Input } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeletons';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
@@ -22,7 +24,7 @@ import {
 import { TemplateNotice } from '@/components/admin/template-notice';
 import {
   createHandoverField,
-  deactivateHandoverField,
+  deleteHandoverField,
   listBranches,
   listHandoverFields,
   listShifts,
@@ -55,6 +57,8 @@ export default function HandoverBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveQuery, setArchiveQuery] = useState('');
 
   // Inline editing state
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
@@ -79,7 +83,7 @@ export default function HandoverBuilderPage() {
     if (!branchId) return;
     setShiftId('');
     listShifts(branchId)
-      .then((data) => setShifts(data.shifts.filter((s) => s.isActive)))
+      .then((data) => setShifts(data.shifts))
       .catch((err: unknown) =>
         toast.error(err instanceof Error ? err.message : 'Gagal memuat shift')
       );
@@ -131,8 +135,8 @@ export default function HandoverBuilderPage() {
   const toggleActive = async (field: HandoverField) => {
     try {
       if (field.isActive) {
-        await deactivateHandoverField(field.id);
-        toast.success('Bidang dinonaktifkan (tidak dihapus)');
+        await updateHandoverField(field.id, { isActive: false });
+        toast.success('Bidang diarsipkan. Riwayat handover tetap tersimpan.');
       } else {
         await updateHandoverField(field.id, { isActive: true });
         toast.success('Bidang diaktifkan');
@@ -142,6 +146,28 @@ export default function HandoverBuilderPage() {
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah status');
     }
   };
+
+  const permanentlyDeleteField = async (field: HandoverField) => {
+    if (
+      !window.confirm(
+        `Hapus permanen field "${field.label}"? Hanya bisa dilakukan bila belum pernah dipakai oleh shift.`
+      )
+    ) return;
+    try {
+      await deleteHandoverField(field.id);
+      toast.success(`Field "${field.label}" dihapus permanen`);
+      await loadFields(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Field tidak dapat dihapus');
+    }
+  };
+
+  const { active: activeFields, archived: archivedFields } = splitByArchive(fields);
+  const visibleFields = filterArchiveView(fields, {
+    showArchived,
+    query: archiveQuery,
+    searchFields: (field) => [field.label],
+  });
 
   const swapOrder = async (from: number, to: number) => {
     const a = fields[from];
@@ -235,9 +261,9 @@ export default function HandoverBuilderPage() {
               <SelectValue placeholder="Pilih shift" />
             </SelectTrigger>
             <SelectContent>
-              {shifts.map((s) => (
+              {shifts.filter((shift) => shift.isActive !== showArchived).map((s) => (
                 <SelectItem key={s.id} value={s.id}>
-                  {s.name} ({s.startTime} - {s.endTime})
+                  {s.name} ({s.startTime} - {s.endTime}){showArchived ? ' · Arsip' : ''}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -247,18 +273,37 @@ export default function HandoverBuilderPage() {
 
       <TemplateNotice />
 
-      <div className="flex justify-end">
-        <Button
-          disabled={!shiftId}
-          onClick={() => {
-            setEditing(null);
-            setFormError(null);
-            setEditorOpen(true);
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ArchiveFilter
+          archived={showArchived}
+          onChange={(archived) => {
+            setShowArchived(archived);
+            setArchiveQuery('');
+            setShiftId((current) =>
+              shifts.some((shift) => shift.id === current && shift.isActive !== archived)
+                ? current
+                : ''
+            );
           }}
-        >
-          <Plus className="h-4 w-4" />
-          Tambah bidang
-        </Button>
+          activeCount={activeFields.length}
+          archivedCount={archivedFields.length}
+          searchValue={archiveQuery}
+          onSearchChange={setArchiveQuery}
+          searchPlaceholder="Cari bidang handover arsip..."
+        />
+        {!showArchived && (
+          <Button
+            disabled={!shiftId}
+            onClick={() => {
+              setEditing(null);
+              setFormError(null);
+              setEditorOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Tambah bidang
+          </Button>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-surface">
@@ -268,29 +313,33 @@ export default function HandoverBuilderPage() {
             <SkeletonRows count={5} />
           </SkeletonTransition>
         )}
-        {shiftId && !loading && fields.length === 0 && (
-          <p className="p-4 text-sm text-ink-muted">Belum ada bidang serah terima</p>
+        {shiftId && !loading && visibleFields.length === 0 && (
+          <p className="p-4 text-sm text-ink-muted">
+            {showArchived ? 'Belum ada bidang di arsip' : 'Belum ada bidang aktif'}
+          </p>
         )}
         {shiftId &&
           !loading &&
-          fields.map((f, index) => (
+          visibleFields.map((f, index) => (
             <div
               key={f.id}
-              draggable
-              onDragStart={() => setDragIndex(index)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => onDrop(index)}
+              draggable={!showArchived}
+              onDragStart={() => !showArchived && setDragIndex(index)}
+              onDragOver={(e) => !showArchived && e.preventDefault()}
+              onDrop={() => !showArchived && onDrop(index)}
               onDragEnd={() => setDragIndex(null)}
               className={`flex items-center gap-2 border-b border-border p-3 last:border-b-0 ${
                 dragIndex === index ? 'bg-primary/5' : ''
               }`}
             >
-              <GripVertical
-                className="h-4 w-4 shrink-0 cursor-grab text-ink-muted"
-                aria-hidden
-              />
+              {!showArchived && (
+                <GripVertical
+                  className="h-4 w-4 shrink-0 cursor-grab text-ink-muted"
+                  aria-hidden
+                />
+              )}
               <div className="min-w-[140px] flex-1">
-                {editingLabel === f.id ? (
+                {!showArchived && editingLabel === f.id ? (
                   <div className="space-y-1">
                     <Input
                       value={labelDraft}
@@ -311,7 +360,7 @@ export default function HandoverBuilderPage() {
                       </Button>
                     </div>
                   </div>
-                ) : (
+                ) : !showArchived ? (
                   <button
                     type="button"
                     onClick={() => startEditLabel(f.id)}
@@ -324,6 +373,8 @@ export default function HandoverBuilderPage() {
                     </span>
                     <Pencil className="h-3 w-3 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" />
                   </button>
+                ) : (
+                  <span className="text-sm font-medium">{index + 1}. {f.label}</span>
                 )}
                 <div className="mt-1">
                   <p className="text-xs text-ink-muted">
@@ -341,7 +392,8 @@ export default function HandoverBuilderPage() {
               <Badge variant={f.isActive ? 'default' : 'secondary'}>
                 {f.isActive ? 'Aktif' : 'Nonaktif'}
               </Badge>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {!showArchived && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -354,10 +406,22 @@ export default function HandoverBuilderPage() {
                   <Pencil className="h-3.5 w-3.5" />
                   Ubah
                 </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => toggleActive(f)}>
                   <Power className="h-3.5 w-3.5" />
-                  {f.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                  {f.isActive ? 'Arsipkan' : 'Pulihkan'}
                 </Button>
+                {showArchived && f.canDelete && (
+                  <Button variant="outline" size="sm" onClick={() => void permanentlyDeleteField(f)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Hapus permanen
+                  </Button>
+                )}
+                {showArchived && !f.canDelete && (
+                  <span className="self-center text-xs text-ink-muted">
+                    Sudah digunakan: hanya dapat dipulihkan
+                  </span>
+                )}
               </div>
             </div>
           ))}

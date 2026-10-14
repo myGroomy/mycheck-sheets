@@ -4,6 +4,7 @@ import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { locateIncidentCategory } from '../../../../../lib/admin/resolve-config';
 import { deleteIncidentCategory, getIncidentCategory, updateIncidentCategory } from '../../../../../lib/admin/template-service';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
+import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
 import { asStr, filterRows } from '../../../../../lib/store';
 import { isCategoryInUse } from '../../../../../lib/incidents';
 
@@ -48,13 +49,24 @@ withAuth(async (_req, ctx, _session) => {
   const id = new URL(_req.url).pathname.split('/').pop() ?? '';
   const loc = await locateIncidentCategory(ctx, id);
   if (!loc) return NextResponse.json({ error: 'Kategori incident tidak ditemukan' }, { status: 404 });
-  if (await isCategoryInUse(ctx, id)) {
-    return NextResponse.json({ error: 'Kategori sudah dipakai incident sehingga tidak bisa dihapus. Nonaktifkan saja.' }, { status: 409 });
+  const existing = await getIncidentCategory(loc.spreadsheetId, id, true);
+  if (!existing) return NextResponse.json({ error: 'Kategori incident tidak ditemukan' }, { status: 404 });
+
+  const inUse = await isCategoryInUse(loc.spreadsheetId, id);
+  const decision = decidePermanentDelete('incident_category', {
+    isActive: existing.is_active,
+    inUse,
+  });
+  if (!decision.allowed) {
+    return NextResponse.json({ error: decision.message, reason: decision.reason }, { status: decision.status });
   }
+
   await deleteIncidentCategory(loc.spreadsheetId, id);
   await appendAuditLogFor(loc.spreadsheetId, {
     actorId: ctx.user.id, action: 'delete_incident_category', objectType: 'incident_category',
     objectId: id, branchId: loc.branchId,
+    before: { id, name: existing.name, isActive: existing.is_active },
+    after: { deleted: true },
   });
   return NextResponse.json({ message: 'Kategori incident berhasil dihapus' });
 });

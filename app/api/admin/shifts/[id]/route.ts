@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
+import { appendAuditLogFor } from '../../../../../lib/db/audit';
+import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
 import { locateShiftDefinition } from '../../../../../lib/admin/resolve-config';
 import {
   deleteShiftDefinition,
@@ -67,27 +69,27 @@ withAuth(async (_req, ctx, _session) => {
 
   const updates: Record<string, unknown> = {};
   if (body['name'] !== undefined) updates['name'] = String(body['name']).trim();
-  if (body['startTime'] ?? body['start_time']) {
+  if ((body['startTime'] ?? body['start_time']) !== undefined) {
     const v = String(body['startTime'] ?? body['start_time']);
     if (!/^\d{2}:\d{2}$/.test(v)) {
       return NextResponse.json({ error: 'Format startTime harus HH:MM' }, { status: 400 });
     }
     updates['start_time'] = v;
   }
-  if (body['endTime'] ?? body['end_time']) {
+  if ((body['endTime'] ?? body['end_time']) !== undefined) {
     const v = String(body['endTime'] ?? body['end_time']);
     if (!/^\d{2}:\d{2}$/.test(v)) {
       return NextResponse.json({ error: 'Format endTime harus HH:MM' }, { status: 400 });
     }
     updates['end_time'] = v;
   }
-  if (body['crossesMidnight'] ?? body['crosses_midnight']) {
+  if ((body['crossesMidnight'] ?? body['crosses_midnight']) !== undefined) {
     updates['crosses_midnight'] = Boolean(body['crossesMidnight'] ?? body['crosses_midnight']);
   }
-  if (body['sortOrder'] ?? body['sort_order']) {
+  if ((body['sortOrder'] ?? body['sort_order']) !== undefined) {
     updates['sort_order'] = Number(body['sortOrder'] ?? body['sort_order']) || 0;
   }
-  if (body['isActive'] ?? body['is_active']) {
+  if ((body['isActive'] ?? body['is_active']) !== undefined) {
     updates['is_active'] = Boolean(body['isActive'] ?? body['is_active']);
   }
 
@@ -97,7 +99,7 @@ withAuth(async (_req, ctx, _session) => {
 
   await updateShiftDefinition(loc.spreadsheetId, id, updates);
 
-  const definition = await getShiftDefinition(loc.spreadsheetId, id);
+  const definition = await getShiftDefinition(loc.spreadsheetId, id, true);
   return NextResponse.json({
     message: 'Definisi shift berhasil diperbarui',
     shift: toApiShift(definition, loc.branchId),
@@ -117,38 +119,45 @@ withAuth(async (_req, ctx, _session) => {
   if (!loc) {
     return NextResponse.json({ error: 'Definisi shift tidak ditemukan' }, { status: 404 });
   }
+  const definition = await getShiftDefinition(loc.spreadsheetId, id, true);
+  if (!definition) {
+    return NextResponse.json({ error: 'Definisi shift tidak ditemukan' }, { status: 404 });
+  }
 
   // Shift definition yang sudah punya instance historis tidak boleh dihapus
-  const instances = await shiftInstanceCount(loc.spreadsheetId, id);
-  if (instances > 0) {
-    const children = await templateChildCounts(loc.spreadsheetId, id);
+  const instances = await shiftInstanceCount(loc.spreadsheetId, id, true);
+  const children = await templateChildCounts(loc.spreadsheetId, id, true);
+
+  // Keputusan allow/tolak di satu tempat (lib/admin/lifecycle-policy.ts):
+  // status arsip, histori shift, dan konfigurasi turunan.
+  const decision = decidePermanentDelete('shift', {
+    isActive: definition.is_active,
+    hasShiftHistory: instances > 0,
+    hasChildren: children.categories > 0 || children.handover_fields > 0,
+  });
+  if (!decision.allowed) {
     return NextResponse.json(
       {
-        error:
-          'Definisi shift sudah dipakai oleh shift instance sehingga tidak bisa dihapus. Nonaktifkan saja.',
+        error: decision.message,
+        reason: decision.reason,
         shiftInstances: instances,
         categories: children.categories,
         handoverFields: children.handover_fields,
       },
-      { status: 409 }
-    );
-  }
-
-  // Jangan sampai kategori / handover field tertinggal tanpa induk
-  const children = await templateChildCounts(loc.spreadsheetId, id);
-  if (children.categories > 0 || children.handover_fields > 0) {
-    return NextResponse.json(
-      {
-        error:
-          'Hapus atau pindahkan dulu kategori SOP dan bidang handover milik definisi shift ini.',
-        categories: children.categories,
-        handoverFields: children.handover_fields,
-      },
-      { status: 409 }
+      { status: decision.status }
     );
   }
 
   await deleteShiftDefinition(loc.spreadsheetId, id);
+  await appendAuditLogFor(loc.spreadsheetId, {
+    actorId: ctx.user.id,
+    action: 'delete_shift_definition',
+    objectType: 'shift_definition',
+    objectId: id,
+    branchId: loc.branchId,
+    before: { id, name: definition.name, isActive: definition.is_active },
+    after: { deleted: true },
+  });
 
   return NextResponse.json({ message: 'Definisi shift berhasil dihapus' });
 });

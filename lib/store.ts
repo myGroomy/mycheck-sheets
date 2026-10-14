@@ -4,6 +4,8 @@
 import { getSheetsClient } from './google/client';
 import {
   readSheetData,
+  readSheetDataFresh,
+  readSheetDataRaw,
   readSheetsBatch,
   appendRows,
   writeCells,
@@ -26,6 +28,18 @@ export async function listRows(spreadsheetId: string, sheet: string): Promise<Re
   });
 }
 
+export async function listRowsFresh(
+  spreadsheetId: string,
+  sheet: string
+): Promise<Record<string, unknown>[]> {
+  const { headers, rows } = await readSheetDataFresh(spreadsheetId, sheet);
+  return rows.map((row) => {
+    const obj: Record<string, unknown> = {};
+    headers.forEach((header, index) => { obj[header] = row[index]; });
+    return obj;
+  });
+}
+
 export async function listRowsWithNumber(spreadsheetId: string, sheet: string): Promise<Row[]> {
   const { headers, rows } = await readSheetData(spreadsheetId, sheet);
   return rows.map((row, i) => {
@@ -33,6 +47,28 @@ export async function listRowsWithNumber(spreadsheetId: string, sheet: string): 
     headers.forEach((h, j) => { obj[h] = row[j]; });
     return { rowNumber: i + 2, data: obj };
   });
+}
+
+export async function listRowsWithNumberFresh(
+  spreadsheetId: string,
+  sheet: string
+): Promise<Row[]> {
+  const { headers, rows } = await readSheetDataRaw(spreadsheetId, sheet);
+  return rows.map((row, index) => {
+    const data: Record<string, unknown> = {};
+    headers.forEach((header, column) => { data[header] = row[column]; });
+    return { rowNumber: index + 2, data };
+  });
+}
+
+export async function findRowFresh(
+  spreadsheetId: string,
+  sheet: string,
+  column: string,
+  value: string
+): Promise<Row | null> {
+  const rows = await listRowsWithNumberFresh(spreadsheetId, sheet);
+  return rows.find((row) => String(row.data[column] ?? '') === value) ?? null;
 }
 
 export async function findRow(spreadsheetId: string, sheet: string, column: string, value: string): Promise<Row | null> {

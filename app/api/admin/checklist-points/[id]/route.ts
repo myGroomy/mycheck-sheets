@@ -2,10 +2,17 @@ import { NextResponse } from 'next/server';
 import { inputTypeSchema } from '@/lib/shared';
 import { normalizeInputTypes } from '@/lib/shared';
 import { requireRole, withAuth } from '../../../../../lib/api-auth';
-import { locateChecklistPoint } from '../../../../../lib/admin/resolve-config';
+import { appendAuditLogFor } from '../../../../../lib/db/audit';
+import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
 import {
+  locateChecklistPoint,
+  locateSopCategory,
+} from '../../../../../lib/admin/resolve-config';
+import {
+  checklistPointHasEntryHistory,
   deleteChecklistPoint,
   listChecklistPoints,
+  shiftInstanceCount,
   updateChecklistPoint,
 } from '../../../../../lib/admin/template-service';
 
@@ -221,28 +228,44 @@ withAuth(async (_req, ctx, _session) => {
   if (!loc) {
     return NextResponse.json({ error: 'Checklist point tidak ditemukan' }, { status: 404 });
   }
+  const point = (await listChecklistPoints(loc.spreadsheetId, loc.sopCategoryId, true))
+    .find((item) => item.id === id);
+  if (!point) {
+    return NextResponse.json({ error: 'Checklist point tidak ditemukan' }, { status: 404 });
+  }
 
   // Point pada shift yang sudah punya instance historis tidak boleh dihapus
-  // ( Entries historis mengreferensikan point_ref ini). Satu pembacaan
-  // ShiftDefinitions cukup untuk peasannya.
-  const { locateSopCategory } = await import('../../../../../lib/admin/resolve-config');
+  // (Entries historis mengreferensikan point_ref ini). Induk yang tidak
+  // terverifikasi diperlakukan sama: fail closed.
   const parent = await locateSopCategory(ctx, loc.sopCategoryId);
-  if (parent) {
-    const { shiftInstanceCount } = await import('../../../../../lib/admin/template-service');
-    const instances = await shiftInstanceCount(loc.spreadsheetId, parent.shiftDefinitionId);
-    if (instances > 0) {
-      return NextResponse.json(
-        {
-          error:
-            'Point berada pada shift yang sudah punya shift instance sehingga tidak bisa dihapus. Nonaktifkan saja.',
-          shiftInstances: instances,
-        },
-        { status: 409 }
-      );
-    }
+  const instances = parent
+    ? await shiftInstanceCount(loc.spreadsheetId, parent.shiftDefinitionId, true)
+    : 0;
+  const hasEntryHistory = await checklistPointHasEntryHistory(loc.spreadsheetId, id);
+
+  const decision = decidePermanentDelete('checklist_point', {
+    isActive: point.is_active,
+    parentVerified: Boolean(parent),
+    hasShiftHistory: instances > 0,
+    hasEntryRefs: hasEntryHistory,
+  });
+  if (!decision.allowed) {
+    return NextResponse.json(
+      { error: decision.message, reason: decision.reason, shiftInstances: instances },
+      { status: decision.status }
+    );
   }
 
   await deleteChecklistPoint(loc.spreadsheetId, id);
+  await appendAuditLogFor(loc.spreadsheetId, {
+    actorId: ctx.user.id,
+    action: 'delete_checklist_point',
+    objectType: 'checklist_point',
+    objectId: id,
+    branchId: loc.branchId,
+    before: { id, title: point.title, isActive: point.is_active },
+    after: { deleted: true },
+  });
 
   return NextResponse.json({ message: 'Checklist point berhasil dihapus' });
 });

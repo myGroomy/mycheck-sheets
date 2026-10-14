@@ -64,6 +64,12 @@ export function ShiftCloseDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportNumber, setReportNumber] = useState<string | null>(null);
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [summaryStats, setSummaryStats] = useState<{
+    total_required: number;
+    done: number;
+    skipped: number;
+  } | null>(null);
 
   const missingFields = fields.filter((field) => {
     if (!field.is_required) return false;
@@ -91,6 +97,8 @@ export function ShiftCloseDialog({
     setPin('');
     setError(null);
     setReportNumber(null);
+    setReportId(null);
+    setSummaryStats(null);
   };
 
   const updateFieldValue = (field: HandoverField, type: string, value: unknown) => {
@@ -204,9 +212,16 @@ export function ShiftCloseDialog({
           no_incident: noIncident,
         }),
       });
-      const result = (await response.json()) as { error?: string; report_number?: string };
+      const result = (await response.json()) as {
+        error?: string;
+        report_number?: string;
+        report_id?: string | null;
+        summary_stats?: { total_required: number; done: number; skipped: number } | null;
+      };
       if (!response.ok) throw new Error(result.error || 'Shift gagal ditutup.');
       setReportNumber(result.report_number ?? 'Laporan dibuat');
+      setReportId(result.report_id ?? null);
+      setSummaryStats(result.summary_stats ?? null);
       await onClosed();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Shift gagal ditutup.');
@@ -231,9 +246,39 @@ export function ShiftCloseDialog({
                 <DialogTitle>Shift berhasil ditutup</DialogTitle>
                 <DialogDescription>Laporan {reportNumber} sudah dibuat dan dikunci.</DialogDescription>
               </DialogHeader>
-              <Button asChild className="mt-6">
-                <Link href="/">Kembali ke beranda</Link>
-              </Button>
+
+              {summaryStats && (
+                <div className="mt-4 rounded-lg border border-border bg-canvas p-4 text-left">
+                  <h4 className="text-sm font-semibold">Ringkasan laporan</h4>
+                  <dl className="mt-2 space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <dt className="text-ink-muted">Item selesai</dt>
+                      <dd className="font-medium">{summaryStats.done}/{summaryStats.total_required}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink-muted">Item di-skip</dt>
+                      <dd className="font-medium">{summaryStats.skipped}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink-muted">Status</dt>
+                      <dd className="font-medium text-emerald-700">Terkunci</dd>
+                    </div>
+                  </dl>
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-col gap-2">
+                {reportId && (
+                  <Button asChild>
+                    <Link href={`/report/${encodeURIComponent(reportId)}`}>
+                      Lihat laporan
+                    </Link>
+                  </Button>
+                )}
+                <Button asChild variant="outline">
+                  <Link href="/">Kembali ke beranda</Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <>

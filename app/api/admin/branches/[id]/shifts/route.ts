@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { resolveCabang } from '../../../../../../lib/google/registry';
 import { createShiftDefinition, listShiftDefinitions } from '../../../../../../lib/admin/template-service';
+import { canDeleteConfig } from '../../../../../../lib/admin/lifecycle-policy';
+import { asStr, filterRowsMulti } from '../../../../../../lib/store';
 
 /**
  * Daftar definisi shift pada cabang di URL. Admin dapat meminta cabang lain
@@ -40,11 +42,33 @@ withAuth(async (_req, ctx, _session) => {
     createdAt: string;
     updatedAt: string;
     version: number;
+    canDelete: boolean;
+    hasShiftHistory: boolean;
+    hasChildren: boolean;
   }[] = [];
   try {
     const { spreadsheetId } = await resolveCabang(branchId);
-    const definitions = await listShiftDefinitions(spreadsheetId);
+    const [definitions, [instances, categories, handoverFields]] = await Promise.all([
+      listShiftDefinitions(spreadsheetId),
+      filterRowsMulti(spreadsheetId, [
+        { sheet: 'ShiftInstances' },
+        { sheet: 'SopCategories' },
+        { sheet: 'HandoverFields' },
+      ]),
+    ]);
     definitions.forEach((d) => {
+      const hasInstances = instances.some(
+        (instance) => asStr(instance['shift_definition_id']) === d.id
+      );
+      const hasChildren =
+        categories.some((category) => asStr(category['shift_definition_id']) === d.id) ||
+        handoverFields.some((field) => asStr(field['shift_definition_id']) === d.id);
+      // Sama dengan keputusan route DELETE (lib/admin/lifecycle-policy.ts).
+      const canDelete = canDeleteConfig('shift', {
+        isActive: d.is_active,
+        hasShiftHistory: hasInstances,
+        hasChildren,
+      });
       result.push({
         id: d.id,
         branchId,
@@ -57,6 +81,9 @@ withAuth(async (_req, ctx, _session) => {
         createdAt: d.created_at,
         updatedAt: d.updated_at,
         version: d.version,
+        canDelete,
+        hasShiftHistory: hasInstances,
+        hasChildren,
       });
     });
   } catch (error) {

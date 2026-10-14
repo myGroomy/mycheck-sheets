@@ -3,9 +3,12 @@ import { requireRole, withAuth } from '../../../../../../lib/api-auth';
 import { locateSopCategory } from '../../../../../../lib/admin/resolve-config';
 import {
   createChecklistPoint,
+  listChecklistPointRefsInUse,
   listChecklistPoints,
+  shiftInstanceCount,
 } from '../../../../../../lib/admin/template-service';
 import { inputTypeSchema } from '@/lib/shared';
+import { canDeleteConfig } from '../../../../../../lib/admin/lifecycle-policy';
 
 const toApiPoint = (p: {
   id: string;
@@ -60,12 +63,27 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   const points = await listChecklistPoints(loc.spreadsheetId, categoryId);
+  const archivedPoints = points.filter((point) => !point.is_active);
+  const hasShiftHistory = archivedPoints.length > 0
+    ? (await shiftInstanceCount(loc.spreadsheetId, loc.shiftDefinitionId)) > 0
+    : true;
+  const usedPointRefs =
+    !hasShiftHistory && archivedPoints.length > 0
+      ? await listChecklistPointRefsInUse(loc.spreadsheetId)
+      : new Set<string>();
+  const parentVerified = Boolean(await locateSopCategory(ctx, categoryId));
 
   return NextResponse.json({
     points: points.map((p) => ({
       ...toApiPoint(p),
       sopCategoryId: categoryId,
       branchId: loc.branchId,
+      canDelete: canDeleteConfig('checklist_point', {
+        isActive: p.is_active,
+        parentVerified,
+        hasShiftHistory,
+        hasEntryRefs: usedPointRefs.has(p.id),
+      }),
     })),
   });
 });

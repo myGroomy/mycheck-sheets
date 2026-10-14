@@ -9,11 +9,15 @@
 import { ulid } from 'ulid';
 import {
   filterRows,
+  findRowFresh,
   findRow,
   insertRow,
+  listRows,
+  listRowsFresh,
   updateRow,
 } from '../store';
 import { deleteSheetRows } from '../google/registry';
+import { getSheetsClient } from '../google/client';
 import { asBool, asNum, asStr } from '../store';
 import { normalizeInputTypes } from '../shared';
 
@@ -95,17 +99,26 @@ function parseOptions(v: unknown): string[] | null {
 async function childCount(
   spreadsheetId: string,
   sheet: string,
-  shiftDefinitionId: string
+  shiftDefinitionId: string,
+  fresh = false
 ): Promise<number> {
-  return (await filterRows(spreadsheetId, sheet, (r) => asStr(r['shift_definition_id']) === shiftDefinitionId)).length;
+  const rows = fresh
+    ? await listRowsFresh(spreadsheetId, sheet)
+    : await filterRows(spreadsheetId, sheet, () => true);
+  return rows.filter((row) => asStr(row['shift_definition_id']) === shiftDefinitionId).length;
 }
 
 // ============================================
 // Shift Definitions
 // ============================================
 
-export async function listShiftDefinitions(spreadsheetId: string): Promise<ShiftDefinition[]> {
-  const rows = await filterRows(spreadsheetId, 'ShiftDefinitions', () => true);
+export async function listShiftDefinitions(
+  spreadsheetId: string,
+  fresh = false
+): Promise<ShiftDefinition[]> {
+  const rows = fresh
+    ? await listRowsFresh(spreadsheetId, 'ShiftDefinitions')
+    : await filterRows(spreadsheetId, 'ShiftDefinitions', () => true);
   return rows
     .map((r) => ({
       id: asStr(r['id']),
@@ -124,9 +137,10 @@ export async function listShiftDefinitions(spreadsheetId: string): Promise<Shift
 
 export async function getShiftDefinition(
   spreadsheetId: string,
-  id: string
+  id: string,
+  fresh = false
 ): Promise<ShiftDefinition | null> {
-  const list = await listShiftDefinitions(spreadsheetId);
+  const list = await listShiftDefinitions(spreadsheetId, fresh);
   return list.find((s) => s.id === id) ?? null;
 }
 
@@ -175,7 +189,7 @@ export async function deleteShiftDefinition(
   spreadsheetId: string,
   id: string
 ): Promise<void> {
-  const found = await findRow(spreadsheetId, 'ShiftDefinitions', 'id', id);
+  const found = await findRowFresh(spreadsheetId, 'ShiftDefinitions', 'id', id);
   if (!found) throw new Error('SHIFT_DEFINITION_TIDAK_DITEMUKAN');
   await deleteSheetRows(spreadsheetId, 'ShiftDefinitions', found.rowNumber);
 }
@@ -230,11 +244,13 @@ export async function duplicateShiftDefinition(
 /** Hitung instance yang memakai shift definition ini (blokir hapus bila dipakai). */
 export async function shiftInstanceCount(
   spreadsheetId: string,
-  shiftDefinitionId: string
+  shiftDefinitionId: string,
+  fresh = false
 ): Promise<number> {
-  return (
-    await filterRows(spreadsheetId, 'ShiftInstances', (r) => asStr(r['shift_definition_id']) === shiftDefinitionId)
-  ).length;
+  const rows = fresh
+    ? await listRowsFresh(spreadsheetId, 'ShiftInstances')
+    : await filterRows(spreadsheetId, 'ShiftInstances', () => true);
+  return rows.filter((row) => asStr(row['shift_definition_id']) === shiftDefinitionId).length;
 }
 
 // ============================================
@@ -243,13 +259,13 @@ export async function shiftInstanceCount(
 
 export async function listSopCategories(
   spreadsheetId: string,
-  shiftDefinitionId: string
+  shiftDefinitionId: string,
+  fresh = false
 ): Promise<SopCategory[]> {
-  const rows = await filterRows(
-    spreadsheetId,
-    'SopCategories',
-    (r) => asStr(r['shift_definition_id']) === shiftDefinitionId
-  );
+  const allRows = fresh
+    ? await listRowsFresh(spreadsheetId, 'SopCategories')
+    : await filterRows(spreadsheetId, 'SopCategories', () => true);
+  const rows = allRows.filter((row) => asStr(row['shift_definition_id']) === shiftDefinitionId);
   return rows
     .map((r) => ({
       id: asStr(r['id']),
@@ -297,7 +313,7 @@ export async function updateSopCategory(
 }
 
 export async function deleteSopCategory(spreadsheetId: string, id: string): Promise<void> {
-  const found = await findRow(spreadsheetId, 'SopCategories', 'id', id);
+  const found = await findRowFresh(spreadsheetId, 'SopCategories', 'id', id);
   if (!found) throw new Error('SOP_CATEGORY_TIDAK_DITEMUKAN');
   await deleteSheetRows(spreadsheetId, 'SopCategories', found.rowNumber);
 }
@@ -331,13 +347,13 @@ export async function duplicateSopCategory(
 
 export async function listChecklistPoints(
   spreadsheetId: string,
-  sopCategoryId: string
+  sopCategoryId: string,
+  fresh = false
 ): Promise<ChecklistPoint[]> {
-  const rows = await filterRows(
-    spreadsheetId,
-    'ChecklistPoints',
-    (r) => asStr(r['sop_category_id']) === sopCategoryId
-  );
+  const allRows = fresh
+    ? await listRowsFresh(spreadsheetId, 'ChecklistPoints')
+    : await filterRows(spreadsheetId, 'ChecklistPoints', () => true);
+  const rows = allRows.filter((row) => asStr(row['sop_category_id']) === sopCategoryId);
   return rows
     .map((r) => ({
       id: asStr(r['id']),
@@ -393,10 +409,50 @@ export async function updateChecklistPoint(
 }
 
 export async function deleteChecklistPoint(spreadsheetId: string, id: string): Promise<void> {
-  const found = await findRow(spreadsheetId, 'ChecklistPoints', 'id', id);
+  const found = await findRowFresh(spreadsheetId, 'ChecklistPoints', 'id', id);
   if (!found) throw new Error('CHECKLIST_POINT_TIDAK_DITEMUKAN');
   await deleteSheetRows(spreadsheetId, 'ChecklistPoints', found.rowNumber);
 }
+
+/** Daftar point_ref yang masih dirujuk oleh semua tab historis. */
+export async function listChecklistPointRefsInUse(
+  spreadsheetId: string,
+  fresh = false
+): Promise<Set<string>> {
+  const metadata = await getSheetsClient().spreadsheets.get({
+    spreadsheetId,
+    fields: 'sheets.properties.title',
+  });
+  const historySheets = (metadata.data.sheets ?? [])
+    .map((sheet) => sheet.properties?.title ?? '')
+    .filter((title) => /^(Entries|EntryLogs)_\d{4}-\d{2}$/.test(title));
+  const used = new Set<string>();
+
+  for (let offset = 0; offset < historySheets.length; offset += 4) {
+    const batch = historySheets.slice(offset, offset + 4);
+    const rowsBySheet = await Promise.all(
+      batch.map((sheet) =>
+        fresh ? listRowsFresh(spreadsheetId, sheet) : listRows(spreadsheetId, sheet)
+      )
+    );
+    for (const rows of rowsBySheet) {
+      for (const row of rows) {
+        const pointRef = asStr(row['point_ref']);
+        if (pointRef) used.add(pointRef);
+      }
+    }
+  }
+  return used;
+}
+
+/** Cari referensi point pada semua bulan agar data lama/orphan tetap dilindungi. */
+export async function checklistPointHasEntryHistory(
+  spreadsheetId: string,
+  pointId: string
+): Promise<boolean> {
+  return (await listChecklistPointRefsInUse(spreadsheetId, true)).has(pointId);
+}
+
 
 export async function duplicateChecklistPoint(
   spreadsheetId: string,
@@ -456,9 +512,13 @@ export async function listIncidentCategories(spreadsheetId: string): Promise<Inc
 
 export async function getIncidentCategory(
   spreadsheetId: string,
-  id: string
+  id: string,
+  fresh = false
 ): Promise<IncidentCategory | null> {
-  const found = await findRow(spreadsheetId, 'IncidentCategories', 'id', id).catch(() => null);
+  const found = await (fresh
+    ? findRowFresh(spreadsheetId, 'IncidentCategories', 'id', id)
+    : findRow(spreadsheetId, 'IncidentCategories', 'id', id)
+  ).catch(() => null);
   return found ? toIncidentCategory(found.data) : null;
 }
 
@@ -492,7 +552,7 @@ export async function updateIncidentCategory(
 }
 
 export async function deleteIncidentCategory(spreadsheetId: string, id: string): Promise<void> {
-  const found = await findRow(spreadsheetId, 'IncidentCategories', 'id', id);
+  const found = await findRowFresh(spreadsheetId, 'IncidentCategories', 'id', id);
   if (!found) throw new Error('INCIDENT_CATEGORY_TIDAK_DITEMUKAN');
   await deleteSheetRows(spreadsheetId, 'IncidentCategories', found.rowNumber);
 }
@@ -503,13 +563,13 @@ export async function deleteIncidentCategory(spreadsheetId: string, id: string):
 
 export async function listHandoverFields(
   spreadsheetId: string,
-  shiftDefinitionId: string
+  shiftDefinitionId: string,
+  fresh = false
 ): Promise<HandoverField[]> {
-  const rows = await filterRows(
-    spreadsheetId,
-    'HandoverFields',
-    (r) => asStr(r['shift_definition_id']) === shiftDefinitionId
-  );
+  const allRows = fresh
+    ? await listRowsFresh(spreadsheetId, 'HandoverFields')
+    : await filterRows(spreadsheetId, 'HandoverFields', () => true);
+  const rows = allRows.filter((row) => asStr(row['shift_definition_id']) === shiftDefinitionId);
   return rows
     .map((r) => ({
       id: asStr(r['id']),
@@ -581,7 +641,7 @@ export async function updateHandoverField(
 }
 
 export async function deleteHandoverField(spreadsheetId: string, id: string): Promise<void> {
-  const found = await findRow(spreadsheetId, 'HandoverFields', 'id', id);
+  const found = await findRowFresh(spreadsheetId, 'HandoverFields', 'id', id);
   if (!found) throw new Error('HANDOVER_FIELD_TIDAK_DITEMUKAN');
   await deleteSheetRows(spreadsheetId, 'HandoverFields', found.rowNumber);
 }
@@ -589,10 +649,11 @@ export async function deleteHandoverField(spreadsheetId: string, id: string): Pr
 /** Jumlah anak untuk pesan validasi hapus. */
 export async function templateChildCounts(
   spreadsheetId: string,
-  shiftDefinitionId: string
+  shiftDefinitionId: string,
+  fresh = false
 ): Promise<{ categories: number; handover_fields: number }> {
   return {
-    categories: await childCount(spreadsheetId, 'SopCategories', shiftDefinitionId),
-    handover_fields: await childCount(spreadsheetId, 'HandoverFields', shiftDefinitionId),
+    categories: await childCount(spreadsheetId, 'SopCategories', shiftDefinitionId, fresh),
+    handover_fields: await childCount(spreadsheetId, 'HandoverFields', shiftDefinitionId, fresh),
   };
 }

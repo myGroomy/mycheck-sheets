@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Copy, ExternalLink, Pencil, Plus, Search } from 'lucide-react';
+import { Check, Copy, ExternalLink, Pencil, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ResponsiveRecordCards } from '@/components/ui/responsive-record-cards';
+import { ArchiveFilter } from '@/components/admin/archive-filter';
+import { matchesArchiveQuery, splitByArchive } from '@/lib/admin/lifecycle-policy';
 import {
   Table,
   TableBody,
@@ -124,6 +126,7 @@ export default function CabangPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const [tzList, setTzList] = useState<string[]>([
     'Asia/Jakarta',
     'Asia/Pontianak',
@@ -227,12 +230,15 @@ export default function CabangPage() {
     }
   };
 
-  const filtered = branches.filter(
-    (b) =>
-      b.name.toLowerCase().includes(query.toLowerCase()) ||
-      b.code.toLowerCase().includes(query.toLowerCase())
+  // Cabang memakai pencarian yang sama untuk mode aktif dan arsip (kolom
+  // pencarian selalu tampil), jadi query tidak hanya berlaku di arsip.
+  const { active: activeBranches, archived: archivedBranches } = splitByArchive(branches);
+  const sourceBranches = showArchived ? archivedBranches : activeBranches;
+  const filtered = sourceBranches.filter((b) =>
+    matchesArchiveQuery(query, b.name, b.code)
   );
-  const activeCount = branches.filter((b) => b.isActive).length;
+  const activeCount = activeBranches.length;
+  const archivedCount = archivedBranches.length;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-4">
@@ -247,23 +253,19 @@ export default function CabangPage() {
         </Button>
       </div>
 
-      <div className="relative w-full max-w-sm">
-        <Search
-          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-light"
-          aria-hidden="true"
-        />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Cari nama / kode cabang"
-          className="pl-9"
-          aria-label="Cari cabang"
-        />
-      </div>
+      <ArchiveFilter
+        archived={showArchived}
+        onChange={setShowArchived}
+        activeCount={activeCount}
+        archivedCount={archivedCount}
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Cari nama atau kode cabang..."
+      />
 
       <ResponsiveRecordCards
         loading={loading}
-        emptyMessage="Belum ada cabang"
+        emptyMessage={showArchived ? 'Belum ada cabang di arsip' : 'Belum ada cabang aktif'}
         records={filtered.map((b) => ({
           key: b.id,
           title: b.name,
@@ -315,7 +317,7 @@ export default function CabangPage() {
                     : undefined
                 }
               >
-                {b.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                {b.isActive ? 'Arsipkan' : 'Pulihkan'}
               </Button>
             </>
           ),
@@ -347,7 +349,7 @@ export default function CabangPage() {
             {!loading && filtered.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-ink-muted">
-                  Belum ada cabang
+                  {showArchived ? 'Belum ada cabang di arsip' : 'Belum ada cabang aktif'}
                 </TableCell>
               </TableRow>
             )}
@@ -397,7 +399,7 @@ export default function CabangPage() {
                           : undefined
                       }
                     >
-                      {b.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                      {b.isActive ? 'Arsipkan' : 'Pulihkan'}
                     </Button>
                   </div>
                 </TableCell>
@@ -494,4 +496,3 @@ export default function CabangPage() {
     </div>
   );
 }
-

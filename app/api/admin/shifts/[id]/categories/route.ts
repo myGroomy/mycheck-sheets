@@ -4,7 +4,10 @@ import { locateShiftDefinition } from '../../../../../../lib/admin/resolve-confi
 import {
   createSopCategory,
   listSopCategories,
+  shiftInstanceCount,
 } from '../../../../../../lib/admin/template-service';
+import { canDeleteConfig } from '../../../../../../lib/admin/lifecycle-policy';
+import { asStr, filterRows } from '../../../../../../lib/store';
 
 const toApiCategory = (c: {
   id: string;
@@ -39,12 +42,32 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   const categories = await listSopCategories(loc.spreadsheetId, shiftId);
+  const hasShiftHistory = (await shiftInstanceCount(loc.spreadsheetId, shiftId)) > 0;
+  // Jumlah item per kategori diambil dalam satu pembacaan supaya kelayakan
+  // hapus kategori tidak memerlukan satu request per kategori.
+  const categoryIds = new Set(categories.map((category) => category.id));
+  const pointRows = await filterRows(
+    loc.spreadsheetId,
+    'ChecklistPoints',
+    (row) => categoryIds.has(asStr(row['sop_category_id']))
+  );
+  const pointCounts: Record<string, number> = {};
+  for (const row of pointRows) {
+    const categoryId = asStr(row['sop_category_id']);
+    pointCounts[categoryId] = (pointCounts[categoryId] ?? 0) + 1;
+  }
 
   return NextResponse.json({
     categories: categories.map((c) => ({
       ...toApiCategory(c),
       shiftDefinitionId: shiftId,
       branchId: loc.branchId,
+      hasShiftHistory,
+      canDelete: canDeleteConfig('sop_category', {
+        isActive: c.is_active,
+        hasShiftHistory,
+        hasChildren: (pointCounts[c.id] ?? 0) > 0,
+      }),
     })),
   });
 });
