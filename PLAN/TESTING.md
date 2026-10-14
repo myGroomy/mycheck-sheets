@@ -1,145 +1,127 @@
-# Testing Guide MyCheck
+# Panduan Verifikasi MyCheck
 
-## 1. Tujuan
-Memastikan alur shift berjalan benar, gagal dengan aman, data antar cabang terisolasi, dan guard konsistensi tetap tegak di atas Google Sheets.
+**Status audit 14 Oktober 2026:** repository memiliki lint, typecheck, dan
+build; tidak ditemukan script test otomatis atau file `*.test.*` /
+`*.spec.*`. Skenario di bawah adalah checklist usulan/manual dan **belum
+dianggap lulus** sampai ada hasil eksekusi yang dicatat.
 
-Tandai `[x]` hanya jika benar-benar diverifikasi. Pisahkan **[Otomatis]** dan **[Manual]**.
+## 1. Pemeriksaan otomatis yang tersedia
 
-## 2. Alur Kritis (blocker bila rusak)
-Login -> Buka Shift -> (Baca handover) -> Checklist bersama -> Handover -> Tutup Shift (PIN) -> Laporan terkunci -> Bagikan WhatsApp -> Buka `/r/[token]`
+Jalankan dari root project:
 
-## 3. Autentikasi dan Sesi
-- [ ] [Otomatis] PIN benar masuk; PIN salah ditolak dengan pesan umum
-- [ ] [Otomatis] 5 PIN salah mengunci akun; hitung mundur tampil; admin dapat membuka
-- [ ] [Otomatis] Akun nonaktif tidak bisa login dan sesinya dicabut
-- [ ] [Manual] Login pertama memaksa ganti PIN
-- [ ] [Otomatis] Ganti PIN butuh PIN lama
-- [ ] [Otomatis] Paksa logout membuat sesi lama ditolak
-- [ ] [Manual] Sesi bertahan 30 hari di HP (termasuk iOS PWA terpasang)
-- [ ] [Otomatis] Hash PIN argon2, tidak ada PIN di log atau respons
+```bash
+npm run lint
+npm run typecheck
+npm run build
+git diff --check
+```
 
-## 4. Otorisasi dan Isolasi Cabang
-- [ ] [Otomatis] Petugas tidak dapat membaca/menulis cabang di luar akses (uji langsung ke API, bukan hanya UI)
-- [ ] [Otomatis] Petugas tidak dapat memanggil endpoint admin
-- [ ] [Otomatis] Cabang nonaktif tidak bisa buka shift baru; riwayat tetap terbaca
-- [ ] [Manual] Akun dua cabang: pemilih cabang benar, nama pelaku tercatat
+Perintah tersebut tidak menguji service account, spreadsheet, Google Drive,
+akses role/cabang, konkurensi request, browser, atau deployment.
 
-## 5. Siklus Shift
-- [ ] [Otomatis] BR-01: dua Buka Shift bersamaan pada kunci sama -> satu PJ, satu bergabung
-- [ ] [Otomatis] Shift lewat tengah malam: tanggal = tanggal dibuka (zona cabang)
-- [ ] [Manual] Buka shift di luar jam: peringatan lunak, laporan ditandai
-- [ ] [Otomatis] Snapshot: ubah template saat shift berjalan tidak mengubah shift itu
-- [ ] [Otomatis] Hanya PJ yang bisa Tutup Shift
-- [ ] [Otomatis] Tutup ditolak jika item wajib belum selesai/skip atau handover wajib kosong
-- [ ] [Otomatis] Setelah ditutup, semua tulis ke shift itu ditolak
+## 2. Persiapan uji manual/integrasi
 
-## 6. Checklist Bersama
-- [ ] [Otomatis] BR-12: dua akun mencentang item sama -> yang pertama diterima, yang kedua mendapat "sudah diselesaikan oleh X"
-- [ ] [Otomatis] Semua tipe input tersimpan benar (centang, foto, teks, angka, OK/Tidak OK)
-- [ ] [Otomatis] Angka di luar rentang ditandai
-- [ ] [Otomatis] Label waktu benar di batas toleransi (tepat 15 menit, 15 menit + 1 detik)
-- [ ] [Otomatis] Label memakai jam server, bukan jam HP
-- [ ] [Otomatis] Skip wajib alasan; dihitung selesai; tampil di laporan
-- [ ] [Otomatis] Batal centang tercatat di log (siapa, kapan)
-- [ ] [Manual] Tidak ada tombol "centang semua"
-- [ ] [Otomatis] Item hanya muncul pada hari berlaku
-- [ ] [Otomatis] Peserta tercatat pada aksi pertama, bukan saat hanya membuka layar
+- Gunakan Registry dan spreadsheet cabang uji yang terpisah dari data aktif.
+- Siapkan akun petugas untuk satu cabang, petugas untuk dua cabang, dan admin.
+- Pastikan foto uji tidak mengandung data pribadi; sediakan folder Drive uji.
+- Catat versi/browser, tanggal, route, input, hasil yang diharapkan, hasil
+  aktual, dan log yang sudah disensor.
+- Jalankan uji konkurensi dari dua akun/perangkat atau dua request paralel,
+  bukan hanya dua tab dengan sesi yang sama.
 
-## 7. Handover dan Incident
-- [ ] [Otomatis] Handover wajib menahan penutupan bila field wajib kosong
-- [ ] [Otomatis] "Sudah dibaca" tercatat (siapa, kapan)
-- [ ] [Manual] Incident open tampil di handover
-- [ ] [Otomatis] Incident tidak dapat diedit; catatan tambahan tercatat
-- [ ] [Otomatis] Penautan otomatis: shift berjalan, jendela 4 jam setelah shift berakhir, selain itu "Di luar shift"
-- [ ] [Otomatis] Status incident hanya dapat diubah admin
-- [ ] [Manual] Foto hingga 5, ukuran besar dikompres; foto ke-6 ditolak
-- [ ] [Manual] Waktu isi incident < 1 menit
+## 3. Auth, sesi, dan akses
 
-## 8. Laporan, Berbagi, Operasi Admin
-- [ ] [Otomatis] Laporan memuat header, checklist per kategori, foto, skip, incident, handover, kontribusi, addendum
-- [ ] [Manual] Kontribusi per petugas tampil netral, tanpa peringkat
-- [ ] [Otomatis] Addendum menambah catatan tanpa mengubah isi asli
-- [ ] [Otomatis] Tutup paksa: ditandai, item wajib belum selesai ditandai tidak lengkap, alasan tercatat
-- [ ] [Otomatis] Ganti PJ, void, buka kunci wajib alasan + PIN dan tercatat di audit log
-- [ ] [Otomatis] Void dikecualikan dari statistik
-- [ ] [Otomatis] Token publik: valid membuka laporan; kedaluwarsa dan dicabut menampilkan halaman informasi
-- [ ] [Otomatis] Token tidak dapat ditebak dan hanya menampilkan satu laporan
-- [ ] [Manual] Tautan `wa.me` memakai template admin dengan variabel terisi
+- [ ] Uji login benar/salah dan akun nonaktif; verifikasi error tanpa
+  membocorkan secret atau nilai PIN.
+- [ ] Uji perubahan PIN lama/baru, nilai format salah, dan login setelah PIN
+  diubah.
+- [ ] Uji masa berlaku token dan perilaku logout.
+- [ ] Dokumentasikan bahwa logout-all pada source saat ini hanya membersihkan
+  cookie pemanggil; jangan menganggap sesi perangkat lain tercabut.
+- [ ] Uji petugas mengakses endpoint admin dan cabang di luar akses melalui
+  request langsung.
+- [ ] Uji halaman `/ganti-pin`; pastikan jangan menganggap forced redirect
+  berjalan, karena guard saat ini tidak memaksa redirect berdasar
+  `Must_Change_Pin`.
 
-## 9. Data Layer (Google Sheets)
-- [ ] [Otomatis] BR-01: dua `POST /api/shifts/open` bersamaan untuk definisi+tanggal yang sama → hanya satu instance dibuat
-- [ ] [Otomatis] BR-12: dua aksi pada `point_ref` yang sama → satu `diterima`, satu `409 BR12_CONFLICT`
-- [ ] [Otomatis] Semua tulisan memakai `RAW`: `shift_date` & `tab_month` tetap string ISO, centang tetap `"true"`/`"false"` (bukan serial angka/boolean)
-- [ ] [Otomatis] Idempotency: `client_action_id` duplikat → `status: duplikat`, tidak insert baru
-- [ ] [Otomatis] Hash chain audit: edit manual satu baris `AuditLog_*` → verifikasi mendeteksi mismatch
-- [ ] [Otomatis] Mutasi Registry/Users meng-invalidate cache (ubah user → daftar user terbaru tanpa tunggu TTL)
-- [ ] [Otomatis] PIN yang baru di-reset langsung ditolak oleh `verifyAdminPin` (tidak menunggu TTL cache)
-- [ ] [Otomatis] `filterRowsMulti` mengembalikan hasil identik dengan `filterRows` per-sheet
-- [ ] [Otomatis] Tab bulanan otomatis dibuat saat shift pertama dibuka di bulan baru
-- [ ] [Otomatis] Tidak ada baris yang dihapus oleh kode aplikasi pada shift/incident/laporan (BR-40)
-- [ ] [Manual] `template_snapshot` shift terbesar masih muat di satu sel (batas praktis 50.000 karakter)
-- [ ] [Manual] Waktu respons wajar dengan data realistis (ribuan entries)
-- [ ] [Manual] Hash chain audit diverifikasi (chain terputus = reset per bulan, ituemonsengaja)
+**Catatan risiko source:** login membandingkan PIN plaintext; tidak ditemukan
+rate limiting atau lockout login. Jangan melakukan brute-force test terhadap
+akun/data production.
 
-## 10. Offline dan Koneksi
-- [ ] [Manual] Mode pesawat: banner "Tidak ada koneksi" muncul; aksi wajib online disabled dengan tooltip
-- [ ] [Otomatis] Optimistic update: centang tampil selesai instan; rollback otomatis jika request gagal
-- [ ] [Manual] Jam HP dimajukan/dimundurkan: label ketepatan tetap benar (jam server)
-- [ ] [Manual] Aksi wajib online (buka/tutup shift, aksi admin) menampilkan pesan jelas saat offline
-- [ ] [Manual] Sesi habis saat offline: dialog informatif saat kembali online
-- [ ] [Manual] Foto gagal unggah: pesan error jelas, tidak menghalangi item lain
+## 4. Siklus shift dan checklist
 
-## 11. Notifikasi dan Pekerjaan Terjadwal
-- [ ] [Otomatis] Cron `Summary` menghasilkan angka sama dengan hitungan data mentah
-- [ ] [Otomatis] Shift melewati jam selesai tanpa ditutup -> peringatan admin
-- [ ] [Otomatis] Endpoint cron menolak request tanpa `CRON_SECRET`
-- [ ] [Manual] Pusat notifikasi menandai sudah dibaca; preferensi per jenis berfungsi
-- [ ] [Manual] Web push di Android; di iOS hanya setelah dipasang ke layar utama
+- [ ] Buka shift baru pada cabang/tanggal uji; periksa zona waktu, status,
+  PJ, peserta, dan snapshot yang tersimpan.
+- [ ] Kirim dua request buka untuk definisi/tanggal/tipe test yang sama;
+  periksa instance kanonik, hasil respons, dan baris hasil rekonsiliasi.
+- [ ] Bergabung dari akun kedua; pastikan progress dan pelaku tercatat.
+- [ ] Uji semua tipe input yang dikonfigurasi, rentang angka, opsi pilihan,
+  skip beralasan, pembatalan, dan idempotensi `client_action_id`.
+- [ ] Kirim dua aksi checklist pada item yang sama secara paralel; periksa
+  hasil accepted/conflict, entry kanonik, log, dan tampilan klien setelah
+  refresh.
+- [ ] Uji polling/refresh ketika tab terlihat, tersembunyi, kembali fokus,
+  serta setelah aksi berhasil/gagal.
+- [ ] Uji item wajib yang belum lengkap menahan penutupan; field handover
+  wajib dan PIN PJ divalidasi; report/status terbentuk setelah sukses.
+- [ ] Uji data dan respons ketika operasi Sheets parsial gagal. Beberapa write
+  bukan satu transaksi sehingga kondisi parsial perlu diperiksa eksplisit.
 
-## 12. Responsif dan Aksesibilitas
-Uji minimal: 320px, HP besar, tablet, desktop.
-- [ ] [Manual] Tidak ada horizontal overflow
-- [ ] [Manual] Target sentuh >= 48px; bottom nav tidak menutupi tombol aksi
-- [ ] [Manual] Safe-area iOS benar
-- [ ] [Manual] Keypad numerik muncul untuk PIN
-- [ ] [Manual] Checklist Builder dapat dipakai di layar target admin
-- [ ] [Manual] Label input, fokus terlihat, navigasi keyboard di admin
-- [ ] [Manual] Sidebar desktop menampilkan kelompok/urutan Dashboard, Operasional, Laporan, Konfigurasi, Administrasi; setiap tautan membuka route yang benar.
-- [ ] [Manual] Bottom navigation admin di HP membuka Dashboard, Operasi, Incident, Laporan; drawer menampilkan Konfigurasi dan Administrasi tanpa menutupi aksi halaman.
-- [ ] [Manual] Tab Daftar Incident/Kategori menandai tab aktif dengan benar; kedua URL langsung tetap membuka tab yang sesuai.
-- [ ] [Manual] Status tidak hanya dengan warna (ada ikon + teks)
-- [ ] [Manual] Kontras terbaca di bawah cahaya terang
+## 5. Incident, foto, handover, dan laporan
 
-## 13. Keamanan dan Privasi
-- [ ] [Otomatis] Tidak ada rahasia (service account, secret, pepper) di bundel klien
-- [ ] [Otomatis] Cookie sesi `HttpOnly`, `Secure`, `SameSite`
-- [ ] [Otomatis] CSRF dan rate limiting aktif (login, aksi sensitif)
-- [ ] [Otomatis] Input divalidasi server; unggahan foto divalidasi tipe dan ukuran
-- [ ] [Manual] Foto tidak dapat diakses lewat tautan langsung tanpa cek akses
-- [ ] [Otomatis] Pesan galat tidak membocorkan detail database/Google
+- [ ] Buat incident dengan dan tanpa shift; uji status, catatan, dan batas foto.
+- [ ] Uji file WebP/PNG/JPEG, ukuran maksimum 5 MB per foto, format ditolak,
+  owner yang tidak sah, dan akses foto dengan user yang tidak berwenang.
+- [ ] Uji handover dan ack baca untuk shift berikutnya; uji field kombinasi
+  dan foto handover.
+- [ ] Periksa laporan terkunci, isi checklist/skip/incident/handover/peserta,
+  addendum, token valid/kedaluwarsa/dicabut, dan foto publik token.
+- [ ] Uji CSV export termasuk nilai yang diawali karakter formula; PDF export
+  tidak ditemukan pada source saat audit.
 
-## 14. Release Blockers
-Jangan rilis bila:
-- Login/otorisasi bocor antar cabang
-- BR-01 atau BR-12 dapat dilanggar lewat tulis API, atau rekonsiliasi tidak mendeteksi pelanggaran akibat edit manual
-- Shift/laporan terkunci masih dapat diubah lewat API
-- Alur kritis (bagian 2) tidak selesai end to end
-- Data hilang saat offline-sync
-- Rahasia terekspos di klien
-- Alur kritis tidak dapat dipakai di HP
+## 6. Admin, audit, statistik, notifikasi
 
-## 15. Format Laporan Bug
-- Tes:
-- Diharapkan:
-- Aktual:
-- Perangkat/browser:
-- Langkah reproduksi:
-- Screenshot/log:
-- Tingkat keparahan:
-- Status:
+- [ ] Uji CRUD cabang/user/template dan perubahan yang berlaku hanya untuk
+  shift baru.
+- [ ] Uji force-close, change-PJ, void, open-on-behalf, addendum, reset PIN,
+  unlock akun, dan operasi sensitif yang sesuai; pastikan alasan/PIN/audit
+  mengikuti kontrak handler masing-masing.
+- [ ] Periksa Dashboard dan `/api/admin/stats` terhadap data fixture yang
+  diketahui; jangan menyamakan endpoint stats dengan seluruh metrik PRD.
+- [ ] Uji daftar dan mark-as-read notifikasi. Jangan menganggap web push atau
+  semua event notification tersedia.
+- [ ] Periksa append audit log, urutan/hash per tab bulanan. Endpoint
+  `/api/cron/verify` saat ini hanya memvalidasi secret; jangan menandai
+  verifikasi hash-chain terjadwal lulus.
 
-## 16. Catatan Eksekusi
-- Jalankan pengujian konkurensi dengan dua akun/perangkat nyata, bukan hanya satu tab.
-- Uji dengan dua cabang agar isolasi data terverifikasi.
-- Gunakan spreadsheet Registry + spreadsheet cabang **uji terpisah** dari produksi (salin template, jangan sentuh template master).
-- Setiap fase di `PLAN/IMPLEMENTATION_PLAN.md` menjalankan bagian TESTING.md yang relevan sebelum lanjut.
+## 7. PWA, jaringan, dan tampilan
+
+- [ ] Uji manifest, install prompt pada browser yang mendukung, dan
+  pendaftaran service worker production.
+- [ ] Uji cache hanya untuk aset shell; data checklist/report tidak dijamin
+  dapat dibuka offline dan mutasi tidak memiliki offline queue.
+- [ ] Uji banner status koneksi dan aksi gagal saat offline; muat ulang status
+  sebelum mengulangi write.
+- [ ] Uji viewport 320px, ponsel, tablet, desktop, safe-area, overflow,
+  keyboard/focus, kontras, dan label form.
+- [ ] Verifikasi menu role, active state, drawer, sidebar, dan ruang bawah
+  navigasi agar aksi tidak tertutup.
+
+## 8. Cara mencatat hasil
+
+Jangan centang item saat baru direncanakan. Simpan hasil eksekusi dalam
+laporan perubahan/release:
+
+```text
+Skenario:
+Lingkungan (versi/browser/akun uji):
+Langkah:
+Diharapkan:
+Aktual:
+Status (lulus/gagal/tidak dijalankan):
+Bukti/log tersensor:
+```
+
+Sebelum rilis, prioritaskan akses cabang, operasi sensitif, shift/checklist,
+penutupan, integritas laporan, dan perlindungan secret. Lulus lint/build tidak
+menggantikan uji manual atau uji integrasi tersebut.

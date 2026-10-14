@@ -1,11 +1,13 @@
 # DATABASE_SCHEMA.md Struktur Data mycheck
 
-> **Menggantikan skema PostgreSQL.**mycheck memakai **Google Sheets API**,
+> **Skema implementasi saat ini.** MyCheck memakai **Google Sheets API**,
 > bukan database SQL. Tidak ada migration, tidak ada ORM, tidak ada transaksi.
 >
-> Sumber kebenaran yang paling persis adalah **spreadsheet `Template_cabang_mycheck`**;
-> dokumen ini menjelaskan strukturnya. Definisi kolom di kode ada di
-> `lib/google/branch-schema.ts`.
+> Sumber kebenaran kolom yang dibaca/ditulis aplikasi adalah
+> `lib/google/branch-schema.ts` dan konstanta Registry di
+> `lib/google/registry-admin.ts` serta `lib/google/share-tokens.ts`. Spreadsheet
+> template dan data aktual tetap perlu dibandingkan terpisah; dokumen ini tidak
+> membuktikan header pada Google Drive cocok dengan source.
 
 ## 1. Konsep inti
 
@@ -30,13 +32,14 @@ spreadsheet cabang (snake_case). Ini disengaja jangan disamakan.
 ### `Daftar_Cabang`
 | Kolom | Tipe | Keterangan |
 |---|---|---|
-| `Cabang_ID` | string | PK. Sama dengan `Kode`. |
+| `Cabang_ID` | string | Identifier cabang yang dipakai aplikasi. |
 | `Nama_Cabang` | string | Tampil di UI. |
 | `Kode` | string | Kode unik cabang. |
 | `Timezone` | string | IANA, mis. `Asia/Jakarta`. Meng bestimmt tanggal shift. |
 | `Spreadsheet_ID` | string | ID spreadsheet cabang. Kosong = cabang nonaktif. |
 | `Folder_Drive_ID` | string | Folder Drive untuk unggah foto. |
 | `Aktif` | bool | Hanya cabang aktif yang bisa diakses. |
+| `Alamat` | string | Kolom tambahan yang ditulis oleh Registry admin. |
 
 > Cabang dibuat **nonaktif**. Wajib diisi `Spreadsheet_ID` dulu sebelum bisa
 > diaktifkan API menolak mengaktifkan cabang tanpa spreadsheet.
@@ -46,7 +49,7 @@ spreadsheet cabang (snake_case). Ini disengaja jangan disamakan.
 |---|---|---|
 | `User_ID` | string | PK, format `U-<timestamp>`. |
 | `Username` | string | Unik, dipakai sebagai identitas sesi. |
-| `PIN` | string | **Plaintext** (6 digit). Pinjaman keamanan yang disepakati. |
+| `PIN` | string | PIN 6 digit disimpan dan dibandingkan sebagai teks biasa saat ini. Ini risiko keamanan, bukan rekomendasi desain. |
 | `Nama` | string | Nama tampilan. |
 | `Role` | string | `admin` \| `petugas`. |
 | `Cabang_ID` | string | Id cabang dipisah koma. **Kosong untuk admin** (admin akses semua). |
@@ -54,8 +57,11 @@ spreadsheet cabang (snake_case). Ini disengaja jangan disamakan.
 | `Must_Change_Pin` | bool | Diset `TRUE` saat admin reset PIN user. |
 | `Created_At` | string | ISO UTC. |
 
-Tidak ada tabel `user_branch_access` akses cabang disimpan di kolom
-`Cabang_ID`. Tidak ada `pin_fail_attempts` (tidak ada lockout/rate limiting).
+Tidak ada tabel `user_branch_access`; akses petugas disimpan sebagai daftar
+comma-separated pada `Cabang_ID`. Admin memperoleh daftar semua cabang aktif.
+Tidak ada sheet counter kegagalan PIN atau sesi persisten. Endpoint `logout-all`
+yang ada hanya menghapus cookie pada browser pemanggil; ia tidak mencabut
+cookie/token stateless yang sudah terbit di perangkat lain.
 
 ### `Settings_Global`
 `Key` | `Value`. Tipe (`int`/`bool`/`string`/`text`) **tidak** disimpan di sheet —
@@ -81,8 +87,8 @@ satu pembacaan sheet.
 |---|---|---|
 | `ShiftDefinitions` | Definisi shift | `id`, `name`, `start_time`, `end_time`, `crosses_midnight`, `sort_order`, `is_active`, `created_at`, `updated_at`, `version` |
 | `SopCategories` | Kategori SOP per shift | `id`, `shift_definition_id`, `name`, `sort_order`, `is_active`, … |
-| `ChecklistPoints` | Item checklist per kategori | `id`, `sop_category_id`, `title`, `instruction`, `input_type`, `is_required`, `target_time`, `tolerance_minutes`, `active_days`, `number_min`, `number_max`, `sort_order`, `is_active`, … |
-| `HandoverFields` | Field serah terima per shift | `id`, `shift_definition_id`, `label`, `field_type`, `options`, `is_required`, `sort_order`, `is_active`, … |
+| `ChecklistPoints` | Item checklist per kategori | `id`, `sop_category_id`, `title`, `instruction`, `input_type`, `input_types`, `options`, `is_required`, `target_time`, `tolerance_minutes`, `active_days`, `number_min`, `number_max`, `sort_order`, `is_active`, … |
+| `HandoverFields` | Field serah terima per shift | `id`, `shift_definition_id`, `label`, `field_type`, `input_types`, `options`, `is_required`, `sort_order`, `is_active`, … |
 | `IncidentCategories` | Kategori incident | `id`, `name`, `sort_order`, `is_active`, `created_at`, `updated_at` |
 | `Notifications` | Notifikasi per cabang | `id`, `user_id`, `type`, `title`, `body`, `link`, `is_read`, `created_at` |
 | `_meta` | Key/value per cabang | `key`, `value` (mis. `tolerance_default_minutes`, `version`) |
@@ -99,10 +105,11 @@ satu pembacaan sheet.
 | `Snapshots` | Potongan snapshot bila terlalu besar untuk satu sel |
 | `IncidentIndex` | Indeks ringan: satu baris per incident (`incident_id`, `tab_month`, `status`, `category_id`, …) untuk mempercepat daftar |
 
-### 3.3 Sheet bulanan (transaksional)
+### 3.3 Sheet bulanan (data operasional)
 
 Berformat `<Nama>_<YYYY-MM>`, dipisah per bulan agar tidak meledak ukurannya.
-Tab dibuat otomatis oleh kode saat pertama dipakai (`ensureMonthlySheet`).
+Tab yang diminta lewat `ensureMonthlySheet` dibuat otomatis saat belum ada.
+Tidak semua sheet bulanan dibuat atau ditulis pada setiap operasi.
 
 | Sheet bulanan | Keterangan |
 |---|---|
@@ -133,19 +140,22 @@ Sheet default Google (`Sheet1`) **wajib** dihapus script setup sudah melakukanny
    `USER_ENTERED`, Sheets mengubah `"2026-10-08"` → `46303` dan `"true"` →
    `TRUE`, yang merusak `shift_date`, `tab_month`, dan nilai centang.
 2. Boolean disimpan sebagai string `'TRUE'`/`FALSE`; dibaca lewat `asBool()`.
-3. **Tidak ada transaksi.** Operasi lintas sheet tidak atomik. Kalau sebagian
-   gagal, lakukan kompensasi atau kembalikan seperti semula.
-4. **Tidak ada unique index.** BR-01 dijaga pengecekan aplikasi sebelum insert —
-   pada request paralel masih mungkin ada race (dulu dijaga advisory lock).
-5. **Tidak ada row lock.** BR-12 dijaga pengecekan state sebelum update.
-6. Hapus baris secara fisik hanya boleh untuk operasi admin yang memang
-  Bike menghapus konfigurasi. Lifecycle bisnis (shift, incident, laporan)
-   **tidak** menghapus baris hanya ubah status.
+3. **Tidak ada transaksi.** Operasi lintas sheet tidak atomik dan dapat gagal
+   sebagian; kode tidak dapat mengandalkan rollback database.
+4. **Tidak ada unique index.** BR-01 menggunakan ID deterministik dan
+   rekonsiliasi aplikasi. Ini mengurangi duplikasi tetapi bukan jaminan
+   atomik database.
+5. **Tidak ada row lock.** BR-12 menggunakan pemeriksaan state, ID entry
+   deterministik, dan rekonsiliasi aplikasi; tetap uji dengan request paralel.
+6. Kode memiliki penghapusan fisik untuk operasi admin tertentu serta status
+   nonaktif/void untuk data lain. Jangan menyimpulkan semua sheet immutable;
+   periksa route dan efek operasi spesifik sebelum menghapus data.
 
 ## 5. Menambah kolom
 
-1. Ubah header di Registry atau di seluruh spreadsheet cabang.
-2. Update `lib/google/branch-schema.ts` (`STATIC_SHEETS` atau `MONTHLY_SHEETS`).
-3. Update pemanggilnya di `lib/store.ts` / `lib/admin/template-service.ts`.
-4. Tidak ada migration tapi **penyesuaian** ke spreadsheet cabang lama wajib
-   dilakukan manual, karena kode tidak menambah kolom yang belum ada.
+1. Ubah kontrak header Registry atau `lib/google/branch-schema.ts`
+   (`STATIC_SHEETS` / `MONTHLY_SHEETS`) terlebih dahulu.
+2. Update semua pembaca/penulis yang terkait dan script setup/template.
+3. Siapkan penyesuaian untuk spreadsheet cabang lama; kode tidak melakukan
+   migrasi kolom otomatis secara umum.
+4. Uji baca/tulis pada spreadsheet non-produksi sebelum penggunaan data aktif.

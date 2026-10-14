@@ -536,6 +536,8 @@ export function ShiftChecklistClient({
               {data.shift.status === 'berjalan' && data.shift.pj_user_id === userId && (
                 <ShiftCloseDialog
                   shiftId={shiftId}
+                  shiftName={data.shift.name}
+                  shiftDate={data.shift.date}
                   isPj
                   missingRequiredItems={data.categories.flatMap((category) =>
                     category.points

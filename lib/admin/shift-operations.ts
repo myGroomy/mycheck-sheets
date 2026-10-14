@@ -29,6 +29,9 @@ import {
 import { resolveCabang } from '../google/registry';
 import { listAllUsers } from '../google/registry-admin';
 import { resolveInstance } from '../instance-resolver';
+import { shiftInstanceId as deterministicShiftInstanceId } from '../ids';
+import { voidDuplicateShiftInstances } from '../concurrency';
+import { getShiftDate, isWithinShiftHours } from '../shift/time';
 
 export type ShiftOpAction = 'force_close' | 'change_pj' | 'void';
 
@@ -105,6 +108,9 @@ async function assertUserHasBranchAccess(
   const target = users.find((u) => u.User_ID === userId);
   if (!target) return { ok: false, error: 'User tidak ditemukan.' };
   if (!target.Aktif) return { ok: false, error: 'User sedang nonaktif.' };
+  if (target.Role !== 'petugas') {
+    return { ok: false, error: 'PJ shift harus merupakan akun petugas.' };
+  }
 
   const akses = asStr(target.Cabang_ID)
     .split(',')
@@ -332,14 +338,18 @@ export async function runShiftOperation(
  */
 export async function openShiftOnBehalf(
   ctx: AuthContext,
+  branchId: string,
   shiftDefinitionId: string,
   targetUserId: string,
   reason: string
 ): Promise<ShiftOpResult & { shiftInstanceId: string }> {
-  const branchId = ctx.branchIds[0];
-  if (!branchId) throw new Error('Admin tidak punya akses cabang.');
+  if (!ctx.branchIds.includes(branchId)) {
+    throw new Error('Admin tidak punya akses ke cabang yang dipilih.');
+  }
 
-  const { spreadsheetId } = await resolveCabang(branchId);
+  const { spreadsheetId, cabang } = await resolveCabang(branchId);
+  const timezone = asStr(cabang['Timezone']) || 'Asia/Jakarta';
+  const branchName = asStr(cabang['Nama_Cabang']) || branchId;
 
   const definitions = await filterRows(
     spreadsheetId,
@@ -348,19 +358,41 @@ export async function openShiftOnBehalf(
   );
   const definition = definitions[0];
   if (!definition) throw new Error('Definisi shift tidak ditemukan');
+  if (asStr(definition['is_active']).toLowerCase() !== 'true' && definition['is_active'] !== true) {
+    throw new Error('Definisi shift tidak aktif.');
+  }
 
   const check = await assertUserHasBranchAccess(targetUserId, branchId);
   if (!check.ok) throw new Error(check.error);
 
-  const { getShiftDate } = await import('../shift/time');
   const { buildTemplateSnapshot, hashSnapshot } = await import('../db/snapshot');
   const now = getServerTime();
-  const shiftDate = getShiftDate(now, 'Asia/Jakarta');
-  const snapshot = await buildTemplateSnapshot(spreadsheetId, shiftDefinitionId, 'Asia/Jakarta');
-  const shiftInstanceId = ulid();
+  const shiftDate = getShiftDate(now, timezone);
+  const shiftInstanceId = deterministicShiftInstanceId(branchId, shiftDefinitionId, shiftDate, false);
+  const existing = await filterRows(
+    spreadsheetId,
+    'ShiftInstances',
+    (r) => asStr(r['id']) === shiftInstanceId && asStr(r['status']) !== 'void'
+  );
+  if (existing[0]) {
+    throw new Error('Shift ini sudah dibuka untuk tanggal operasional tersebut.');
+  }
+  const voidedBefore = await filterRows(
+    spreadsheetId,
+    'ShiftInstances',
+    (r) => asStr(r['id']) === shiftInstanceId && asStr(r['status']) === 'void'
+  );
+  const instanceId = voidedBefore.length > 0 ? ulid() : shiftInstanceId;
+  const snapshot = await buildTemplateSnapshot(spreadsheetId, shiftDefinitionId, timezone);
+  const openedOutsideHours = !isWithinShiftHours(
+    now,
+    timezone,
+    asStr(definition['start_time']),
+    asStr(definition['end_time'])
+  );
 
   await insertRow(spreadsheetId, 'ShiftInstances', {
-    id: shiftInstanceId,
+    id: instanceId,
     shift_definition_id: shiftDefinitionId,
     shift_date: shiftDate,
     tab_month: shiftDate.slice(0, 7),
@@ -368,7 +400,7 @@ export async function openShiftOnBehalf(
     pj_user_id: targetUserId,
     opened_by: ctx.user.id,
     opened_at: now.toISOString(),
-    opened_outside_hours: false,
+    opened_outside_hours: openedOutsideHours,
     is_test: false,
     snapshot_encoding: 'json',
     template_snapshot: JSON.stringify(snapshot),
@@ -376,10 +408,11 @@ export async function openShiftOnBehalf(
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
   });
+  await voidDuplicateShiftInstances(spreadsheetId, instanceId);
 
   await insertRow(spreadsheetId, 'Participants', {
     id: ulid(),
-    shift_instance_id: shiftInstanceId,
+    shift_instance_id: instanceId,
     user_id: targetUserId,
     first_action_at: now.toISOString(),
     first_action_type: 'buka_atas_nama',
@@ -390,16 +423,23 @@ export async function openShiftOnBehalf(
     actorId: ctx.user.id,
     action: 'open_shift_on_behalf',
     objectType: 'shift_instance',
-    objectId: shiftInstanceId,
+    objectId: instanceId,
     branchId,
-    shiftInstanceId,
-    after: { status: 'berjalan', pjUserId: targetUserId, openedBy: ctx.user.id },
+    shiftInstanceId: instanceId,
+    after: {
+      status: 'berjalan',
+      shiftDefinitionId,
+      shiftDate,
+      pjUserId: targetUserId,
+      openedBy: ctx.user.id,
+      openedOutsideHours,
+    },
     reason,
   });
 
   return {
     ok: true,
-    message: `Shift dibuka atas nama ${check.nama}.`,
-    shiftInstanceId,
+    message: `Shift ${asStr(definition['name'])} di ${branchName} dibuka atas nama ${check.nama}.`,
+    shiftInstanceId: instanceId,
   };
 }

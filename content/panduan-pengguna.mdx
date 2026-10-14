@@ -1,210 +1,88 @@
 # Panduan Pengguna
 
-Panduan ringkas untuk petugas dan admin yang menggunakan mycheck. Aplikasi
-digunakan melalui browser sebagai PWA dan antarmukanya berbahasa Indonesia.
+Panduan ringkas untuk petugas dan admin MyCheck. Aplikasi digunakan melalui
+browser sebagai PWA dengan antarmuka berbahasa Indonesia.
 
-## Mulai Menggunakan Aplikasi
+## Masuk
 
-1. Buka alamat aplikasi yang diberikan admin.
-2. Pilih **Masuk**, lalu isi username dan PIN 6 digit.
-3. Jika akun terkunci, nonaktif, atau PIN tidak dikenali, hubungi admin. Admin
-   dapat membuka kunci atau mereset PIN.
-4. Setelah login, gunakan navigasi sesuai perangkat:
-   - **HP/tablet kecil:** bilah navigasi di bagian bawah.
-   - **Desktop/tablet lebar:** tombol menu pada header membuka navigasi samping.
+1. Buka alamat aplikasi yang diberikan admin, lalu pilih **Masuk**.
+2. Masukkan username dan PIN akun.
+3. Jika akun nonaktif atau kredensial tidak dikenali, hubungi admin untuk
+   memeriksa status akun atau mereset PIN.
 
-<Callout type="warning">
-  Jangan membagikan PIN kepada orang lain. PIN digunakan untuk login dan untuk
-  mengonfirmasi penutupan shift oleh PJ.
-</Callout>
+Login saat ini tidak memiliki mekanisme lockout setelah sejumlah percobaan
+gagal yang dapat dijadikan jaminan. Jangan membagikan PIN.
 
 ## Petugas
 
-### Beranda dan Shift
+### Membuka atau bergabung ke shift
 
-Beranda menampilkan cabang yang dapat diakses dan definisi shift yang tersedia.
-Jika akun memiliki akses ke lebih dari satu cabang, pilih shift pada cabang
-yang benar.
+Di `/daftar-shift`, pilih cabang dan definisi shift yang benar.
 
-- Pilih **Buka Shift** untuk memulai shift yang belum berjalan. Petugas yang
-  membukanya menjadi Penanggung Jawab (PJ) shift.
-- Pilih **Gabung** atau **Check-in** untuk bergabung ke shift yang sudah
-  berjalan.
-- Pilih **Lanjutkan** untuk membuka checklist shift yang sudah diikuti.
-- Satu pelaksanaan shift dibagikan oleh semua pesertanya; checklist bukan
-  salinan pribadi.
+- **Buka Shift** memulai shift baru; petugas yang membukanya menjadi PJ.
+- **Gabung/Check-in** mengikutsertakan petugas ke shift yang sedang berjalan.
+- **Lanjutkan** membuka shift yang sudah diikuti.
 
-### Mengerjakan Checklist
+Checklist dan progress dibagikan oleh semua peserta shift, bukan salinan
+personal.
 
-Pada halaman shift, item dikelompokkan menurut kategori SOP. Ikuti instruksi
-setiap item dan gunakan kontrol yang tersedia, misalnya centang, jawaban
-Ya/Tidak, angka, teks, atau foto.
+### Checklist dan incident
 
-- Isikan item saat pekerjaan benar-benar dilakukan. Nama petugas dan waktu
-  pencatatan menjadi bagian dari riwayat shift.
-- Jika item sudah dikerjakan oleh rekan, status yang tercatat menunjukkan
-  siapa yang menyelesaikannya.
-- Jika item tidak dapat dikerjakan, gunakan **Skip** dan tulis alasan yang
-  jelas. Skip dengan alasan memenuhi syarat penyelesaian item wajib, tetapi
-  tetap ditandai sebagai skip pada laporan.
-- Selama shift berjalan, item yang sudah selesai dapat dibatalkan jika memang
-  perlu; pembatalan tercatat.
-- Aksi tulis membutuhkan koneksi internet. Jika gagal, baca pesannya lalu
-  coba ulang saat koneksi pulih.
+Di `/shift/[id]`, kerjakan item sesuai instruksi. Nama pelaku dan waktu aksi
+dicatat. Jika item tidak dapat dilakukan, gunakan **Skip** dengan alasan.
+Item wajib harus selesai atau di-skip dengan alasan agar memenuhi syarat
+penutupan. Jika petugas lain lebih dulu menyelesaikan item, aplikasi
+menyinkronkan hasil dan menampilkan konflik bila perlu.
 
-### Menutup Shift (khusus PJ)
+Incident dibuat melalui `/incident/baru`; halaman `/incident` dan
+`/incident/[id]` digunakan untuk melihat daftar dan detail. Form foto menerima hingga lima file per owner, maksimal 5 MB per file, dalam
+format WebP, PNG, atau JPEG. Deskripsi incident yang sudah dikirim tidak dapat
+diubah; tindak lanjut dicatat sebagai catatan, sedangkan perubahan status
+mengikuti tindakan yang tersedia pada detail incident.
 
-Tombol **Tutup Shift** hanya tersedia untuk PJ.
+### Menutup shift (PJ)
 
-1. **Validasi checklist:** semua item wajib harus selesai atau di-skip dengan
-   alasan. Daftar item yang belum memenuhi syarat ditampilkan di sini.
-2. **Handover:** isi semua field wajib untuk shift berikutnya. Tambahkan
-   catatan bila diperlukan dan nyatakan apakah ada incident yang perlu
+Hanya PJ yang dapat menutup shift melalui dialog **Tutup Shift**:
+
+1. Pastikan seluruh item wajib selesai atau memiliki alasan skip.
+2. Isi semua field handover wajib dan nyatakan apakah ada incident yang perlu
    diteruskan.
-3. **Konfirmasi penutupan:** masukkan **PIN akun PJ sendiri**, yaitu PIN yang
-   digunakan untuk login. Ini bukan PIN baru dan bukan PIN admin lain.
+3. Konfirmasi dengan PIN milik PJ yang sedang menutup shift.
 
-<Callout type="info">
-  Setelah penutupan berhasil, shift dan checklist dikunci, lalu laporan dibuat.
-  Koreksi laporan dilakukan sebagai addendum melalui alur admin, bukan dengan
-  mengedit shift yang sudah ditutup.
-</Callout>
-
-### Incident
-
-- Buka **Incident** untuk melihat kejadian yang tercatat.
-- Pilih **Buat Incident** untuk memilih cabang, kategori, waktu kejadian, dan
-  menuliskan deskripsi.
-- Foto bukti bersifat opsional; form membatasi unggahan hingga lima foto,
-  maksimal 5 MB per foto.
-- Isi incident yang sudah dikirim tidak dapat diedit. Tambahkan catatan
-  tindak lanjut pada halaman detail jika ada informasi baru.
-
-### Laporan
-
-Buka **Laporan** untuk melihat laporan shift pada cabang yang dapat diakses.
-Laporan memuat status checklist, handover, incident, dan peserta shift. Bila
-admin membagikan tautan laporan publik, buka tautan tersebut untuk tampilan
-read-only; tautan dapat kedaluwarsa atau dicabut.
+Setelah penutupan berhasil, shift dikunci untuk alur edit biasa dan laporannya
+dapat dilihat di `/report`. Koreksi laporan dilakukan melalui addendum admin.
 
 ## Admin
 
-Halaman admin tersedia bagi akun berperan admin. Menu admin berisi:
+Admin mengelola operasi dan konfigurasi melalui `/admin`. Area yang tersedia
+mencakup Dashboard, Operasi Shift, Incident/Kategori Incident, Laporan,
+Cabang, Akun, Shift, Checklist/SOP, Handover, Pengaturan, dan Audit Log.
+Pada desktop, admin menggunakan sidebar; pada layar kecil, sebagian halaman
+ada di navigasi bawah dan sisanya pada menu **Lainnya**.
 
-- **Dashboard:** ringkasan operasional.
-- **Cabang** dan **Akun:** mengelola cabang, pengguna, dan akses cabang.
-- **Shift**, **Checklist Builder**, dan **Handover Builder:** mengelola
-  template operasional yang dipakai saat shift baru dibuka.
-- **Kategori Incident:** mengelola kategori incident.
-- **Laporan:** meninjau laporan dan tindakan yang tersedia pada laporan.
-- **Pengaturan** dan **Audit Log:** pengaturan aplikasi dan peninjauan riwayat
-  aksi.
+Perubahan template dipakai untuk shift yang dibuka sesudah perubahan; shift
+yang sudah berjalan menggunakan snapshot sendiri. Aksi sensitif tertentu
+memerlukan alasan dan verifikasi PIN sesuai tindakan. Periksa dampak sebelum
+mengubah akses, mereset PIN, atau menghapus konfigurasi.
 
-<Callout type="info">
-  Akun dapat diberi akses ke lebih dari satu cabang. Perubahan template tidak
-  mengubah snapshot template pada shift yang sudah berjalan.
-</Callout>
-
-<Callout type="warning">
-  Aksi admin yang sensitif mungkin meminta alasan dan PIN admin. Nonaktifkan
-  akun, reset PIN, atau ubah akses hanya setelah memeriksa dampaknya. Data
-  riwayat tidak dihapus permanen.
-</Callout>
-
-## PWA dan Koneksi
+## Koneksi dan PWA
 
 Aplikasi dapat ditambahkan ke layar utama dari browser yang mendukung PWA.
-Cache offline hanya untuk shell aplikasi/bacaan tertentu; **jangan mengandalkan
-aplikasi untuk menyimpan perubahan checklist, incident, atau handover tanpa
-koneksi internet**.
+Cache offline hanya mencakup aset shell terpilih. Jangan mengandalkan aplikasi
+untuk menyimpan checklist, incident, atau handover tanpa koneksi internet.
+Jika aksi gagal, periksa status terkini sebelum mencoba ulang.
 
-## Pemecahan Masalah
+## Pemecahan masalah
 
 | Gejala | Yang dapat dicoba |
 | --- | --- |
-| Tombol login Kembali atau sesi tidak berlaku | Buka `/login` lagi. Jika masih gagal, hapus data situs aplikasi atau minta admin mencabut sesi dan login kembali. |
-| PIN salah atau akun terkunci | Pastikan username/PIN benar; setelah beberapa percobaan gagal, hubungi admin untuk membuka kunci atau mereset PIN. |
-| Tidak dapat membuka shift atau melihat cabang | Pastikan cabang yang benar dipilih dan minta admin memeriksa akses akun. |
+| Sesi tidak berlaku atau kembali ke login | Login kembali. Logout menghapus cookie browser pemanggil; token stateless pada perangkat lain tidak dapat dicabut satu per satu. |
+| PIN salah atau akun nonaktif | Periksa username/PIN dan minta admin memeriksa status akun atau mereset PIN. |
+| Tidak dapat membuka shift atau melihat cabang | Periksa cabang yang dipilih dan minta admin memeriksa akses akun. |
 | Item wajib menghalangi penutupan | Selesaikan item tersebut atau pilih Skip dan isi alasan. |
-| PIN penutupan ditolak | Masukkan PIN login milik PJ yang sedang menutup shift. |
-| Perubahan tidak tersimpan | Periksa koneksi internet dan ulangi aksi. Jangan menganggap aksi berhasil jika aplikasi menampilkan pesan gagal. |
+| PIN penutupan ditolak | Gunakan PIN akun PJ yang sedang menutup shift. |
+| Perubahan tidak tersimpan | Periksa koneksi, muat ulang status, lalu ulangi hanya jika aksi sebelumnya belum berhasil. |
 
 Untuk melaporkan masalah, sertakan perangkat/browser, halaman, langkah
-reproduksi, waktu kejadian, serta tangkapan layar yang tidak menampilkan PIN
-atau informasi rahasia.
-
-## Simulasi Penutupan Shift
-
-Komponen ini mendemonstrasikan alur validasi sebelum menutup shift semua item wajib harus selesai atau di-skip dengan alasan.
-
-```jsx
-function ShiftCloseSimulator() {
-  const [items, setItems] = React.useState([
-    { id: 1, title: "Cek suhu freezer", required: true, state: "pending" },
-    { id: 2, title: "Hitung stok bahan", required: true, state: "pending" },
-    { id: 3, title: "Bersihkan meja kerja", required: false, state: "pending" },
-  ]);
-  const [handover, setHandover] = React.useState("");
-
-  const toggle = (id) => {
-    setItems((prev) =>
-      prev.map((i) =>
-        i.id === id
-          ? { ...i, state: i.state === "done" ? "pending" : i.state === "skip" ? "pending" : "done" }
-          : i
-      )
-    );
-  };
-
-  const skip = (id) => {
-    setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, state: "skip" } : i))
-    );
-  };
-
-  const allDone = items
-    .filter((i) => i.required)
-    .every((i) => i.state === "done" || i.state === "skip");
-
-  return (
-    <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
-      <p className="text-sm font-semibold text-gray-700">Simulasi Penutupan Shift</p>
-      {items.map((item) => (
-        <div key={item.id} className="flex items-center gap-2 text-sm">
-          <span className="text-xs text-gray-400">{item.required ? "Wajib" : "Opsional"}</span>
-          <button
-            onClick={() => toggle(item.id)}
-            className={`px-2 py-1 rounded text-xs ${
-              item.state === "done"
-                ? "bg-green-100 text-green-700"
-                : item.state === "skip"
-                ? "bg-yellow-100 text-yellow-700"
-                : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            {item.state === "done" ? "Selesai" : item.state === "skip" ? "Skip" : "Belum"}
-          </button>
-          <span>{item.title}</span>
-          {item.state !== "done" && (
-            <button onClick={() => skip(item.id)} className="text-xs text-yellow-600 underline">
-              Skip
-            </button>
-          )}
-        </div>
-      ))}
-      <textarea
-        placeholder="Isi handover untuk shift berikutnya..."
-        value={handover}
-        onChange={(e) => setHandover(e.target.value)}
-        className="w-full border rounded px-3 py-2 text-sm"
-        rows={2}
-      />
-      <div className={`text-sm font-medium ${allDone ? "text-green-600" : "text-red-500"}`}>
-        {allDone ? "Semua item wajib terisi siap tutup shift" : "Masih ada item wajib yang belum selesai"}
-      </div>
-    </div>
-  );
-}
-
-<ShiftCloseSimulator />
-```
+reproduksi, waktu kejadian, serta pesan error atau tangkapan layar yang tidak
+menampilkan PIN, cookie, token, atau informasi rahasia.

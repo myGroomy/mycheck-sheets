@@ -4,9 +4,8 @@ import { resolveCabang } from '../../../../../../lib/google/registry';
 import { createShiftDefinition, listShiftDefinitions } from '../../../../../../lib/admin/template-service';
 
 /**
- * Daftar definisi shift pada satu cabang.
- * Cabang diambil dari query `?branchId=...`; admin tanpa branchId memakai
- * cabang pertama yang bisa diakses.
+ * Daftar definisi shift pada cabang di URL. Admin dapat meminta cabang lain
+ * yang memang termasuk dalam aksesnya lewat query `?branchId=...`.
  */
 export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -14,10 +13,19 @@ withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
-  const requested = new URL(_req.url).searchParams.get('branchId');
-  const targets = requested ? [requested] : ctx.branchIds;
-  if (targets.length === 0) {
-    return NextResponse.json({ shifts: [] });
+  const url = new URL(_req.url);
+  const pathParts = url.pathname.split('/');
+  const pathBranchId = pathParts[pathParts.length - 2] ?? '';
+  const requested = url.searchParams.get('branchId');
+  const branchId = requested || pathBranchId;
+  if (!branchId) {
+    return NextResponse.json({ error: 'branchId wajib diisi' }, { status: 400 });
+  }
+  if (requested && requested !== pathBranchId) {
+    return NextResponse.json({ error: 'branchId tidak sesuai dengan URL.' }, { status: 400 });
+  }
+  if (!ctx.branchIds.includes(branchId)) {
+    return NextResponse.json({ error: 'Akses ditolak untuk cabang ini.' }, { status: 403 });
   }
 
   const result: {
@@ -33,29 +41,27 @@ withAuth(async (_req, ctx, _session) => {
     updatedAt: string;
     version: number;
   }[] = [];
-  for (const cabangId of targets) {
-    if (!ctx.branchIds.includes(cabangId)) continue;
-    try {
-      const { spreadsheetId } = await resolveCabang(cabangId);
-      const definitions = await listShiftDefinitions(spreadsheetId);
-      definitions.forEach((d) => {
-        result.push({
-          id: d.id,
-          branchId: cabangId,
-          name: d.name,
-          startTime: d.start_time,
-          endTime: d.end_time,
-          crossesMidnight: d.crosses_midnight,
-          sortOrder: d.sort_order,
-          isActive: d.is_active,
-          createdAt: d.created_at,
-          updatedAt: d.updated_at,
-          version: d.version,
-        });
+  try {
+    const { spreadsheetId } = await resolveCabang(branchId);
+    const definitions = await listShiftDefinitions(spreadsheetId);
+    definitions.forEach((d) => {
+      result.push({
+        id: d.id,
+        branchId,
+        name: d.name,
+        startTime: d.start_time,
+        endTime: d.end_time,
+        crossesMidnight: d.crosses_midnight,
+        sortOrder: d.sort_order,
+        isActive: d.is_active,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at,
+        version: d.version,
       });
-    } catch {
-      // Cabang tanpa spreadsheet dilewati
-    }
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Gagal memuat definisi shift.';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
   result.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));

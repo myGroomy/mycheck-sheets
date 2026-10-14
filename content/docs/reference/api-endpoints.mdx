@@ -18,7 +18,7 @@ terpisah. Rincian payload dapat berubah; handler route adalah sumber kebenaran.
 | `/auth/me` | `GET` | Informasi sesi aktif. |
 | `/auth/change-pin` | `POST` | Mengganti PIN akun. |
 | `/auth/logout` | `POST` | Keluar dari sesi saat ini. |
-| `/auth/logout-all` | `POST` | Keluar dari sesi pengguna. |
+| `/auth/logout-all` | `POST` | Menghapus cookie browser pemanggil; tidak mencabut token stateless di perangkat lain. |
 | `/beranda` | `GET` | Data beranda sesuai sesi dan akses cabang. |
 | `/shifts` | `GET` | Daftar shift yang dapat diakses. |
 | `/shifts/open` | `POST` | Membuka shift. |
@@ -40,6 +40,7 @@ terpisah. Rincian payload dapat berubah; handler route adalah sumber kebenaran.
 | `/reports` | `GET` | Daftar laporan yang dapat diakses. |
 | `/reports/[id]` | `GET` | Detail laporan. |
 | `/public/report/[token]` | `GET` | Membaca laporan melalui token berbagi. |
+| `/public/report/[token]/photos/[id]` | `GET` | Membaca foto laporan publik melalui token berbagi yang valid. |
 | `/photos/upload` | `POST` | Mengunggah foto. |
 | `/photos/[id]` | `GET` | Mengambil foto melalui aplikasi. |
 | `/notifications` | `GET` | Membaca notifikasi. |
@@ -79,6 +80,7 @@ aksi tertentu yang membatasi lebih lanjut.
 | `/admin/shift-instances/[id]` | `PATCH` | Pembaruan instance shift oleh admin. |
 | `/admin/shift-instances/open-on-behalf` | `POST` | Membuka shift atas nama pengguna. |
 | `/admin/reports` | `GET` | Daftar laporan administrasi. |
+| `/admin/reports/[id]/export` | `GET` | Mengunduh ekspor CSV laporan. |
 | `/admin/reports/[id]/addenda` | `POST` | Menambahkan addendum laporan. |
 | `/admin/reports/[id]/share` | `GET`, `POST` | Melihat dan membuat tautan berbagi. |
 | `/admin/reports/[id]/share/[tokenId]` | `DELETE` | Mencabut tautan berbagi. |
@@ -90,7 +92,7 @@ aksi tertentu yang membatasi lebih lanjut.
 | Path | Metode | Akses / fungsi |
 | --- | --- | --- |
 | `/health` | `GET` | Memeriksa dependensi aplikasi. |
-| `/cron/verify` | `GET` | Endpoint verifikasi untuk pemanggilan terjadwal. |
+| `/cron/verify` | `GET` | Memeriksa secret cron; bukan verifikasi hash-chain audit. |
 
 Gunakan route handler terkait untuk memeriksa bentuk request/response, validasi,
 kode status, dan otorisasi terbaru. Jangan menganggap path admin dapat diakses

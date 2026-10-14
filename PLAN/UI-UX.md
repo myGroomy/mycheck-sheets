@@ -1,98 +1,91 @@
-# UI/UX.md checklist‑shift PWA
+# UI/UX MyCheck — Panduan yang Mengikuti Implementasi
 
-## 1. Design Direction
-- **Mobile‑first, editorial‑inspired** UI.  Off‑white canvas (`#f5f5f5`) with warm near‑black ink (`#292524`).
-- **Typography** from the shared design system: Waldenburg Light for display, Inter for body, button, navigation.  See the full token list in **@[elevenlabs-DESIGN.md]**.
-- **Primary action colour** – the black‑ink “pill” button (`component.button-primary`).  All CTAs use the pill geometry (`rounded.pill`).
-- **Atmospheric gradient orbs** (`component.gradient-orb‑card`) are decorative only – never used for actionable UI.
-- **Spacing rhythm** – 96 px vertical sections, 4 px base unit.  Consistent with the design system.
+Dokumen ini dirapikan berdasarkan komponen dan route yang ada pada 14 Oktober
+2026. Ini bukan spesifikasi desain yang seluruhnya telah diuji aksesibilitasnya.
+Token aktif ada di `app/globals.css`, font di `app/layout.tsx`, dan pola
+komponen di `components/ui/`.
 
-## 2. Design System
-> The complete token, component, colour, and typography definitions live in **@[elevenlabs-DESIGN.md]**.  All UI elements in this doc should use those tokens rather than hard‑coded values.
+`elevenlabs-DESIGN.md` adalah referensi desain terpisah, bukan design system
+MyCheck. Jangan menganggap font Waldenburg/Inter, gradient orb, pill CTA, atau
+layout ElevenLabs sebagai komponen/aturan visual MyCheck.
 
-## 3. Global Layout
-- **App Shell** (Serwist service worker) caches the HTML head, base CSS, navigation and footer.
-- **Navigasi petugas** (`component.top‑nav`): fixed 64 px height, ink text on canvas background, menu ringkas pada layar kecil. **Navigasi admin** memakai sidebar berkelompok pada desktop dan bottom navigation + drawer pada HP; topbar admin tetap memuat identitas dan keluar.
-- **Footer** (`component.footer`): 5‑column link list, canvas background, body‑sm typography.
-- **Main container**: max‑width ≈ 1200 px, centred, horizontal padding 16 px on mobile, 32 px on tablet+, vertical padding 96 px between sections.
+## 1. Arah visual dan komponen
 
-## 4. Pages
-| Page | Route | Purpose | Key UI Elements |
-|------|-------|---------|-----------------|
-| **Login** | `/login` | Authenticate petugas/admin. | `text-input` (username), `pin` keypad component (6‑digit), `button-primary` (Sign In) |
-| **Change PIN** | `/ganti‑pin` | Force‑change PIN on first login or reset. | `text-input` (old PIN), `text-input` (new PIN), `button-primary` (Simpan) |
-| **Home / Dashboard** | `/` | List active shift cards, quick actions. | Shift‑card (status badge, progress bar), `button-primary` (Buka Shift), `button-outline` (Bergabung) |
-| **Shift Builder (Admin)** | `/admin/shift‑builder` | Create / edit shift definitions, SOP categories, checklist points, handover fields. | Tree view of categories, drag‑&‑drop `card` reordering, modal dialogs for point edit. |
-| **Shift Detail** | `/shifts/[id]` | Petugas view of an opened shift – checklist, incident, handover. | Accordion per SOP category, checklist item row (`checkbox`, `text‑input`, `number‑input`, `photo‑upload`), incident chip, handover form, `button-primary` (Tutup Shift) |
-| **Incident List** | `/incidents` | List of open incidents for the branch. | Table with status chips, `button-outline` (Lihat Detail) |
-| **Report / Laporan** | `/reports/[id]` | Read‑only view of locked report, share token link. | PDF‑preview embed, `button-outline` (Bagikan WhatsApp), `button-primary` (Addendum) |
-| **Admin Console** | `/admin/*` | Kelola operasi shift, incident, laporan, konfigurasi, akun, dan sistem. | Sidebar desktop: Dashboard; Operasional; Laporan; Konfigurasi; Administrasi. Incident dan Kategori Incident memakai tab internal. HP: bottom navigation Dashboard/Operasi/Incident/Laporan/Lainnya dan drawer kelompok Konfigurasi/Administrasi. |
-| **Not‑Found / 404** | `*` | Graceful fallback. | Large illustration, `button-primary` (Kembali ke Home) |
+- Antarmuka memakai token warna dan radius dari `app/globals.css`, dengan
+  Plus Jakarta Sans didaftarkan dari `app/layout.tsx`.
+- UI memakai Tailwind CSS dan komponen lokal bergaya shadcn/Radix di
+  `components/ui/`. Gunakan button, card, dialog, table, input, skeleton,
+  sonner, dan primitive yang sudah ada bila sesuai.
+- Ikon yang digunakan berasal dari Lucide. Status penting harus memiliki teks,
+  tidak hanya mengandalkan warna.
+- Jangan menyalin design token dari referensi ElevenLabs ke aplikasi tanpa
+  perubahan kode/desain yang disetujui.
 
-## 5. Components
-- **Shift‑card** – shows branch name, shift name, PJ avatar, progress bar, status badge (`badge‑pill`).
-- **Checklist‑item** – row with label, optional required icon, input type component, skip button, conflict toast.
-- **Photo‑upload** – thumbnail preview, compress to WebP (client), `button-primary` (Upload), `badge-pill` (Pending / Uploaded / Purged).
-- **Incident‑chip** – colour‑coded by category, clickable to open incident modal.
-- **Handover‑field** – read‑only display after shift close, editable in modal before close.
-- **Modal / Dialog** – Desktop: `Dialog` from shadcn/ui; Mobile: `Drawer` from shadcn/ui. All modals have a required **Alasan** textarea for sensitive actions.
-- **Pagination / Infinite scroll** – used on admin tables, 20 rows per page.
-- **Toast notifications** – auto‑dismiss after 5 s, colour based on `semantic-success` / `semantic-error`.
+## 2. Navigasi dan layout yang tersedia
 
-## 6. Modals
-| Modal | Trigger | Content |
-|-------|---------|---------|
-| **Open Shift Confirmation** | `Buka Shift` button (admin) | Summary of shift definition, date picker, `button-primary` (Konfirmasi) |
-| **Join Shift** | `Bergabung` button (petugas) | Confirmation of branch access, `button-primary` (Ikuti) |
-| **Edit Checklist Item** | Edit icon on item (admin) | Form with fields: title, input‑type selector, required toggle, tolerance, active‑days, number‑range. `button-primary` (Simpan) |
-| **Add Incident** | `+ Incident` button (petugas) | Category selector, description textarea, optional **Photo‑upload** (max 5), `button-primary` (Laporkan) |
-| **Close Shift Stepper** | `Tutup Shift` (PJ) | 3‑step wizard:
-1️⃣ Validasi item wajib / skip reason
-2️⃣ Handover form (fields + optional notes)
-3️⃣ PIN confirmation (sensitive) |
-| **Sensitive Action Confirmation** | Any admin action (reset PIN, non‑aktifkan user, force‑close shift) | Reason textarea (required), PIN input, `button-primary` (Eksekusi) |
-| **Share Report Token** | `Bagikan` on report page | Token preview, copy button, `button-outline` (Salin) |
-| **Audit Log Viewer** | Admin console → Audit Log | Table with filters, expandable row showing before/after JSON, `button-outline` (Unduh) |
+- Root layout: header navigasi, provider auth/cabang, guard sisi klien,
+  banner koneksi/install PWA, dan toaster.
+- Petugas: `/daftar-shift` adalah tujuan checklist utama; route kerja shift
+  adalah `/shift/[id]`. Navigasi bawah menyediakan Checklist, Incident,
+  Laporan, dan Lainnya. Pada desktop tujuan utama ada di menu header.
+- Admin: di area `/admin`, desktop memiliki sidebar di bawah header; pada layar
+  kecil ada bottom navigation Dashboard/Operasi/Incident/Laporan dan drawer
+  Lainnya. Layout halaman admin menambah ruang kiri untuk sidebar.
+- `/` mengarahkan petugas ke `/daftar-shift` dan admin ke `/admin`; tidak ada
+  halaman Home petugas yang aktif dari route ini.
 
-## 7. User Flow & Interactions
-1. **First login** → `/login` → successful → **forced redirect** to `/ganti‑pin` (must change PIN).
-2. After PIN change → redirected to **Home** (`/`).
-3. Admin creates a **Shift Definition** via `/admin/shift‑builder` → saved → appears as a card on Home.
-4. PJ **opens** a shift → advisory lock taken, shift instance created, participants list updated.
-5. Petugas **joins** shift → added to participants, sees checklist accordion.
-6. For each checklist item:
-   - Petugas taps to interact → optimistic UI update (show completed instantly).
-   - Backend validates via `SELECT FOR UPDATE`; loser receives toast “Sudah diselesaikan oleh X”.
-   - If offline, UI shows disabled state with tooltip “Perlu koneksi internet”.
-7. **Photo upload** → client compresses to WebP, shows preview thumbnail, uploads via `/api/photos/upload` → progress bar → status badge changes to *Uploaded*.
-8. **Incident** → open modal, fill, submit → entry created, toast success.
-9. **Close shift** → stepper wizard validates all required items, handover filled, PIN confirmed → shift status → report generated, PDF archived via cron.
-10. **Report view** → read‑only page, share token generated → copy to clipboard.
-11. **Admin actions** (reset PIN, revoke sessions) → open sensitive‑action modal → reason + PIN required → audit log entry.
+## 3. Halaman dan interaksi aktual
 
-## 8. Responsive Behavior
-| Breakpoint | Layout Adjustments |
-|------------|-------------------|
-| **Mobile (<640 px)** | - Top‑nav collapses to hamburger. <br> - Shift‑cards stack single column. <br> - Accordion expands full width; each item height ≥48 px tap target. <br> - Gradient orbs shrink to 40 % size. |
-| **Tablet (640‑1024 px)** | - Shift‑cards 2‑up grid. <br> - Feature‑cards 2‑up. <br> - Photo‑upload thumbnail grid 2‑col. |
-| **Desktop (≥1024 px)** | - Shift‑cards 3‑up. <br> - Feature‑cards 3‑up. <br> - Modal dialogs use `Dialog` component, larger width (600 px). |
-| **Wide (>1280 px)** | - Content max‑width 1200 px, side margins increase. |
+| Area | Route | Interaksi yang tersedia di source |
+|---|---|---|
+| Login / PIN | `/login`, `/ganti-pin` | Username + PIN, form ganti PIN. Kode saat ini menyimpan PIN sebagai plaintext; perubahan PIN tidak mengubah mekanisme sesi stateless yang sudah diterbitkan. |
+| Daftar shift | `/daftar-shift` | Data cabang/shift dari provider, buka, gabung/check-in, lanjutkan, atau lihat status. |
+| Checklist | `/shift/[id]` | Kategori dan item snapshot, input beberapa tipe, skip beralasan, progress/peserta, refresh kolaboratif. |
+| Tutup shift | Dialog pada halaman shift | Tiga langkah: validasi checklist, handover, konfirmasi PIN PJ. |
+| Incident | `/incident`, `/incident/baru`, `/incident/[id]` | Daftar, form baru dengan foto, detail dan catatan. |
+| Laporan | `/report`, `/report/[id]` | Daftar dan detail laporan; tindakan berbagi sesuai halaman/role. |
+| Admin | `/admin/**` | Dashboard, operasi, incident/kategori, laporan, konfigurasi, pengaturan, audit log. |
+| Publik | `/r/[token]` | Laporan read-only berdasarkan token; route foto publik khusus laporan tersedia. |
 
-Khusus halaman admin: sidebar tampil pada desktop dan tidak menutupi konten; di HP sidebar diganti bottom navigation dengan empat tautan inti serta drawer untuk tautan lainnya. Beri ruang bawah pada konten admin agar bottom navigation tidak menutupi aksi.
+Tidak ada halaman aktif dengan route `/home`, `/checklist`, `/shifts/[id]`,
+`/incidents`, `/reports/[id]`, `/akun`, atau `/notifikasi`. Periksa direktori
+`app/` sebelum menambah instruksi route.
 
-All interactive elements respect the **48 px minimum touch target** rule.  Typography scales per design system (display sizes shrink on smaller breakpoints).
+## 4. State dan batas perilaku
 
-## 9. UI States
-- **Default** – component colours from design system.
-- **Hover / Focus** – subtle elevation (box‑shadow `0 2px 8px rgba(0,0,0,0.06)`) and ink colour darkening for buttons.
-- **Active / Pressed** – `component.button-primary-active` background.
-- **Disabled** – opacity 0.4, cursor `not-allowed`, tooltip explaining required online connection.
-- **Error** – border `semantic-error` (`#dc2626`), inline error message (typography `caption-uppercase`).
-- **Success** – border `semantic-success` (`#16a34a`), toast with green background.
-- **Loading** – spinner inside button (`button-primary` shows spinner replacing label), skeleton rows for list loading.
-- **Conflict (BR‑12)** – toast “Sudah diselesaikan oleh X” with icon, item reverts to read‑only state.
-- **Read‑only (after shift closed)** – inputs become plain text, copy‑icon appears for values, edit icons hidden.
+- Skeleton/loading tersedia di root, daftar shift, incident, report, dan detail
+  shift. Detail implementasi berada pada `app/**/loading.tsx` dan
+  `components/ui/skeletons.tsx`.
+- Form menampilkan validasi/error di beberapa alur; bentuk pesan dan
+  penanganan error belum seragam di seluruh API/UI.
+- Checklist memperbarui hasil lokal setelah respons accepted serta merefresh
+  pada konflik/rekonsiliasi; polling berjalan saat halaman terlihat.
+- `PwaStatus` menampilkan status offline dan install prompt pada browser yang
+  mendukung. Service worker meng-cache manifest, ikon, dan aset build tertentu,
+  bukan data shift/report; tidak ada antrean offline.
+- Penutupan memakai `Dialog`, bukan route wizard terpisah. Foto diterima
+  sebagai WebP/PNG/JPEG, dibatasi 5 MB per file dan hingga lima foto per owner
+  di route upload. Kompresi WebP wajib di sisi klien tidak dapat diasumsikan.
+- Navigation breakpoint dan target interaksi harus diverifikasi di browser;
+  dokumen ini tidak mengklaim uji manual 320px, safe-area, keyboard, kontras,
+  atau screen reader telah dijalankan.
 
----
+## 5. Admin dan hal yang belum ada
 
-*This UI/UX specification is aligned with the PRD, TRD, and the shared design system in **@[elevenlabs-DESIGN.md]**.  All page routes, component names, and interaction patterns use the existing shadcn/ui primitives to keep the codebase consistent.*
+- Daftar menu aktual ada di `components/NavbarClient.tsx`; halaman admin ada
+  di `app/admin/`.
+- Incident dan kategori incident memiliki route masing-masing dan tab
+  navigasi internal. Kategori juga tetap dapat dibuka langsung.
+- Daftar laporan admin tersedia; tab Statistik tersendiri tidak ditemukan.
+  Endpoint stats tidak berarti semua statistik PRD tersedia.
+- Tidak ditemukan fitur PDF export, preferensi notifikasi per jenis, web push,
+  offline data cache, atau arsip foto otomatis. Jangan memasukkannya sebagai
+  desain terimplementasi tanpa verifikasi source baru.
+
+## 6. Pemeriksaan sebelum memperbarui panduan
+
+1. Konfirmasi halaman di `app/` dan tautan navigasi di `NavbarClient.tsx`.
+2. Periksa komponen serta API route untuk interaksi, validasi, dan batas ukuran.
+3. Pisahkan state produk yang direncanakan dari behavior yang ada.
+4. Tandai setiap pengujian manual sebagai belum dilakukan sampai benar-benar
+   diperiksa pada browser/perangkat sasaran.

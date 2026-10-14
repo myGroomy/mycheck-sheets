@@ -1,9 +1,28 @@
 # PRD MyCheck
 
 **Versi:** 1.0 (full fitur, tanpa fase MVP)
-**Status:** Draf untuk implementasi
+**Status:** Spesifikasi perilaku produk; tidak menyatakan seluruh fitur sudah diimplementasikan.
 **Bahasa antarmuka:** Indonesia
 **Platform:** Progressive Web App (PWA), mobile-first, di-deploy sebagai web app
+
+> **Catatan kesesuaian dengan source — diperiksa 14 Oktober 2026.** Dokumen ini
+> mendeskripsikan tujuan/requirement produk, bukan inventaris fitur aktif.
+> Aplikasi saat ini adalah Next.js + Google Sheets/Drive. Route dan helper yang
+> ada mencakup login, shift/checklist, handover, incident, laporan, sebagian
+> operasi/admin, dan PWA shell; keberadaan route bukan bukti seluruh skenario
+> telah diuji.
+>
+> | Area | Keadaan yang terlihat dari source | Batasan penting |
+> |---|---|---|
+> | Shift, checklist, handover, incident, laporan | Implementasi tersedia di UI/API | Uji perilaku runtime dan konkurensi dua pengguna belum tercatat di repo. |
+> | Admin | Route/UI cabang, akun, template, operasi, incident, laporan, pengaturan, audit tersedia | Statistik tersedia lewat endpoint/dashboard tetapi belum seluruh metrik PRD; PDF/CSV yang ditemukan adalah ekspor CSV per laporan. |
+> | Login/sesi | Username + PIN, HMAC cookie stateless 7 hari | PIN disimpan plaintext; tidak ditemukan rate limit/lockout. `logout-all` hanya menghapus cookie pemanggil, bukan mencabut semua token. |
+> | PWA/offline | Manifest, install prompt, banner koneksi, service worker | Service worker hanya cache aset shell tertentu; tidak ada cache data offline atau write queue. |
+> | Audit/cron/notifikasi | Audit log, halaman/log API, daftar notifikasi tersedia | Verifikasi hash-chain terjadwal tidak terbukti; `/api/cron/verify` hanya memvalidasi secret. Pusat notifikasi tidak berarti push atau semua pemicu notifikasi sudah ada. |
+> | Validasi dan pengujian | Sebagian route memakai Zod/manual validation; lint/typecheck/build tersedia | Tidak ditemukan test runner atau test/spec aplikasi. |
+>
+> Status implementasi lebih rinci ada di `IMPLEMENTATION_PLAN.md`. Source route,
+> bukan tabel requirement di bawah, menjadi acuan untuk fitur yang berjalan.
 
 ---
 
@@ -137,16 +156,16 @@ stateDiagram-v2
 
 ### 4.6 Aturan data
 
-- **BR-40** Tidak ada hapus permanen. Data yang tidak lagi dipakai dinonaktifkan/diarsipkan/di-void.
+- **BR-40** Data operasional shift/incident/laporan tidak dihapus melalui alur bisnis; gunakan status/void/addendum. Beberapa route konfigurasi memang memiliki operasi DELETE, jadi setiap perubahan harus mempertahankan kebutuhan riwayat dan tidak boleh diasumsikan append-only.
 - **BR-41** Incident tidak dapat diedit setelah dikirim; koreksi lewat catatan tambahan.
 - **BR-42** Akses data selalu dibatasi di sisi server berdasarkan daftar cabang pada akun.
-- **BR-43** Audit log bersifat append-only dan tidak dapat diubah atau dihapus oleh siapa pun.
+- **BR-43** Aplikasi menambahkan audit log dan tidak menyediakan alur edit log. Ini bukan perlindungan terhadap pemilik spreadsheet yang dapat mengubahnya manual; deteksi hash-chain hanya efektif jika verifier benar-benar dijalankan.
 
 ### 4.7 Edit manual &amp; rekonsiliasi
 
-- **BR-44** Database sepenuhnya dikontrol oleh API; tidak ada edit manual di luar aplikasi.
-- **BR-45** API memvalidasi semua input dengan Zod; data tidak valid ditolak dengan pesan jelas.
-- **BR-46** Integritas data dijaga oleh constraint database (BR-01) dan hash chain audit log (BR-43). Kerusakan hash chain terdeteksi oleh cron mingguan dan dilaporkan ke admin.
+- **BR-44** Aplikasi mengharuskan perubahan operasional dilakukan melalui API. Google Sheets tetap dapat diedit manual oleh pengguna yang memiliki akses; kode tidak dapat mencegahnya.
+- **BR-45** Semua input API wajib divalidasi server-side dan kegagalan dijelaskan. Source saat ini memakai campuran Zod dan validasi manual, belum Zod secara menyeluruh.
+- **BR-46** Pada penyimpanan Google Sheets tidak ada constraint database. BR-01/BR-12 dijaga melalui logika dan rekonsiliasi aplikasi, dengan jaminan lebih lemah daripada constraint/transaction atomik. Hash-chain audit dapat membantu mendeteksi perubahan, tetapi jadwal verifier mingguan belum terbukti aktif di source saat ini.
 
 ---
 
@@ -703,4 +722,3 @@ Hal yang sengaja belum ditetapkan di dokumen ini:
 | Pengaturan sistem                                         | Tidak                      | Ya                                     |
 | Lihat audit log                                           | Tidak                      | Ya                                     |
 | Statistik dan ekspor                                      | Tidak                      | Ya                                     |
-

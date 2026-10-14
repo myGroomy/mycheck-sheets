@@ -1,5 +1,8 @@
 import { requireAdmin } from '@/lib/page-auth';
 import { buildAdminStats } from '@/lib/admin/stats-service';
+import Link from 'next/link';
+import { ArrowRight, BookOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default async function AdminIndex() {
   const ctx = await requireAdmin();
@@ -22,6 +25,47 @@ export default async function AdminIndex() {
         <MetricCard label="Incident terbuka" value={stats.openIncidents} helper="Perlu tindak lanjut" />
         <MetricCard label="Laporan hari ini" value={stats.reportsToday} helper="Generate otomatis" />
       </div>
+
+      <section className="rounded-xl border border-border bg-surface p-4" aria-labelledby="setup-guide-title">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 id="setup-guide-title" className="flex items-center gap-2 text-base font-semibold">
+              <BookOpen className="h-4 w-4" aria-hidden="true" />
+              Urutan persiapan operasional
+            </h2>
+            <p className="mt-1 text-sm text-ink-muted">
+              Gunakan langkah ini saat menyiapkan cabang atau template baru. Editor tetap terpisah; perubahan berlaku untuk shift yang dibuka berikutnya.
+            </p>
+          </div>
+        </div>
+        <ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {[
+            { label: 'Cabang', href: '/admin/cabang', description: 'Periksa cabang dan spreadsheet.' },
+            { label: 'Shift', href: '/admin/shift', description: 'Atur definisi dan jadwal shift.' },
+            { label: 'Checklist / SOP', href: '/admin/checklist-builder', description: 'Atur kategori dan item kerja.' },
+            { label: 'Handover', href: '/admin/handover-builder', description: 'Tentukan isian serah terima.' },
+            { label: 'Akun & akses', href: '/admin/akun', description: 'Beri petugas akses cabang.' },
+          ].map((step, index) => (
+            <li key={step.href}>
+              <Button asChild variant="outline" className="h-auto min-h-20 w-full justify-between whitespace-normal p-3 text-left">
+                <Link href={step.href}>
+                  <span className="min-w-0">
+                    <span className="block text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                      Langkah {index + 1}
+                    </span>
+                    <span className="mt-1 block font-semibold">{step.label}</span>
+                    <span className="mt-1 block text-xs font-normal text-ink-muted">{step.description}</span>
+                  </span>
+                  <ArrowRight className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                </Link>
+              </Button>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 text-xs text-ink-muted">
+          Ini urutan panduan, bukan indikator otomatis bahwa suatu konfigurasi sudah lengkap atau siap digunakan.
+        </p>
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <section className="rounded-xl border border-border bg-surface p-4">

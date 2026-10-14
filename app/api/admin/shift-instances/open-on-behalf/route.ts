@@ -11,9 +11,10 @@ import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { openShiftOnBehalf } from '../../../../../lib/admin/shift-operations';
 
 const bodySchema = z.object({
+  branchId: z.string().min(1, 'Pilih cabang'),
   shiftDefinitionId: z.string().min(1, 'shiftDefinitionId wajib diisi'),
   targetUserId: z.string().min(1, 'Pilih petugas yang akan menjadi PJ'),
-  reason: z.string().min(3, 'Alasan minimal 3 karakter'),
+  reason: z.string().trim().min(3, 'Alasan minimal 3 karakter'),
 });
 
 export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -40,14 +41,15 @@ withAuth(async (_req, ctx, _session) => {
   try {
     const result = await openShiftOnBehalf(
       ctx,
+      parsed.data.branchId,
       parsed.data.shiftDefinitionId,
       parsed.data.targetUserId,
-      parsed.data.reason.trim()
+      parsed.data.reason
     );
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Gagal membuka shift.';
-    const status = /tidak ditemukan/i.test(message) ? 404 : 409;
+    const status = /tidak ditemukan/i.test(message) ? 404 : /akses/i.test(message) ? 403 : 409;
     return NextResponse.json({ error: message }, { status });
   }
 });

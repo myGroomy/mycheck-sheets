@@ -23,7 +23,7 @@ Endpoint terkait:
 | `GET /api/auth/me` | Mengembalikan informasi sesi saat ini. |
 | `POST /api/auth/change-pin` | Memproses perubahan PIN. |
 | `POST /api/auth/logout` | Mengakhiri sesi browser saat ini. |
-| `POST /api/auth/logout-all` | Meminta pengakhiran sesi pengguna. |
+| `POST /api/auth/logout-all` | Menghapus cookie browser pemanggil; tidak mencabut token sesi di perangkat lain. |
 
 ## Peran dan cabang
 
@@ -31,9 +31,20 @@ Peran aplikasi adalah `admin` dan `petugas`. Server harus memeriksa sesi,
 peran, dan akses cabang di setiap endpoint terlindungi; menyembunyikan menu di
 antarmuka bukan pengganti otorisasi API.
 
-PIN disimpan pada sheet `Users` sesuai implementasi saat ini. Jangan menulis
-PIN ke log, audit, dokumentasi, tiket, atau tangkapan layar. Batasi akses edit
+PIN saat ini disimpan dan dibandingkan sebagai teks biasa pada sheet `Users`.
+Ini merupakan risiko keamanan, bukan pola yang disarankan. Jangan menulis PIN
+ke log, audit, dokumentasi, tiket, atau tangkapan layar. Batasi akses edit
 spreadsheet Registry dan gunakan kredensial service account hanya di server.
+
+Token sesi bersifat stateless dan berlaku tujuh hari. Logout menghapus cookie
+browser saat ini; aplikasi tidak memiliki pencabutan individual untuk token
+yang telah terbit di perangkat lain.
+
+## Perubahan PIN
+
+Endpoint perubahan PIN memerlukan sesi aktif dan PIN lama, lalu menerima PIN
+baru enam digit. Flag `Must_Change_Pin` dapat dikembalikan saat login, tetapi
+guard aplikasi tidak memaksa redirect global ke halaman ganti PIN.
 
 ## Jika tidak dapat masuk
 

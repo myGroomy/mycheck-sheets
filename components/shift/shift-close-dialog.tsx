@@ -37,12 +37,16 @@ const HANDOVER_LABEL: Record<string, string> = {
 
 export function ShiftCloseDialog({
   shiftId,
+  shiftName,
+  shiftDate,
   isPj,
   missingRequiredItems,
   fields,
   onClosed,
 }: {
   shiftId: string;
+  shiftName: string;
+  shiftDate: string;
   isPj: boolean;
   missingRequiredItems: string[];
   fields: HandoverField[];
@@ -236,7 +240,7 @@ export function ShiftCloseDialog({
               <DialogHeader>
                 <DialogTitle>Tutup Shift · Langkah {step} dari 3</DialogTitle>
                 <DialogDescription>
-                  Checklist akan dikunci dan laporan shift dibuat setelah konfirmasi PIN.
+                  {shiftName} · {shiftDate}. Checklist akan dikunci dan laporan shift dibuat setelah konfirmasi PIN.
                 </DialogDescription>
               </DialogHeader>
 
@@ -327,6 +331,16 @@ export function ShiftCloseDialog({
                                     </label>
                                   );
                                 })}
+                                {missingFields.length > 0 && (
+                                  <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                                    <p className="font-semibold">
+                                      Lengkapi {missingFields.length} field wajib sebelum melanjutkan:
+                                    </p>
+                                    <ul className="mt-1 list-inside list-disc">
+                                      {missingFields.map((field) => <li key={field.id}>{field.label}</li>)}
+                                    </ul>
+                                  </div>
+                                )}
                               </div>
                             ) : type === 'ya_tidak' ? (
                               <select

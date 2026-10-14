@@ -61,14 +61,21 @@ interface ShiftInstance {
 
 interface UserLite {
   id: string;
-  nama: string;
+  name: string;
   role: string;
-  cabangId: string;
+  branchIds: string[];
+  isActive: boolean;
+}
+
+interface BranchLite {
+  id: string;
+  name: string;
   isActive: boolean;
 }
 
 interface ShiftDefLite {
   id: string;
+  branchId: string;
   name: string;
   startTime: string;
   endTime: string;
@@ -114,7 +121,11 @@ export default function OperasiShiftPage() {
   const router = useRouter();
   const [instances, setInstances] = useState<ShiftInstance[]>([]);
   const [users, setUsers] = useState<UserLite[]>([]);
+  const [branches, setBranches] = useState<BranchLite[]>([]);
+  const [obBranch, setObBranch] = useState('');
   const [definitions, setDefinitions] = useState<ShiftDefLite[]>([]);
+  const [supportLoading, setSupportLoading] = useState(true);
+  const [definitionsLoading, setDefinitionsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'berjalan' | 'ditutup' | 'void'>('berjalan');
   const [query, setQuery] = useState('');
@@ -152,20 +163,26 @@ export default function OperasiShiftPage() {
     load();
   }, [load]);
 
-  // Data pendukung (dipakai dialog ganti PJ & buka atas nama)
+  // Data pendukung untuk pilihan petugas dan cabang.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [u, s] = await Promise.all([
+        const [u, b] = await Promise.all([
           apiFetch<{ users: UserLite[] }>('/api/admin/users'),
-          apiFetch<{ shifts: ShiftDefLite[] }>('/api/admin/branches/CBGBDG01/shifts'),
+          apiFetch<{ branches: BranchLite[] }>('/api/admin/branches'),
         ]);
         if (cancelled) return;
         setUsers(u.users);
-        setDefinitions(s.shifts.filter((d) => d.isActive));
-      } catch {
-        // Dialog aksi tetap bisa dipakai walau data pendukung gagal dimuat.
+        const availableBranches = b.branches.filter((branch) => branch.isActive);
+        setBranches(availableBranches);
+        setObBranch((current) => current || availableBranches[0]?.id || '');
+      } catch (err) {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : 'Gagal memuat pilihan cabang dan petugas.');
+        }
+      } finally {
+        if (!cancelled) setSupportLoading(false);
       }
     })();
     return () => {
@@ -173,11 +190,47 @@ export default function OperasiShiftPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!obBranch) {
+      setDefinitions([]);
+      return;
+    }
+
+    let cancelled = false;
+    setDefinitionsLoading(true);
+    setDefinitions([]);
+    apiFetch<{ shifts: ShiftDefLite[] }>(`/api/admin/branches/${encodeURIComponent(obBranch)}/shifts`)
+      .then((res) => {
+        if (!cancelled) setDefinitions(res.shifts.filter((definition) => definition.isActive));
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          toast.error(err instanceof Error ? err.message : 'Gagal memuat definisi shift.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDefinitionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [obBranch]);
+
   const openOp = (inst: ShiftInstance, action: OpAction) => {
     setOpTarget(inst);
     setOpAction(action);
     setOpError(null);
     setNewPjId('');
+  };
+
+  const handleOnBehalfOpenChange = (open: boolean) => {
+    setOnBehalfOpen(open);
+    if (open) {
+      setObDefinition('');
+      setObUser('');
+      setObReason('');
+      setObError(null);
+    }
   };
 
   const submitOp = async (values: SensitiveActionValues) => {
@@ -218,6 +271,7 @@ export default function OperasiShiftPage() {
         {
           method: 'POST',
           json: {
+            branchId: obBranch,
             shiftDefinitionId: obDefinition,
             targetUserId: obUser,
             reason: obReason.trim(),
@@ -246,8 +300,18 @@ export default function OperasiShiftPage() {
 
   // Hanya petugas aktif yang punya akses ke cabang target (ADM-OP-03)
   const pjCandidates = users.filter(
-    (u) => u.isActive && u.id !== opTarget?.pjUserId
+    (u) =>
+      u.isActive &&
+      u.role === 'petugas' &&
+      Boolean(opTarget?.branchId && u.branchIds.includes(opTarget.branchId)) &&
+      u.id !== opTarget?.pjUserId
   );
+  const onBehalfCandidates = users.filter(
+    (u) => u.isActive && u.role === 'petugas' && u.branchIds.includes(obBranch)
+  );
+  const selectedBranch = branches.find((branch) => branch.id === obBranch);
+  const selectedDefinition = definitions.find((definition) => definition.id === obDefinition);
+  const selectedUser = onBehalfCandidates.find((user) => user.id === obUser);
 
   const meta = ACTION_META[opAction];
 
@@ -260,7 +324,10 @@ export default function OperasiShiftPage() {
             Shift {STATUS_LABEL[statusFilter].toLowerCase()} lintas cabang
           </p>
         </div>
-        <Button onClick={() => setOnBehalfOpen(true)}>
+        <Button
+          onClick={() => handleOnBehalfOpenChange(true)}
+          disabled={supportLoading || branches.length === 0}
+        >
           <UserPlus className="h-4 w-4" />
           Buka Atas Nama
         </Button>
@@ -516,11 +583,16 @@ export default function OperasiShiftPage() {
                 <SelectContent>
                   {pjCandidates.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
-                      {u.nama} ({u.id})
+                      {u.name} ({u.id})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {pjCandidates.length === 0 && (
+                <p className="text-[11px] text-ink-light">
+                  Tidak ada petugas aktif dengan akses ke cabang ini.
+                </p>
+              )}
               <p className="text-[11px] text-ink-light">
                 Hanya petugas aktif yang punya akses ke {opTarget?.branchName}.
               </p>
@@ -533,7 +605,7 @@ export default function OperasiShiftPage() {
       />
 
       {/* Buka atas nama alasan wajib, TANPA PIN (ADM-OP-04) */}
-      <Dialog open={onBehalfOpen} onOpenChange={setOnBehalfOpen}>
+      <Dialog open={onBehalfOpen} onOpenChange={handleOnBehalfOpenChange}>
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Buka shift atas nama</DialogTitle>
@@ -549,12 +621,44 @@ export default function OperasiShiftPage() {
             )}
 
             <div className="space-y-1">
+              <Label htmlFor="ob-branch">
+                Cabang <span className="text-error">*</span>
+              </Label>
+              <Select
+                value={obBranch}
+                onValueChange={(branchId) => {
+                  setObBranch(branchId);
+                  setObDefinition('');
+                  setObUser('');
+                }}
+                disabled={supportLoading || branches.length === 0}
+              >
+                <SelectTrigger id="ob-branch">
+                  <SelectValue placeholder="Pilih cabang" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
               <Label htmlFor="ob-def">
                 Shift <span className="text-error">*</span>
               </Label>
-              <Select value={obDefinition} onValueChange={setObDefinition}>
+              <Select
+                value={obDefinition}
+                onValueChange={setObDefinition}
+                disabled={definitionsLoading || definitions.length === 0}
+              >
                 <SelectTrigger id="ob-def">
-                  <SelectValue placeholder="Pilih definisi shift" />
+                  <SelectValue
+                    placeholder={definitionsLoading ? 'Memuat shift...' : 'Pilih definisi shift'}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {definitions.map((d) => (
@@ -564,6 +668,9 @@ export default function OperasiShiftPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {!definitionsLoading && definitions.length === 0 && (
+                <p className="text-[11px] text-ink-light">Belum ada shift aktif di cabang ini.</p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -575,15 +682,18 @@ export default function OperasiShiftPage() {
                   <SelectValue placeholder="Pilih petugas yang jadi PJ" />
                 </SelectTrigger>
                 <SelectContent>
-                  {users
-                    .filter((u) => u.isActive)
-                    .map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.nama} ({u.id})
-                      </SelectItem>
-                    ))}
+                  {onBehalfCandidates.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} ({u.id})
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {onBehalfCandidates.length === 0 && (
+                <p className="text-[11px] text-ink-light">
+                  Tidak ada petugas aktif dengan akses ke cabang ini.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -600,6 +710,17 @@ export default function OperasiShiftPage() {
               />
             </div>
 
+            {selectedBranch && selectedDefinition && selectedUser && (
+              <div className="rounded-lg border border-border bg-canvas p-3 text-sm" role="status">
+                <p className="font-semibold">Ringkasan tindakan</p>
+                <p className="mt-1">
+                  Shift <strong>{selectedDefinition.name}</strong> di{' '}
+                  <strong>{selectedBranch.name}</strong> akan dibuka dengan{' '}
+                  <strong>{selectedUser.name}</strong> sebagai PJ.
+                </p>
+              </div>
+            )}
+
             <p className="text-[11px] text-ink-light">
               Aksi ini tidak memerlukan PIN, tetapi tetap tercatat di audit log beserta alasan.
             </p>
@@ -613,7 +734,17 @@ export default function OperasiShiftPage() {
               >
                 Batal
               </Button>
-              <Button type="submit" disabled={obLoading || !obDefinition || !obUser}>
+              <Button
+                type="submit"
+                disabled={
+                  obLoading ||
+                  supportLoading ||
+                  definitionsLoading ||
+                  !obBranch ||
+                  !obDefinition ||
+                  !obUser
+                }
+              >
                 {obLoading ? 'Membuka...' : 'Buka Shift'}
               </Button>
             </DialogFooter>

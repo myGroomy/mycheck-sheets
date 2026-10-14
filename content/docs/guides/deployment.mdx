@@ -37,7 +37,8 @@ laporan pada akun uji yang sesuai.
 - Uji endpoint `/api/health` untuk melihat pemeriksaan dependensi yang
   disediakan aplikasi.
 - Uji alur login dan logout, lalu verifikasi endpoint terlindungi menolak
-  permintaan tanpa sesi.
+  permintaan tanpa sesi. Logout menghapus cookie browser pemanggil; jangan
+  menganggapnya mencabut token stateless pada browser/perangkat lain.
 - Pastikan unggah dan baca foto menggunakan route aplikasi, bukan tautan Drive
   langsung.
 

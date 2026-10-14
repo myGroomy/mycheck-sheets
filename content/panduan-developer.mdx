@@ -40,7 +40,7 @@ mycheck/
     admin/                # Template service, sensitive action, settings catalog
     ...
   scripts/                # Setup registry, branch, seed admin
-  docs/                   # Dokumentasi MDX (file ini)
+  content/docs/           # Dokumentasi MDX yang dirender di /docs
   public/                 # Aset PWA
 ```
 
@@ -56,7 +56,7 @@ langsung browser ke Google Sheets tidak diperbolehkan.
 | Guard autentikasi | `lib/session.ts`, `lib/api-auth.ts`, `lib/page-auth.ts` |
 | API autentikasi | `app/api/auth/**` |
 | Shift, checklist, progress, penutupan | `app/api/shifts/**` |
-| Incident, laporan, foto | `app/api/incidents/**`, `api/reports/**`, `api/photos/**` |
+| Incident, laporan, foto | `app/api/incidents/**`, `app/api/reports/**`, `app/api/photos/**` |
 | API admin | `app/api/admin/**` |
 | UI petugas/admin | `components/shift/**`, `components/admin/**` |
 | Skema spreadsheet (kolom) | `lib/google/branch-schema.ts` |
@@ -80,16 +80,21 @@ screenshot, atau file yang dikomit.
 | Variabel | Pemakaian |
 | --- | --- |
 | `REGISTRY_SPREADSHEET_ID` | ID spreadsheet Registry (global). |
-| `GOOGLE_SA_EMAIL` | Email service account Google. |
-| `GOOGLE_SA_PRIVATE_KEY` | Private key service account (newline escaped). |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email service account Google. |
+| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Private key service account (newline escaped). |
 | `GOOGLE_DRIVE_FOLDER_ID` | ID folder Google Drive untuk storage foto. |
-| `SESSION_SECRET` | Secret untuk HMAC-SHA256 session token. |
-| `PIN_PEPPER` | Pepper untuk verifikasi PIN (disimpan di sheet, bukan hash). |
-| `CRON_SECRET` | Otorisasi endpoint cron bila digunakan. |
+| `STOKIS_API_KEY` | Secret HMAC-SHA256 untuk cookie sesi; wajib, minimal 32 karakter. |
+| `NEXT_PUBLIC_APP_URL` | URL aplikasi yang dapat dipakai pada sisi klien. |
+| `CRON_SECRET` | Periksa route/helper cron dan `lib/env.ts` sebelum mengonfigurasi. |
+
+Lihat `.env.example` dan `lib/env.ts` untuk pemakaian environment aktual.
+`SESSION_SECRET` dan `PIN_PEPPER` bukan nama konfigurasi yang digunakan saat
+ini. PIN saat ini disimpan sebagai teks biasa di Registry; jangan menyebutnya
+sebagai PIN hash atau pepper.
 
 <Callout type="warning">
   Jangan menampilkan atau mengirim isi `.env`, `.env.local`, secret sesi,
-  pepper PIN, atau private key ke layanan eksternal. Jangan pernah menempatkan
+  secret sesi atau private key ke layanan eksternal. Jangan pernah menempatkan
   rahasia di kode klien, log, atau respons.
 </Callout>
 
@@ -177,19 +182,23 @@ await insertRow(spreadsheetId, 'ShiftInstances', {
 
 ### API dan Autentikasi
 
-- API terlindungi menggunakan helper di `lib/api-auth.ts`; cek role dan akses
-  cabang di server pada **setiap** request.
+- Route yang terlindungi menggunakan helper di `lib/api-auth.ts`; periksa
+  handler spesifik untuk memastikan pemeriksaan sesi, role, dan cabangnya.
 - UI yang menyembunyikan tombol bukan pengganti otorisasi server.
-- Validasi input mengikuti schema Zod.
-- Cookie sesi: HttpOnly, Secure, SameSite=Lax. Pasang CSRF (custom header
-  `X-Requested-With`).
+- Sebagian route memakai Zod, sebagian lain validasi manual.
+- Cookie `mycheck_session`: HttpOnly, SameSite=Strict, Secure pada production;
+  berlaku tujuh hari dan bertanda tangan HMAC-SHA256.
+- Sesi stateless. `/api/auth/logout-all` hanya menghapus cookie browser
+  pemanggil dan tidak mencabut token di perangkat lain.
+- Tidak ditemukan rate limiting/lockout login atau pemeriksaan CSRF terpusat;
+  jangan menganggap header klien sebagai perlindungan server.
 - Pesan error kepada pengguna tidak membocorkan detail database/Google.
 
 ### Audit Log
 
-- Audit log append-only dengan hash chain, ditulis ke tab bulanan
-  `AuditLog_<YYYY-MM>`.
-- Hash chain di-reset per tab bulan (bukan global).
+- Audit log ditulis ke tab bulanan `AuditLog_<YYYY-MM>` dengan field hash.
+- `/api/cron/verify` saat ini memeriksa secret cron; jangan menganggapnya
+  memverifikasi hash chain audit.
 - Aksi sensitif admin wajib alasan + konfirmasi PIN dan tercatat di audit log.
 
 ## Fitur yang Tersedia
@@ -211,8 +220,8 @@ await insertRow(spreadsheetId, 'ShiftInstances', {
 
 ## Hal yang Perlu Diverifikasi oleh Developer Berikutnya
 
-1. **Paksa ganti PIN:** route `/ganti-pin` tersedia, tetapi verifikasi bahwa
-   login dengan `mustChangePin` benar-benar mengarahkan dan membatasi pengguna.
+1. **Paksa ganti PIN:** login dapat mengembalikan `mustChangePin`, tetapi
+   `AuthGuard` tidak memaksa redirect global ke `/ganti-pin`.
 2. **Polling progress:** ukur endpoint `/api/shifts/[id]/progress` dengan
    beberapa client. Pastikan fokus/visibility/interval dan refresh setelah aksi
    tidak menumpuk request.
@@ -220,6 +229,8 @@ await insertRow(spreadsheetId, 'ShiftInstances', {
    Uji aksi bersamaan BR-01 dan BR-12 memakai dua akun/permintaan paralel.
 4. **Kesesuaian spesifikasi:** bandingkan fitur yang akan dikerjakan dengan
    status di `PLAN/IMPLEMENTATION_PLAN.md`, kode saat ini, dan `TESTING.md`.
+5. **Pengakhiran sesi:** uji dampak logout dan perubahan secret terhadap token
+   stateless; jangan mengklaim sesi individual bisa dicabut.
 
 ## Checklist Sebelum Mengirim Perubahan
 

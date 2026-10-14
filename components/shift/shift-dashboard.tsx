@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, FolderKanban, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useCabang, type ShiftSummary } from '@/lib/CabangContext';
 
 function formatHHmm(value: string | null | undefined) {
@@ -17,6 +25,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
   const { branches, shifts, loading, error, refreshBranches, refreshBranchesIfStale } = useCabang();
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [shiftToOpen, setShiftToOpen] = useState<ShiftSummary | null>(null);
 
   const groupedByBranch = useMemo(() => {
     const map = new Map<string, ShiftSummary[]>();
@@ -56,6 +65,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
       }
       const nextId = data.shift_instance_id ?? instanceId;
       if (nextId) {
+        setShiftToOpen(null);
         void refreshBranches();
         router.push(`/shift/${nextId}`);
         return;
@@ -76,7 +86,10 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
         <Button
           type="button"
           className="w-full justify-center"
-          onClick={() => void performAction('open', item.id)}
+          onClick={() => {
+            setNotice(null);
+            setShiftToOpen(item);
+          }}
           disabled={busy === item.id}
         >
           {busy === item.id ? 'Memproses...' : 'Buka Shift'}
@@ -234,6 +247,43 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
           })
         )}
       </section>
+
+      <Dialog open={shiftToOpen !== null} onOpenChange={(open) => !open && setShiftToOpen(null)}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Konfirmasi buka shift</DialogTitle>
+            <DialogDescription>
+              Periksa cabang dan jadwal sebelum memulai. Petugas yang membuka shift akan menjadi PJ dan bertanggung jawab atas penutupannya.
+            </DialogDescription>
+          </DialogHeader>
+          {shiftToOpen && (
+            <div className="space-y-2 rounded-lg border border-border bg-canvas p-3 text-sm">
+              <p><span className="font-medium">Cabang:</span> {branches.find((branch) => branch.id === shiftToOpen.branchId)?.name ?? shiftToOpen.branchId}</p>
+              <p><span className="font-medium">Shift:</span> {shiftToOpen.name}</p>
+              <p><span className="font-medium">Tanggal:</span> {shiftToOpen.today}</p>
+              <p><span className="font-medium">Waktu:</span> {formatHHmm(shiftToOpen.startTime)}–{formatHHmm(shiftToOpen.endTime)}</p>
+              <p><span className="font-medium">PJ:</span> {userName} (Anda)</p>
+            </div>
+          )}
+          {notice && (
+            <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              {notice}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShiftToOpen(null)} disabled={Boolean(busy)}>
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={() => shiftToOpen && void performAction('open', shiftToOpen.id)}
+              disabled={!shiftToOpen || busy === shiftToOpen.id}
+            >
+              {shiftToOpen && busy === shiftToOpen.id ? 'Membuka shift...' : 'Konfirmasi & buka'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

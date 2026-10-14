@@ -1,5 +1,11 @@
 # Analisis dan Rekomendasi Redesign Flow Admin
 
+> Catatan perubahan navigasi. Klaim bagian "Sebelum redesign" mendokumentasikan
+> kondisi lama; navigasi source saat ini adalah sidebar admin di layar lebar,
+> empat tujuan inti di bottom navigation layar kecil, dan menu Lainnya untuk
+> konfigurasi/administrasi. Incident dan Kategori Incident berada pada satu
+> area navigasi dengan tab; seluruh URL halaman tetap dipertahankan.
+
 ## Ringkasan keputusan
 
 Menu admin **belum berlebihan dari sisi jumlah fungsi**, tetapi navigasinya terasa tersebar: ada 12 halaman yang dibagi antara empat tautan utama dan delapan tautan di menu “Pengelolaan”. Pengguna harus memahami lebih dulu apakah sebuah fungsi berada di menu inti atau menu tambahan.
