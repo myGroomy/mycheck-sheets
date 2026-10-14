@@ -20,7 +20,7 @@ import { apiFetch } from '@/lib/admin/api';
 
 interface Setting {
   key: string;
-  value: string;
+  value: string | number | boolean;
   valueType: 'int' | 'bool' | 'string' | 'text';
 }
 
@@ -146,7 +146,7 @@ export default function PengaturanPage() {
       for (const f of g.fields) {
         const s = settings[f.key];
         if (!s) continue;
-        if (s.valueType === 'int' && !/^\d+$/.test(s.value)) {
+        if (s.valueType === 'int' && !/^\d+$/.test(String(s.value))) {
           toast.error(`${f.label} harus berupa angka`);
           return;
         }
@@ -157,7 +157,7 @@ export default function PengaturanPage() {
     try {
       const payload = Object.values(settings).map((s) => ({
         key: s.key,
-        value: s.value,
+        value: typeof s.value === 'boolean' ? (s.value ? 'TRUE' : 'FALSE') : String(s.value),
       }));
       await apiFetch('/api/admin/settings', { method: 'PUT', json: { settings: payload } });
       toast.success('Pengaturan disimpan');
@@ -201,7 +201,7 @@ export default function PengaturanPage() {
                     <Label htmlFor={`set-${f.key}`}>{f.label}</Label>
                     {s.valueType === 'bool' ? (
                       <Select
-                        value={s.value}
+                        value={s.value === true ? 'TRUE' : s.value === false ? 'FALSE' : String(s.value ?? '')}
                         onValueChange={(v) => setValue(f.key, v)}
                       >
                         <SelectTrigger id={`set-${f.key}`} aria-label={f.label}>
@@ -215,14 +215,14 @@ export default function PengaturanPage() {
                     ) : s.valueType === 'text' || s.key === 'whatsapp_template' ? (
                       <Textarea
                         id={`set-${f.key}`}
-                        value={s.value}
+                        value={String(s.value ?? '')}
                         onChange={(e) => setValue(f.key, e.target.value)}
                         rows={3}
                       />
                     ) : (
                       <Input
                         id={`set-${f.key}`}
-                        value={s.value}
+                        value={String(s.value ?? '')}
                         inputMode="numeric"
                         onChange={(e) => setValue(f.key, e.target.value.replace(/[^\d-]/g, ''))}
                       />
@@ -233,7 +233,7 @@ export default function PengaturanPage() {
                         <span className="mb-1 block font-semibold uppercase tracking-wide text-ink-muted">
                           Pratinjau
                         </span>
-                        {previewTemplate(s.value)}
+                        {previewTemplate(String(s.value ?? ''))}
                       </div>
                     )}
                   </div>
