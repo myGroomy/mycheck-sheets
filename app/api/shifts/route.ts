@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { getServerTime } from '../../../lib/db/server-time';
 import { getShiftDate } from '../../../lib/shift/time';
 import { withAuth } from '../../../lib/api-auth';
-import { filterRows } from '../../../lib/store';
+import { filterRowsMulti } from '../../../lib/store';
 import { getCabangList } from '../../../lib/google/registry';
+
+const BRANCH_READ_CONCURRENCY = 3;
 
 /**
  * Daftar shift untuk petugas: definisi shift aktif pada cabang yang
@@ -50,48 +52,59 @@ withAuth(async (_req, ctx, _session) => {
     } | null;
   }[] = [];
 
-  for (const branch of branchRows) {
-    const cabang = allCabangs.find((c) => c.Cabang_ID === branch.id);
-    if (!cabang?.Spreadsheet_ID) continue;
+  for (let offset = 0; offset < branchRows.length; offset += BRANCH_READ_CONCURRENCY) {
+    const branchBatch = branchRows.slice(offset, offset + BRANCH_READ_CONCURRENCY);
+    const branchShifts = await Promise.all(branchBatch.map(async (branch) => {
+      const cabang = allCabangs.find((c) => c.Cabang_ID === branch.id);
+      if (!cabang?.Spreadsheet_ID) return [];
 
-    const spreadsheetId = cabang.Spreadsheet_ID;
-    const definitions = (await filterRows(spreadsheetId, 'ShiftDefinitions', (r) =>
-      String(r['is_active']).toLowerCase() === 'true' || r['is_active'] === true
-    )).sort((a, b) => Number(a['sort_order'] ?? 0) - Number(b['sort_order'] ?? 0));
+      const spreadsheetId = cabang.Spreadsheet_ID;
+      const today = getShiftDate(now, branch.timezone);
+      const [definitions, instances] = await filterRowsMulti(spreadsheetId, [
+        {
+          sheet: 'ShiftDefinitions',
+          predicate: (r) =>
+            String(r['is_active']).toLowerCase() === 'true' || r['is_active'] === true,
+        },
+        {
+          sheet: 'ShiftInstances',
+          predicate: (r) =>
+            String(r['shift_date'] ?? '') === today &&
+            String(r['status'] ?? '') !== 'void' &&
+            (String(r['is_test']).toLowerCase() === 'true' || r['is_test'] === true ? 'true' : 'false') === 'false',
+        },
+      ]);
 
-    const today = getShiftDate(now, branch.timezone);
-    const instances = await filterRows(spreadsheetId, 'ShiftInstances', (r) =>
-      String(r['shift_date'] ?? '') === today &&
-      String(r['status'] ?? '') !== 'void' &&
-      (String(r['is_test']).toLowerCase() === 'true' || r['is_test'] === true ? 'true' : 'false') === 'false'
-    );
-    const instanceByDefinition = new Map<string, Record<string, unknown>>();
-    for (const inst of instances) {
-      instanceByDefinition.set(String(inst['shift_definition_id']), inst);
-    }
+      definitions.sort((a, b) => Number(a['sort_order'] ?? 0) - Number(b['sort_order'] ?? 0));
+      const instanceByDefinition = new Map<string, Record<string, unknown>>();
+      for (const inst of instances) {
+        instanceByDefinition.set(String(inst['shift_definition_id']), inst);
+      }
 
-    for (const def of definitions) {
-      const instance = instanceByDefinition.get(String(def['id']));
-      shifts.push({
-        id: def['id'],
-        branchId: cabang.Cabang_ID,
-        name: def['name'],
-        startTime: def['start_time'],
-        endTime: def['end_time'],
-        crossesMidnight: String(def['crosses_midnight']).toLowerCase() === 'true' || def['crosses_midnight'] === true,
-        sortOrder: Number(def['sort_order'] ?? 0),
-        timezone: branch.timezone,
-        today,
-        instance: instance
-          ? {
-              shift_instance_id: instance['id'],
-              status: instance['status'],
-              pj_user_id: instance['pj_user_id'],
-              opened_outside_hours: String(instance['opened_outside_hours']).toLowerCase() === 'true' || instance['opened_outside_hours'] === true,
-            }
-          : null,
+      return definitions.map((def) => {
+        const instance = instanceByDefinition.get(String(def['id']));
+        return {
+          id: def['id'],
+          branchId: cabang.Cabang_ID,
+          name: def['name'],
+          startTime: def['start_time'],
+          endTime: def['end_time'],
+          crossesMidnight: String(def['crosses_midnight']).toLowerCase() === 'true' || def['crosses_midnight'] === true,
+          sortOrder: Number(def['sort_order'] ?? 0),
+          timezone: branch.timezone,
+          today,
+          instance: instance
+            ? {
+                shift_instance_id: instance['id'],
+                status: instance['status'],
+                pj_user_id: instance['pj_user_id'],
+                opened_outside_hours: String(instance['opened_outside_hours']).toLowerCase() === 'true' || instance['opened_outside_hours'] === true,
+              }
+            : null,
+        };
       });
-    }
+    }));
+    shifts.push(...branchShifts.flat());
   }
 
   shifts.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));

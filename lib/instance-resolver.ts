@@ -4,6 +4,8 @@ import { AuthContext } from './api-auth';
 import { listRowsWithNumber } from './store';
 import { resolveCabang } from './google/registry';
 
+const BRANCH_LOOKUP_CONCURRENCY = 3;
+
 export interface ResolvedInstance {
   instance: Record<string, unknown>;
   rowNumber: number;
@@ -29,12 +31,15 @@ export async function resolveInstance(
   ctx: AuthContext,
   shiftInstanceId: string
 ): Promise<ResolvedInstance | null> {
-  for (const cabangId of ctx.branchIds) {
-    try {
-      const { spreadsheetId, cabang } = await resolveCabang(cabangId);
-      const rows = await listRowsWithNumber(spreadsheetId, 'ShiftInstances');
-      const matches = rows.filter((r) => String(r.data['id'] ?? '') === shiftInstanceId);
-      if (matches.length > 0) {
+  for (let offset = 0; offset < ctx.branchIds.length; offset += BRANCH_LOOKUP_CONCURRENCY) {
+    const branchBatch = ctx.branchIds.slice(offset, offset + BRANCH_LOOKUP_CONCURRENCY);
+    const resolved = await Promise.all(branchBatch.map(async (cabangId) => {
+      try {
+        const { spreadsheetId, cabang } = await resolveCabang(cabangId);
+        const rows = await listRowsWithNumber(spreadsheetId, 'ShiftInstances');
+        const matches = rows.filter((r) => String(r.data['id'] ?? '') === shiftInstanceId);
+        if (matches.length === 0) return null;
+
         // Bisa ada >1 baris dengan ID sama: shift yang di-void lalu dibuka
         // kembali memakai kunci logis yang sama. Yang benar adalah baris
         // non-void; kalau semuanya void, ambil yang terakhir ditulis.
@@ -49,10 +54,12 @@ export async function resolveInstance(
           branchTimezone: (cabang['Timezone'] as string) || 'Asia/Jakarta',
           tabMonth,
         };
+      } catch {
+        return null;
       }
-    } catch {
-      // lanjut
-    }
+    }));
+    const match = resolved.find((item) => item !== null);
+    if (match) return match;
   }
   return null;
 }

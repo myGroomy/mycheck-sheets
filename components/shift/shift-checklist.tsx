@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
 import { AlertCircle, ArrowLeft, Clock3, Loader2, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChecklistPointControls } from '@/components/shift/checklist-point-controls';
 import { ShiftCloseDialog } from '@/components/shift/shift-close-dialog';
+import { useCabang } from '@/lib/CabangContext';
 
 type EntryState = 'belum' | 'selesai' | 'skip';
 type InputType =
@@ -117,22 +118,35 @@ export function ShiftChecklistClient({
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyPoint, setBusyPoint] = useState<string | null>(null);
+  const progressRequestRef = useRef<Promise<void> | null>(null);
+  const refreshTimerRef = useRef<number | null>(null);
+  const { refreshBranches } = useCabang();
 
   const loadProgress = useCallback(async () => {
+    if (progressRequestRef.current) return progressRequestRef.current;
+
     setLoading(true);
-    try {
-      const res = await fetch(`/api/shifts/${shiftId}/progress`, {
-        headers: { 'X-Requested-With': 'fetch' },
-      });
-      if (!res.ok) {
-        throw new Error('Gagal memuat progress shift');
+    const request = (async () => {
+      try {
+        const res = await fetch(`/api/shifts/${shiftId}/progress`, {
+          headers: { 'X-Requested-With': 'fetch' },
+        });
+        if (!res.ok) {
+          throw new Error('Gagal memuat progress shift');
+        }
+        const next = (await res.json()) as ShiftProgressResponse;
+        setData(next);
+      } catch {
+        setNotice('Gagal memuat progress shift. Coba refresh halaman.');
+      } finally {
+        setLoading(false);
       }
-      const next = (await res.json()) as ShiftProgressResponse;
-      setData(next);
-    } catch {
-      setNotice('Gagal memuat progress shift. Coba refresh halaman.');
+    })();
+    progressRequestRef.current = request;
+    try {
+      await request;
     } finally {
-      setLoading(false);
+      if (progressRequestRef.current === request) progressRequestRef.current = null;
     }
   }, [shiftId]);
 
@@ -142,17 +156,99 @@ export function ShiftChecklistClient({
 
   useEffect(() => {
     const refresh = () => {
-      if (document.visibilityState === 'visible') void loadProgress();
+      if (document.visibilityState !== 'visible') return;
+      if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = window.setTimeout(() => {
+        refreshTimerRef.current = null;
+        void loadProgress();
+      }, 300);
     };
     const interval = window.setInterval(refresh, 20_000);
     document.addEventListener('visibilitychange', refresh);
     window.addEventListener('focus', refresh);
     return () => {
       window.clearInterval(interval);
+      if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('focus', refresh);
     };
   }, [loadProgress]);
+
+  const applyAcceptedEntry = useCallback((
+    pointRef: string,
+    accepted: {
+      state: EntryState;
+      value: string | null;
+      outOfRange: boolean;
+      skipReason: string | null;
+      timingLabel: string | null;
+      timingDeltaMinutes: number | null;
+      completedBy: string | null;
+      completedByName: string | null;
+      completedAt: string | null;
+      itemCountDelta: number;
+    },
+    newParticipant: ShiftProgressResponse['participants'][number] | null,
+  ) => {
+    setData((current) => {
+      if (!current) return current;
+      let target: ProgressPoint | undefined;
+      const categories = current.categories.map((category) => ({
+        ...category,
+        points: category.points.map((point) => {
+          if (point.point_ref !== pointRef) return point;
+          target = point;
+          return {
+            ...point,
+            state: accepted.state,
+            value: accepted.value,
+            out_of_range: accepted.outOfRange,
+            skip_reason: accepted.skipReason,
+            timing_label: accepted.timingLabel,
+            timing_delta_minutes: accepted.timingDeltaMinutes,
+            completed_by: accepted.completedBy,
+            completed_by_name: accepted.completedByName,
+            completed_at: accepted.completedAt,
+          };
+        }),
+      }));
+      if (!target) return current;
+
+      const participantExists = current.participants.some((item) => item.user_id === userId);
+      const participants = newParticipant
+        ? participantExists
+          ? current.participants.map((item) =>
+              item.user_id === userId
+                ? newParticipant
+                : item,
+            )
+          : [...current.participants, newParticipant]
+        : current.participants.map((item) =>
+            item.user_id === userId
+              ? { ...item, items_done: item.items_done + accepted.itemCountDelta }
+              : item,
+          );
+
+      const wasDone = target.state === 'selesai';
+      const isDone = accepted.state === 'selesai';
+      const wasSkipped = target.state === 'skip';
+      const isSkipped = accepted.state === 'skip';
+      const requiredDoneDelta = target.is_required ? Number(isDone) - Number(wasDone) : 0;
+
+      return {
+        ...current,
+        categories,
+        participants,
+        progress: {
+          ...current.progress,
+          selesai: current.progress.selesai + Number(isDone) - Number(wasDone),
+          skip: current.progress.skip + Number(isSkipped) - Number(wasSkipped),
+          belum: current.progress.belum + Number(wasDone || wasSkipped) - Number(isDone || isSkipped),
+          wajib_selesai: current.progress.wajib_selesai + requiredDoneDelta,
+        },
+      };
+    });
+  }, [userId]);
 
   const totalDone = useMemo(() => data?.progress.selesai ?? 0, [data]);
   const totalSkip = useMemo(() => data?.progress.skip ?? 0, [data]);
@@ -203,14 +299,35 @@ export function ShiftChecklistClient({
         },
         body: JSON.stringify(payload),
       });
-      const json = (await res.json()) as { error?: string; status?: string; code?: string };
+      const json = (await res.json()) as {
+        error?: string;
+        status?: string;
+        code?: string;
+        entry?: {
+          state: EntryState;
+          value: string | null;
+          outOfRange: boolean;
+          skipReason: string | null;
+          timingLabel: string | null;
+          timingDeltaMinutes: number | null;
+          completedBy: string | null;
+          completedByName: string | null;
+          completedAt: string | null;
+          itemCountDelta: number;
+        };
+        participant?: ShiftProgressResponse['participants'][number] | null;
+      };
       if (!res.ok) {
         if (json.code === 'BR12_CONFLICT') {
           await loadProgress();
         }
         throw new Error(json.error || 'Tidak dapat menyimpan aksi checklist');
       }
-      await loadProgress();
+      if (json.status === 'diterima' && json.entry) {
+        applyAcceptedEntry(point.point_ref, json.entry, json.participant ?? null);
+      } else {
+        await loadProgress();
+      }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Gagal menyimpan checklist');
     } finally {
@@ -233,6 +350,10 @@ export function ShiftChecklistClient({
       setNotice(error instanceof Error ? error.message : 'Gagal mencatat tugas.');
     }
   };
+
+  const handleClosed = useCallback(async () => {
+    await Promise.all([loadProgress(), refreshBranches()]);
+  }, [loadProgress, refreshBranches]);
 
   if (loading && !data) {
     return (
@@ -422,7 +543,7 @@ export function ShiftChecklistClient({
                       .map((point) => point.title)
                   )}
                   fields={data.handover_fields}
-                  onClosed={loadProgress}
+                  onClosed={handleClosed}
                 />
               )}
               {data.shift.status !== 'berjalan' && (

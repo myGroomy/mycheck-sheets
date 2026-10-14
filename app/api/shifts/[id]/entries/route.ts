@@ -300,8 +300,11 @@ withAuth(async (_req, ctx, _session) => {
   const toleranceDefault = snapshot.settings?.tolerance_default_minutes ?? 15;
 
   // Cari entry yang benar-benar milik instance ini
-  const entry = (await listMonthlyRows(spreadsheetId, 'Entries', tabMonth)).find(
-    (r) => String(r['shift_instance_id']) === shiftInstanceId && String(r['point_ref']) === pointRef
+  const shiftEntries = (await listMonthlyRows(spreadsheetId, 'Entries', tabMonth)).filter(
+    (r) => String(r['shift_instance_id']) === shiftInstanceId
+  );
+  const entry = shiftEntries.find(
+    (r) => String(r['point_ref']) === pointRef
   ) ?? null;
 
   const prevState = (entry?.['state'] as string) ?? 'belum';
@@ -446,15 +449,36 @@ withAuth(async (_req, ctx, _session) => {
   const participantRows = await filterRows(spreadsheetId, 'Participants', (r) =>
     String(r['shift_instance_id']) === shiftInstanceId && String(r['user_id']) === ctx.user.id
   );
+  const previousCounted = String(entry?.['completed_by'] ?? '') === ctx.user.id;
+  const nextCounted = String(entryPatch.completed_by) === ctx.user.id;
+  const participant: {
+    user_id: string;
+    name: string;
+    is_pj: boolean;
+    first_action_type: string;
+    first_action_at: string;
+    items_done: number;
+  } = {
+    user_id: ctx.user.id,
+    name: ctx.user.name,
+    is_pj: String(instance['pj_user_id']) === ctx.user.id,
+    first_action_type: String(participantRows[0]?.['first_action_type'] ?? ''),
+    first_action_at: String(participantRows[0]?.['first_action_at'] ?? ''),
+    items_done:
+      shiftEntries.filter((row) => String(row['completed_by'] ?? '') === ctx.user.id).length +
+      Number(nextCounted) -
+      Number(previousCounted),
+  };
   if (!participantRows[0]) {
-    const firstActionType =
+    participant.first_action_type =
       action === 'skip' ? 'skip' : point.input_type === 'centang' ? 'centang' : 'isi';
+    participant.first_action_at = now.toISOString();
     await insertRow(spreadsheetId, 'Participants', {
       id: ulid(),
       shift_instance_id: shiftInstanceId,
       user_id: ctx.user.id,
-      first_action_at: now.toISOString(),
-      first_action_type: firstActionType,
+      first_action_at: participant.first_action_at,
+      first_action_type: participant.first_action_type,
       created_at: now.toISOString(),
     });
   }
@@ -469,6 +493,11 @@ withAuth(async (_req, ctx, _session) => {
       skipReason: skipReason || null,
       timingLabel: timing.timingLabel,
       timingDeltaMinutes: timing.timingDeltaMinutes,
+      completedBy: nextCounted ? ctx.user.id : null,
+      completedByName: nextCounted ? ctx.user.name : null,
+      completedAt: nextCounted ? now.toISOString() : null,
+      itemCountDelta: Number(nextCounted) - Number(previousCounted),
     },
+    participant,
   });
 });

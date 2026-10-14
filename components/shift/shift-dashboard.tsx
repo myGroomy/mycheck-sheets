@@ -5,39 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, FolderKanban, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
-interface ShiftInstanceSummary {
-  shift_instance_id: string;
-  status: 'berjalan' | 'ditutup' | 'ditutup_paksa' | 'void';
-  pj_user_id: string | null;
-  opened_outside_hours?: boolean;
-}
-
-interface ShiftDefSummary {
-  id: string;
-  branchId: string;
-  name: string;
-  startTime: string;
-  endTime: string;
-  crossesMidnight: boolean;
-  sortOrder: number;
-  timezone: string;
-  today: string;
-  instance: ShiftInstanceSummary | null;
-}
-
-interface BranchSummary {
-  id: string;
-  name: string;
-  code: string;
-  timezone: string;
-}
-
-interface ShiftsResponse {
-  branches: BranchSummary[];
-  shifts: ShiftDefSummary[];
-  server_time: string;
-}
+import { useCabang, type ShiftSummary } from '@/lib/CabangContext';
 
 function formatHHmm(value: string | null | undefined) {
   if (!value) return '-';
@@ -46,14 +14,12 @@ function formatHHmm(value: string | null | undefined) {
 
 export function ShiftDashboardClient({ userId, userName }: { userId: string; userName: string }) {
   const router = useRouter();
-  const [branches, setBranches] = useState<BranchSummary[]>([]);
-  const [shifts, setShifts] = useState<ShiftDefSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { branches, shifts, loading, error, refreshBranches, refreshBranchesIfStale } = useCabang();
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const groupedByBranch = useMemo(() => {
-    const map = new Map<string, ShiftDefSummary[]>();
+    const map = new Map<string, ShiftSummary[]>();
     for (const item of shifts) {
       const bucket = map.get(item.branchId) ?? [];
       bucket.push(item);
@@ -63,27 +29,8 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
   }, [shifts]);
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/shifts', {
-          headers: { 'X-Requested-With': 'fetch' },
-        });
-        if (!res.ok) {
-          throw new Error('Gagal memuat daftar shift');
-        }
-        const data = (await res.json()) as ShiftsResponse;
-        setBranches(data.branches);
-        setShifts(data.shifts);
-      } catch {
-        setNotice('Tidak dapat memuat data shift saat ini. Coba lagi sebentar.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void load();
-  }, []);
+    if (!loading && !error) void refreshBranchesIfStale();
+  }, [loading, error, refreshBranchesIfStale]);
 
   const performAction = async (action: 'open' | 'join', shiftDefinitionId: string, instanceId?: string) => {
     setBusy(shiftDefinitionId);
@@ -109,6 +56,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
       }
       const nextId = data.shift_instance_id ?? instanceId;
       if (nextId) {
+        void refreshBranches();
         router.push(`/shift/${nextId}`);
         return;
       }
@@ -121,7 +69,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
     }
   };
 
-  const renderShiftAction = (item: ShiftDefSummary) => {
+  const renderShiftAction = (item: ShiftSummary) => {
     const instance = item.instance;
     if (!instance) {
       return (
@@ -179,10 +127,10 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
         </div>
       </header>
 
-      {notice && (
+      {(notice || error) && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{notice}</span>
+          <span>{notice || error}</span>
         </div>
       )}
 
