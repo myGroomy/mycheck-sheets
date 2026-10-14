@@ -67,12 +67,18 @@ export default async function RootLayout({
                 <NavbarClient initialRole={initialRole} />
                 <PageTransition>{children}</PageTransition>
               </AuthGuard>
+              {/* Overlay login/logout.
+                  WAJIB di dalam <AuthProvider> (memakai useAuth) tapi di luar
+                  <AuthGuard>, karena AuthGuard-lah yang mengarahkan ke
+                  /login saat logout — kalau overlay ikut di dalam guard,
+                  overlay ikut ter-unmount tepat saat guard mulai redirect
+                  dan loader logout tidak akan pernah terlihat.
+                  Jangan dipindah ke luar AuthProvider: useAuth() akan
+                  melempar "must be used within AuthProvider". */}
+              <AuthTransitionOverlay />
             </CabangProvider>
           </AuthProvider>
           <Toaster position="top-center" richColors />
-          {/* Overlay login/logout — di luar AuthGuard agar tetap tampil
-              saat AuthGuard mengarahkan pengguna ke /login. */}
-          <AuthTransitionOverlay />
         </RootProvider>
       </body>
     </html>

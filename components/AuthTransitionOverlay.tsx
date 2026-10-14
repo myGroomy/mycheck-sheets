@@ -11,8 +11,7 @@
 // Styling memakai `QuantumLoaderOverlay` yang sama dengan halaman lain, jadi
 // tampilan loader login/logout identik dengan loader halaman.
 
-import { useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/lib/AuthContext';
 import { QuantumLoaderOverlay } from '@/components/ui/QuantumLoader';
@@ -23,25 +22,41 @@ const TRANSITION_LABEL: Record<string, string> = {
 };
 
 export function AuthTransitionOverlay() {
-  const { transition, clearTransition } = useAuth();
-  const pathname = usePathname();
-  const prevPathname = useRef(pathname);
-
-  // Setelah logout selesai, AuthGuard mengarahkan ke /login. Di titik itu
-  // overlay harus hilang agar form login bisa dipakai.
+  const { transition, clearTransition, user } = useAuth();
+  // Setelah logout selesai, `user` menjadi null lalu AuthGuard mengarahkan
+  // ke halaman login. Overlay harus hilang setelah redirect terjadi.
   //
-  // Reset dilakukan HANYA saat pathname benar-benar berubah menjadi /login
-  // (dari route sebelumnya), bukan saat kita sudah berada di /login. Kalau
-  // dicek ulang setiap render, state 'login' yang sedang berjalan di halaman
-  // /login akan ikut ter-cancel dan spinner-nya berkedip.
+  // Reset TIDAK bergantung pada pathname. Dulu condition-nya
+  // `pathname === '/login'`, tapi itu tidak bisa diandalkan:
+  //   - AuthGuard bisa mengarahkan ke '/' bila session masih terbaca,
+  //   - redirect beruntun (/daftar-shift -> /login -> /) bisa membuat React
+  //     melompati render '/login' sehingga condition-nya tidak pernah cocok,
+  //   - akibatnya overlay menggantung selamanya dan memblokir seluruh aplikasi.
+  //
+  // Yang dipakai sekarang: begitu `user` null (logout benar-benar selesai),
+  // beri jeda singkat untuk redirect, lalu pasti bersihkan overlay. Pakai
+  // jeda, bukan reset langsung, supaya tidak ada kedipan halaman lama
+  // sesaat sebelum redirect terjadi. Timeout juga menjamin overlay tidak
+  // pernah menggantung walau redirect gagal total.
   useEffect(() => {
-    const changed = pathname !== prevPathname.current;
-    prevPathname.current = pathname;
+    if (transition === 'idle') return;
 
-    if (changed && pathname === '/login' && transition !== 'idle') {
-      clearTransition();
-    }
-  }, [pathname, transition, clearTransition]);
+    const done = transition === 'logout' && user === null;
+    // 'login' di-reset hanya lewat clearTransition() dari AuthContext
+    // (kegagalan login) atau full page reload dari window.location.assign.
+    if (!done) return;
+
+    const t = window.setTimeout(clearTransition, 600);
+    return () => window.clearTimeout(t);
+  }, [transition, user, clearTransition]);
+
+  // Pengaman terakhir: kalau sebuah transisi berjalan terlalu lama (mis.
+  // request menggantung), lepaskan overlay agar UI tidak terkunci.
+  useEffect(() => {
+    if (transition === 'idle') return;
+    const t = window.setTimeout(clearTransition, 8000);
+    return () => window.clearTimeout(t);
+  }, [transition, clearTransition]);
 
   const label =
     transition === 'idle' ? null : TRANSITION_LABEL[transition] ?? 'Memuat';
