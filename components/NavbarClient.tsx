@@ -114,7 +114,7 @@ function isVisible(item: NavItem, role: UserRole) {
 
 export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
   const pathname = usePathname();
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, transition } = useAuth();
   // Saat SSR, `user` belum ada → pakai initialRole. Setelah hydration, pakai
   // data asli dari AuthContext.
   const role: UserRole = user?.role ?? initialRole;
@@ -242,8 +242,9 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
             )}
             {user && (
               <button
-                onClick={logout}
-                className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink"
+                onClick={() => void logout()}
+                disabled={transition !== 'idle'}
+                className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
                 title="Keluar"
               >
                 <LogOut className="h-4 w-4" />
@@ -405,7 +406,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 );
               })}
               <button
-                onClick={() => { setMoreOpen(false); logout(); }}
+                onClick={() => { setMoreOpen(false); void logout(); }}
                 className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-error transition hover:bg-error-bg"
               >
                 <LogOut className="h-5 w-5" />

@@ -9,6 +9,7 @@ import { CabangProvider } from '@/lib/CabangContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { NavbarClient } from '@/components/NavbarClient';
 import { PageTransition } from '@/components/PageTransition';
+import { AuthTransitionOverlay } from '@/components/AuthTransitionOverlay';
 import { verifySessionToken } from '@/lib/session';
 import './globals.css';
 
@@ -69,6 +70,9 @@ export default async function RootLayout({
             </CabangProvider>
           </AuthProvider>
           <Toaster position="top-center" richColors />
+          {/* Overlay login/logout — di luar AuthGuard agar tetap tampil
+              saat AuthGuard mengarahkan pengguna ke /login. */}
+          <AuthTransitionOverlay />
         </RootProvider>
       </body>
     </html>

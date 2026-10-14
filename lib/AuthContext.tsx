@@ -21,11 +21,27 @@ type LoginResult =
   | { success: true; role: UserRole; mustChangePin: boolean }
   | { success: false; error: string };
 
+/**
+ * Status perpindahan sesi. Dipakai untuk menampilkan QuantumLoader overlay
+ * selama proses login/logout berjalan, supaya pengguna tidak mengira tombolnya
+ * tidak merespons — terutama saat menekan "Keluar", karena navbar tetap terlihat
+ * sampai redirect selesai.
+ *
+ * 'idle'   — tidak ada transisi sesi
+ * 'login'  — POST /api/auth/login sedang berjalan
+ * 'logout' — POST /api/auth/logout sedang berjalan
+ */
+type AuthTransition = 'idle' | 'login' | 'logout';
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  /** Status transisi sesi saat ini; 'idle' bila tidak ada proses. */
+  transition: AuthTransition;
   login: (username: string, pin: string) => Promise<LoginResult>;
-  logout: () => void;
+  logout: () => Promise<void>;
+  /** Kembalikan status transisi ke 'idle' (dipakai overlay setelah redirect). */
+  clearTransition: () => void;
   hasAnyRole: (roles: UserRole[]) => boolean;
   isAdmin: boolean;
 }
@@ -52,6 +68,7 @@ function extractUser(json: unknown): User | null {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [transition, setTransition] = useState<AuthTransition>('idle');
 
   useEffect(() => {
     // Ambil session dari server (httpOnly cookie) bukan localStorage.
@@ -66,6 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (username: string, pin: string): Promise<LoginResult> => {
+    setTransition('login');
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -76,27 +94,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const u = extractUser(data);
       if (res.ok && u) {
         setUser(u);
+        // Sengaja TIDAK reset ke 'idle' di sini. Pemanggil (halaman login)
+        // akan me-redirect lewat window.location.assign; overlay dibiarkan
+        // tampil sampai halaman baru benar-benar dimuat. Kalau redirect
+        // gagal, AuthGuard akan mengembalikan state ke 'idle'.
         return { success: true, role: u.role, mustChangePin: u.mustChangePin };
       }
       const errMsg =
         (data?.error?.message as string | undefined) ??
         (typeof data?.error === 'string' ? (data.error as string) : undefined) ??
         'Username atau PIN salah';
+      setTransition('idle');
       return { success: false, error: errMsg };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
+      setTransition('idle');
       return { success: false, error: 'Gagal terhubung ke server: ' + message };
     }
   };
 
   const logout = async () => {
+    setTransition('logout');
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch {
       // Abaikan error logout, tetap clear state lokal
     }
     setUser(null);
+    // State dibiarkan 'logout' sampai halaman login selesai dimuat.
   };
+
+  const clearTransition = () => setTransition('idle');
 
   const hasAnyRole = (roles: UserRole[]) => {
     if (!user) return false;
@@ -106,7 +134,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, hasAnyRole, isAdmin }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        transition,
+        login,
+        logout,
+        clearTransition,
+        hasAnyRole,
+        isAdmin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

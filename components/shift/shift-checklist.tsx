@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
 import { AlertCircle, ArrowLeft, Clock3, UserRound } from 'lucide-react';
-import { QuantumLoader } from '@/components/ui/QuantumLoader';
+import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import { ChecklistPointControls } from '@/components/shift/checklist-point-controls';
@@ -361,9 +361,11 @@ export function ShiftChecklistClient({
     return (
       <main className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         <SkeletonTransition>
-          <div className="flex min-h-[60dvh] items-center justify-center">
-            <QuantumLoader text="Memuat shift..." />
-          </div>
+          <PageLoader
+            text="Memuat shift…"
+            boxed={false}
+            className="min-h-[60dvh]"
+          />
         </SkeletonTransition>
       </main>
     );

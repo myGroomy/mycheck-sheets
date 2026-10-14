@@ -31,11 +31,74 @@ export function QuantumLoader({ text, className, size = 'md' }: QuantumLoaderPro
   );
 }
 
+/**
+ * Loader dalam halaman — KANONIKAL untuk seluruh halaman MYCHECK.
+ *
+ * Gunakan komponen ini (bukan `<QuantumLoader>` langsung) supaya ukuran,
+ * tinggi area, dan gaya teks seragam di semua halaman. Kalau sebuah halaman
+ * butuh loader-nya sedikit beda, ubah di sini, bukan di tiap call-site.
+ *
+ * ```tsx
+ * <PageLoader text="Memuat laporan…" />
+ * ```
+ */
+export function PageLoader({
+  text,
+  /** Padding boxed seperti kartu, atau penuh tanpa border. */
+  boxed = true,
+  className,
+}: {
+  text?: string;
+  boxed?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex min-h-40 items-center justify-center',
+        boxed && 'rounded-xl border border-border bg-surface',
+        className
+      )}
+      role="status"
+      aria-label={text || 'Memuat'}
+    >
+      <QuantumLoader size="sm" text={text} />
+    </div>
+  );
+}
+
 /** Varian layar penuh — untuk state loading satu halaman. */
 export function QuantumLoaderFull({ text }: { text?: string }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh]">
       <QuantumLoader text={text || 'Memuat'} size="lg" />
+    </div>
+  );
+}
+
+/**
+ * Overlay layar penuh yang menutupi seluruh viewport — dipakai saat transisi
+ * besar yang memuat ulang sesi (logout, login, ganti PIN). Berbeda dengan
+ * `PageLoader` yang hanya mengisi area konten, overlay ini menutup navbar dan
+ * seluruh halaman supaya tidak ada interaksi selama proses berjalan.
+ *
+ * `label` ditulis sebagai props (bukan hardcoded) supaya teks yang tampil
+ * konsisten dengan aksi yang sedang berjalan.
+ */
+export function QuantumLoaderOverlay({
+  label = 'Memuat',
+}: {
+  label?: string;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-canvas/90 backdrop-blur-sm"
+      role="alertdialog"
+      aria-busy="true"
+      aria-live="polite"
+      aria-label={label}
+    >
+      <QuantumLoader text={label} size="lg" />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { Download, FileText, Link2, Loader2, RefreshCw, XCircle } from 'lucide-react';
-import { QuantumLoader } from '@/components/ui/QuantumLoader';
+import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/admin/api';
@@ -254,9 +254,7 @@ export default function AdminReportsPage() {
       <section className="space-y-3">
         {loading ? (
           <SkeletonTransition>
-            <div className="flex min-h-40 items-center justify-center rounded-xl border border-border bg-surface">
-              <QuantumLoader size="sm" text="Memuat laporan…" />
-            </div>
+            <PageLoader text="Memuat laporan…" />
           </SkeletonTransition>
         ) : reports.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center">

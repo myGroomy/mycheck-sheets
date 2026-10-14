@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, ArrowLeft, Image as ImageIcon, Loader2, Send } from 'lucide-react';
-import { QuantumLoader } from '@/components/ui/QuantumLoader';
+import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 
@@ -79,7 +79,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
     }
   };
 
-  if (loading) return <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10"><SkeletonTransition><div className="flex min-h-40 items-center justify-center"><QuantumLoader size="sm" text="Memuat detail incident…" /></div></SkeletonTransition></main>;
+  if (loading) return <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10"><SkeletonTransition><PageLoader text="Memuat detail incident…" boxed={false} /></SkeletonTransition></main>;
   if (!data) {
     return (
       <main className="mx-auto max-w-3xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
