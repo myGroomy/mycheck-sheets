@@ -7,7 +7,7 @@ import { PwaStatus } from '@/components/pwa-status';
 import { AuthProvider } from '@/lib/AuthContext';
 import { CabangProvider } from '@/lib/CabangContext';
 import { AuthGuard } from '@/components/AuthGuard';
-import { NavbarClient } from '@/components/NavbarClient';
+import { AppShell } from '@/components/AppShell';
 import { PageTransition } from '@/components/PageTransition';
 import { AuthTransitionOverlay } from '@/components/AuthTransitionOverlay';
 import { verifySessionToken } from '@/lib/session';
@@ -64,8 +64,9 @@ export default async function RootLayout({
           <AuthProvider>
             <CabangProvider>
               <AuthGuard>
-                <NavbarClient initialRole={initialRole} />
-                <PageTransition>{children}</PageTransition>
+                <AppShell initialRole={initialRole}>
+                  <PageTransition>{children}</PageTransition>
+                </AppShell>
               </AuthGuard>
               {/* Overlay login/logout.
                   WAJIB di dalam <AuthProvider> (memakai useAuth) tapi di luar

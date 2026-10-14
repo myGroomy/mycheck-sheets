@@ -1,116 +1,34 @@
 'use client';
 
 // components/NavbarClient.tsx
-// Isi Navbar. `initialRole` berasal dari server (session cookie) supaya SSR
-// merender item yang sesuai role tanpa menunggu fetch /api/auth/me di
-// client. Begitu useAuth() ter-resolve, role otomatis memakai data asli.
+// Navigasi global aplikasi dengan tiga mode, semuanya membaca dari
+// `lib/nav-config.ts` (satu sumber kebenaran):
+//
+//   • Desktop (md+): side panel fixed di kiri untuk SEMUA halaman yang
+//     login — admin maupun petugas. Tidak lagi ada dropdown "Menu" di header
+//     dan tidak ada lagi perbedaan tampilan antara halaman admin dan
+//     halaman petugas.
+//   • Mobile (<md): bar navigasi bawah dengan maksimal 4 item inti + tombol
+//     "Lainnya" (total 5 tombol). Item sisanya dikelompokkan di drawer
+//     "Lainnya".
+//
+// `initialRole` berasal dari server (session cookie) supaya SSR merender item
+// yang sesuai role tanpa menunggu fetch /api/auth/me di client. Begitu
+// useAuth() ter-resolve, role otomatis memakai data asli.
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import {
-  ClipboardCheck,
-  Activity,
-  Users,
-  Building2,
-  FileText,
-  LayoutDashboard,
-  ListChecks,
-  AlertTriangle,
-  Settings,
-  LogOut,
-  X,
-  BookOpen,
-  MoreHorizontal,
-  Menu,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-
-type UserRole = 'admin' | 'petugas';
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: LucideIcon;
-  roles?: UserRole[];
-}
-
-// Item inti petugas (muncul di bar bawah HP, dan di header tablet/desktop).
-const PETUGAS_CORE: NavItem[] = [
-  { name: 'Checklist', href: '/daftar-shift', icon: ClipboardCheck },
-  { name: 'Incident', href: '/incident', icon: AlertTriangle },
-  { name: 'Laporan', href: '/report', icon: FileText },
-];
-
-// Item inti admin.
-const ADMIN_CORE: NavItem[] = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Operasi', href: '/admin/operasi-shift', icon: Activity },
-  { name: 'Incident', href: '/admin/incident', icon: AlertTriangle },
-  { name: 'Laporan', href: '/admin/laporan', icon: FileText },
-];
-
-const ADMIN_SIDEBAR_GROUPS: { title: string; items: NavItem[] }[] = [
-  {
-    title: 'Operasional',
-    items: [
-      { name: 'Operasi Shift', href: '/admin/operasi-shift', icon: Activity },
-      { name: 'Incident', href: '/admin/incident', icon: AlertTriangle },
-    ],
-  },
-  {
-    title: 'Laporan',
-    items: [{ name: 'Laporan', href: '/admin/laporan', icon: FileText }],
-  },
-  {
-    title: 'Konfigurasi',
-    items: [
-      { name: 'Cabang', href: '/admin/cabang', icon: Building2 },
-      { name: 'Shift', href: '/admin/shift', icon: ClipboardCheck },
-      { name: 'Checklist / SOP', href: '/admin/checklist-builder', icon: ListChecks },
-      { name: 'Handover', href: '/admin/handover-builder', icon: FileText },
-    ],
-  },
-  {
-    title: 'Administrasi',
-    items: [
-      { name: 'Akun', href: '/admin/akun', icon: Users },
-      { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings },
-      { name: 'Audit Log', href: '/admin/audit-log', icon: Activity },
-    ],
-  },
-];
-
-const ADMIN_MOBILE_CORE: NavItem[] = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Operasi', href: '/admin/operasi-shift', icon: Activity },
-  { name: 'Incident', href: '/admin/incident', icon: AlertTriangle },
-  { name: 'Laporan', href: '/admin/laporan', icon: FileText },
-];
-
-const ADMIN_MOBILE_GROUPS = ADMIN_SIDEBAR_GROUPS.slice(2);
-
-// Tautan tambahan untuk halaman non-admin yang tetap dapat dibuka oleh admin.
-const ADMIN_MORE: NavItem[] = [
-  { name: 'Akun', href: '/admin/akun', icon: Users },
-  { name: 'Cabang', href: '/admin/cabang', icon: Building2 },
-  { name: 'Shift', href: '/admin/shift', icon: ClipboardCheck },
-  { name: 'Checklist / SOP', href: '/admin/checklist-builder', icon: ListChecks },
-  { name: 'Handover', href: '/admin/handover-builder', icon: FileText },
-  { name: 'Kategori Incident', href: '/admin/kategori-incident', icon: AlertTriangle },
-  { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings },
-  { name: 'Audit Log', href: '/admin/audit-log', icon: Activity },
-];
-
-const PETUGAS_MORE: NavItem[] = [
-  { name: 'Panduan', href: '/docs', icon: BookOpen },
-  { name: 'Ganti PIN', href: '/ganti-pin', icon: Settings },
-];
-
-function isVisible(item: NavItem, role: UserRole) {
-  return !item.roles || item.roles.includes(role);
-}
+  getMobileCoreItems,
+  getMobileMoreGroups,
+  getNavGroups,
+  isNavItemActive,
+  isStandalonePath,
+} from '@/lib/nav-config';
+import type { NavItem, UserRole } from '@/lib/nav-config';
+import { LogOut, X, MoreHorizontal } from 'lucide-react';
 
 export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
   const pathname = usePathname();
@@ -120,155 +38,84 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
   const role: UserRole = user?.role ?? initialRole;
 
   const [moreOpen, setMoreOpen] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
-  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
-  const adminMenuRef = useRef<HTMLDivElement>(null);
-  const desktopMenuRef = useRef<HTMLDivElement>(null);
 
-  const isAdminArea = role === 'admin' && pathname.startsWith('/admin');
-  const coreItems = (isAdminArea
-    ? ADMIN_MOBILE_CORE
-    : role === 'admin'
-      ? ADMIN_CORE
-      : PETUGAS_CORE
-  ).filter((i) => isVisible(i, role));
-  const moreItems = (role === 'admin' ? ADMIN_MORE : PETUGAS_MORE).filter((i) => isVisible(i, role));
-  const showAdminMenu = role === 'admin' && !isAdminArea;
+  const navGroups = getNavGroups(role);
+  const mobileCoreItems = getMobileCoreItems(role);
+  const mobileMoreGroups = getMobileMoreGroups(role);
+  const hasMoreItems = mobileMoreGroups.some((g) => g.items.length > 0);
 
-  const isActive = (href: string) => {
-    if (href === '/') return pathname === '/';
-    if (href === '/daftar-shift') return pathname === '/daftar-shift' || pathname.startsWith('/shift/');
-    if (href === '/admin') return pathname === '/admin';
-    if (href === '/admin/incident') {
-      return pathname === href || pathname.startsWith(`${href}/`) || pathname === '/admin/kategori-incident';
-    }
-    return pathname === href || pathname.startsWith(href + '/');
-  };
+  // Side panel desktop hanya untuk halaman "terlindungi": landing, login,
+  // laporan publik, dan docs (punya sidebar sendiri) tetap full-width.
+  const standalone = isStandalonePath(pathname);
 
-  // Tutup menu saat klik di luar.
+  const isActive = (item: NavItem) => isNavItemActive(item, pathname);
+
+  // Tutup drawer saat klik di luar.
   useEffect(() => {
-    if (!moreOpen && !adminMenuOpen && !desktopMenuOpen) return;
+    if (!moreOpen) return;
     const handler = (e: MouseEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
-      if (adminMenuRef.current && !adminMenuRef.current.contains(e.target as Node)) setAdminMenuOpen(false);
-      if (desktopMenuRef.current && !desktopMenuRef.current.contains(e.target as Node)) setDesktopMenuOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [moreOpen, adminMenuOpen, desktopMenuOpen]);
+  }, [moreOpen]);
+
+  // Tutup drawer "Lainnya" setiap kali pindah halaman.
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [pathname]);
 
   // Sembunyikan nav di halaman publik ketika belum login
-  const publicPages = ['/', '/login'];
-  const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/docs') || pathname.startsWith('/r/');
-  if (!loading && !user && isPublicPage) return null;
+  if (!loading && !user && standalone) return null;
+
+  const showSidebar = !standalone;
+  // Jumlah kolom bar bawah = jumlah item inti + tombol "Lainnya" (jika ada).
+  const bottomColumns = mobileCoreItems.length + (hasMoreItems ? 1 : 0);
+
+  const userBlock = user ? (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="hidden min-w-0 truncate text-xs text-ink-muted sm:inline">
+        {user.nama} · {user.role}
+      </span>
+      <button
+        onClick={() => void logout()}
+        disabled={transition !== 'idle'}
+        className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        title="Keluar"
+      >
+        <LogOut className="h-4 w-4" />
+        <span className="hidden sm:inline">Keluar</span>
+      </button>
+    </div>
+  ) : null;
 
   return (
     <>
-      {/* Header desktop */}
+      {/* Header: brand di kiri, aksi akun di kanan (mobile). Di desktop aksi
+          akun pindah ke footer side panel supaya tidak dobel. Paddingnya
+          meniru padding konten halaman, dan digeser sebesar lebar side panel
+          (`md:pl-64`) supaya brand sejajar dengan judul halaman. */}
       <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-3 sm:px-4">
-          <Link
-            href={isAdminArea ? '/admin' : '/'}
-            prefetch={false}
-            className="shrink-0 text-sm font-bold tracking-tight text-ink"
-          >
-            MyCheck
-          </Link>
-
-          {!isAdminArea && (
-            <div ref={desktopMenuRef} className="relative hidden md:block">
-              <button
-                onClick={() => setDesktopMenuOpen((v) => !v)}
-                className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink"
-                aria-expanded={desktopMenuOpen}
-                aria-label="Menu navigasi"
-              >
-                {desktopMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-                <span>Menu</span>
-              </button>
-              {desktopMenuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 rounded-lg border border-border bg-surface py-1 shadow-lg">
-                  {coreItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        prefetch={false}
-                        onClick={() => setDesktopMenuOpen(false)}
-                        aria-current={active ? 'page' : undefined}
-                        className={`flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold transition ${
-                          active ? 'bg-canvas text-ink' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span>{item.name}</span>
-                      </Link>
-                    );
-                  })}
-                  <div className="my-1 border-t border-border" />
-                  {moreItems.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        prefetch={false}
-                        onClick={() => setDesktopMenuOpen(false)}
-                        aria-current={active ? 'page' : undefined}
-                        className={`flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold transition ${
-                          active ? 'bg-canvas text-ink' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        <span>{item.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Sisi kanan */}
-          <div className="flex min-w-0 items-center gap-2">
-            {user && (
-              <span className="hidden min-w-0 truncate text-xs text-ink-muted sm:inline">
-                {user.nama} · {user.role}
-              </span>
-            )}
-            {user && (
-              <button
-                onClick={() => void logout()}
-                disabled={transition !== 'idle'}
-                className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold text-ink-muted transition hover:bg-canvas hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
-                title="Keluar"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Keluar</span>
-              </button>
-            )}
+        <div className={`flex h-14 w-full items-center ${showSidebar ? 'md:pl-64' : ''}`}>
+          <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-2 px-4 sm:px-6 lg:px-8 xl:px-10">
+            <Link
+              href={role === 'admin' ? '/admin' : '/daftar-shift'}
+              prefetch={false}
+              className="shrink-0 text-sm font-bold tracking-tight text-ink"
+            >
+              MyCheck
+            </Link>
+            <div className={showSidebar ? 'md:hidden' : ''}>{userBlock}</div>
           </div>
         </div>
       </header>
 
-      {isAdminArea && (
-        <aside className="fixed bottom-0 left-0 top-14 z-40 hidden w-64 overflow-y-auto border-r border-border bg-surface px-3 py-5 md:block">
-          <nav aria-label="Navigasi admin" className="space-y-5">
-            <Link
-              href="/admin"
-              aria-current={isActive('/admin') ? 'page' : undefined}
-              className={`flex min-h-12 items-center gap-3 rounded-md px-3 text-sm font-semibold transition ${
-                isActive('/admin') ? 'bg-canvas text-ink' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-              }`}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span>Dashboard</span>
-            </Link>
-            {ADMIN_SIDEBAR_GROUPS.map((group) => (
+      {/* Side panel desktop (semua halaman yang login) */}
+      {showSidebar && (
+        <aside className="fixed bottom-0 left-0 top-14 z-40 hidden w-64 flex-col border-r border-border bg-surface md:flex">
+          <nav aria-label="Navigasi utama" className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+            {navGroups.map((group) => (
               <section key={group.title} aria-label={group.title}>
                 <h2 className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-light">
                   {group.title}
@@ -276,43 +123,67 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 <div className="space-y-0.5">
                   {group.items.map((item) => {
                     const Icon = item.icon;
-                    const active = isActive(item.href);
+                    const active = isActive(item);
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         prefetch={false}
                         aria-current={active ? 'page' : undefined}
-                        className={`flex min-h-12 items-center gap-3 rounded-md px-3 text-sm font-medium transition ${
-                          active ? 'bg-canvas text-ink' : 'text-ink-muted hover:bg-canvas hover:text-ink'
+                        className={`flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition ${
+                          active
+                            ? 'bg-canvas font-semibold text-ink'
+                            : 'text-ink-muted hover:bg-canvas hover:text-ink'
                         }`}
                       >
-                        <Icon className="h-4 w-4" />
-                        <span>{item.name}</span>
+                        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{item.name}</span>
                       </Link>
                     );
                   })}
                 </div>
               </section>
             ))}
-            <Link
-              href="/docs"
-              prefetch={false}
-              className="flex min-h-12 items-center gap-3 rounded-md px-3 text-sm font-medium text-ink-muted transition hover:bg-canvas hover:text-ink"
-            >
-              <BookOpen className="h-4 w-4" />
-              <span>Panduan</span>
-            </Link>
           </nav>
+
+          {user && (
+            <div className="border-t border-border px-3 py-3">
+              <div className="flex items-center gap-3 px-3 pb-2">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-canvas text-xs font-bold text-ink">
+                  {(user.nama?.charAt(0) ?? '?').toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">{user.nama}</p>
+                  <p className="truncate text-[11px] text-ink-muted">
+                    {user.role === 'admin' ? 'Administrator' : 'Petugas'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => void logout()}
+                disabled={transition !== 'idle'}
+                className="flex min-h-11 w-full items-center gap-3 rounded-md px-3 text-sm font-medium text-error transition hover:bg-error-bg disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span>Keluar</span>
+              </button>
+            </div>
+          )}
         </aside>
       )}
 
-      {/* Bar bawah HP */}
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden" aria-label="Navigasi bawah">
-        <div className="mx-auto grid max-w-lg grid-cols-5">
-          {coreItems.slice(0, 4).map((item) => {
+      {/* Bar bawah mobile — maksimal 5 tombol */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        aria-label="Navigasi bawah"
+      >
+        <div
+          className="mx-auto grid max-w-lg"
+          style={{ gridTemplateColumns: `repeat(${bottomColumns}, minmax(0, 1fr))` }}
+        >
+          {mobileCoreItems.map((item) => {
             const Icon = item.icon;
-            const active = isActive(item.href);
+            const active = isActive(item);
             return (
               <Link
                 key={item.href}
@@ -329,46 +200,56 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
               </Link>
             );
           })}
-          <button
-            onClick={() => setMoreOpen((v) => !v)}
-            className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[10px] font-medium leading-tight ${
-              moreOpen ? 'text-ink' : 'text-ink-muted'
-            }`}
-            aria-label="Menu lainnya"
-            aria-expanded={moreOpen}
-          >
-            <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
-            <span className="w-full truncate text-center">Lainnya</span>
-          </button>
+          {hasMoreItems && (
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[10px] font-medium leading-tight ${
+                moreOpen ? 'text-ink' : 'text-ink-muted'
+              }`}
+              aria-label="Menu lainnya"
+              aria-expanded={moreOpen}
+            >
+              <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <span className="w-full truncate text-center">Lainnya</span>
+            </button>
+          )}
         </div>
       </nav>
 
-      {/* Drawer Lainnya (HP) */}
+      {/* Drawer "Lainnya" (mobile) — item sisanya dikelompokkan */}
       {moreOpen && (
         <>
-          <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm md:hidden" onClick={() => setMoreOpen(false)} aria-hidden="true" />
+          <div
+            className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm md:hidden"
+            onClick={() => setMoreOpen(false)}
+            aria-hidden="true"
+          />
           <div
             ref={moreRef}
             role="dialog"
             aria-modal="true"
             aria-label="Menu lainnya"
-            className="fixed inset-x-0 bottom-0 z-[70] rounded-t-2xl border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+            className="fixed inset-x-0 bottom-0 z-[70] max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
           >
-            <div className="flex items-center justify-between px-5 pb-2 pt-4">
+            <div className="sticky top-0 flex items-center justify-between border-b border-border bg-surface px-5 pb-3 pt-4">
               <span className="text-sm font-bold text-ink">Lainnya</span>
-              <button onClick={() => setMoreOpen(false)} className="-mr-2 p-2 text-ink-muted hover:text-ink" aria-label="Tutup menu">
+              <button
+                onClick={() => setMoreOpen(false)}
+                className="-mr-2 p-2 text-ink-muted hover:text-ink"
+                aria-label="Tutup menu"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto px-3 pb-4">
-              {role === 'admin' && isAdminArea ? ADMIN_MOBILE_GROUPS.map((group) => (
+            <div className="px-3 pb-4">
+              {mobileMoreGroups.map((group) => (
                 <section key={group.title} className="pb-4">
                   <h2 className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-light">
                     {group.title}
                   </h2>
                   {group.items.map((item) => {
                     const Icon = item.icon;
-                    const active = isActive(item.href);
+                    const active = isActive(item);
                     return (
                       <Link
                         key={item.href}
@@ -376,42 +257,29 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                         prefetch={false}
                         onClick={() => setMoreOpen(false)}
                         aria-current={active ? 'page' : undefined}
-                        className={`flex min-h-12 items-center gap-3 rounded-md px-3 py-3 text-sm font-semibold transition ${
+                        className={`flex min-h-12 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
                           active ? 'bg-canvas text-ink' : 'text-ink-muted hover:bg-canvas hover:text-ink'
                         }`}
                       >
-                        <Icon className="h-5 w-5" />
-                        <span>{item.name}</span>
+                        <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{item.name}</span>
                       </Link>
                     );
                   })}
                 </section>
-              )) : moreItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={false}
-                    onClick={() => setMoreOpen(false)}
-                    aria-current={active ? 'page' : undefined}
-                    className={`flex min-h-12 items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
-                      active ? 'bg-canvas text-ink' : 'text-ink-muted hover:bg-canvas hover:text-ink'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span>{item.name}</span>
-                  </Link>
-                );
-              })}
-              <button
-                onClick={() => { setMoreOpen(false); void logout(); }}
-                className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-error transition hover:bg-error-bg"
-              >
-                <LogOut className="h-5 w-5" />
-                <span>Keluar</span>
-              </button>
+              ))}
+              <section>
+                <h2 className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-light">
+                  Akun
+                </h2>
+                <button
+                  onClick={() => { setMoreOpen(false); void logout(); }}
+                  className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-error transition hover:bg-error-bg"
+                >
+                  <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>Keluar</span>
+                </button>
+              </section>
             </div>
           </div>
         </>
