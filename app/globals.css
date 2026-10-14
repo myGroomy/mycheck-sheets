@@ -58,6 +58,39 @@
 
   /* ---- Font ---- */
   --font-sans: var(--font-plus-jakarta-sans), sans-serif;
+
+  /* ---- Animasi ---- */
+  /* Cincin QuantumLoader: dua cincin berputar berlawanan arah (2.5s, offset
+     -1.25s di komponen). Di-port dari STOKIS. */
+  --animate-quantum: quantum-ring 2.5s infinite;
+  --animate-quantum-mini: quantum-ring-mini 2.5s infinite;
+}
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes quantum-ring {
+  0% { inset: 0 35px 35px 0; }
+  12.5% { inset: 0 35px 0 0; }
+  25% { inset: 35px 35px 0 0; }
+  37.5% { inset: 35px 0 0 0; }
+  50% { inset: 35px 0 0 35px; }
+  62.5% { inset: 0 0 0 35px; }
+  75% { inset: 0 0 35px 35px; }
+  87.5% { inset: 0 0 35px 0; }
+  100% { inset: 0 35px 35px 0; }
+}
+
+@keyframes quantum-ring-mini {
+  0% { inset: 0 12px 12px 0; }
+  12.5% { inset: 0 12px 0 0; }
+  25% { inset: 12px 12px 0 0; }
+  37.5% { inset: 12px 0 0 0; }
+  50% { inset: 12px 0 0 12px; }
+  62.5% { inset: 0 0 0 12px; }
+  75% { inset: 0 0 12px 12px; }
+  87.5% { inset: 0 0 12px 0; }
+  100% { inset: 0 12px 12px 0; }
 }
 
 @layer base {
@@ -92,5 +125,28 @@
     body {
       background: #fff;
     }
+  }
+
+  /* Fokus keyboard — disamakan dengan STOKIS */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* ============================================================
+   REDUCED MOTION
+   Mematikan animasi CSS (spinner QuantumLoader, skeleton pulse).
+   Animasi framer-motion ditangani terpisah di <PageTransition />
+   lewat useReducedMotion().
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -8,6 +8,7 @@ import { AuthProvider } from '@/lib/AuthContext';
 import { CabangProvider } from '@/lib/CabangContext';
 import { AuthGuard } from '@/components/AuthGuard';
 import { NavbarClient } from '@/components/NavbarClient';
+import { PageTransition } from '@/components/PageTransition';
 import { verifySessionToken } from '@/lib/session';
 import './globals.css';
 
@@ -63,7 +64,7 @@ export default async function RootLayout({
             <CabangProvider>
               <AuthGuard>
                 <NavbarClient initialRole={initialRole} />
-                {children}
+                <PageTransition>{children}</PageTransition>
               </AuthGuard>
             </CabangProvider>
           </AuthProvider>

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Copy, CopyPlus, ExternalLink, Pencil, Plus, Power } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { SkeletonRows } from '@/components/ui/skeletons';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -200,7 +202,11 @@ export default function ShiftPage() {
       <TemplateNotice />
 
       <div className="rounded-xl border border-border bg-surface">
-        {loading && <p className="p-4 text-sm text-ink-muted">Memuat...</p>}
+        {loading && (
+          <SkeletonTransition>
+            <SkeletonRows count={5} />
+          </SkeletonTransition>
+        )}
         {!loading && shifts.length === 0 && (
           <p className="p-4 text-sm text-ink-muted">Belum ada definisi shift di cabang ini</p>
         )}

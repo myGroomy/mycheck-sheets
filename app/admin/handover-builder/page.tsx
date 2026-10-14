@@ -6,6 +6,8 @@ import { Check, GripVertical, Pencil, Plus, Power, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SkeletonRows } from '@/components/ui/skeletons';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import {
   Select,
   SelectContent,
@@ -261,7 +263,11 @@ export default function HandoverBuilderPage() {
 
       <div className="rounded-xl border border-border bg-surface">
         {!shiftId && <p className="p-4 text-sm text-ink-muted">Pilih shift terlebih dahulu</p>}
-        {shiftId && loading && <p className="p-4 text-sm text-ink-muted">Memuat...</p>}
+        {shiftId && loading && (
+          <SkeletonTransition>
+            <SkeletonRows count={5} />
+          </SkeletonTransition>
+        )}
         {shiftId && !loading && fields.length === 0 && (
           <p className="p-4 text-sm text-ink-muted">Belum ada bidang serah terima</p>
         )}

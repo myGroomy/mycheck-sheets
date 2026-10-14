@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { QuantumLoaderMini } from '@/components/ui/QuantumLoader';
 
 export interface ResponsiveRecordCardData {
   key: string;
@@ -22,7 +23,8 @@ export function ResponsiveRecordCards({
   return (
     <div className="space-y-3 md:hidden">
       {loading ? (
-        <div className="rounded-xl border border-border bg-surface p-5 text-center text-sm text-ink-muted shadow-sm">
+        <div className="flex items-center justify-center gap-2.5 rounded-xl border border-border bg-surface p-5 text-sm text-ink-muted shadow-sm">
+          <QuantumLoaderMini className="text-ink-muted" />
           Memuat...
         </div>
       ) : records.length === 0 ? (

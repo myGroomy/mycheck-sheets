@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { LoadingHint } from '@/components/ui/skeleton-transition';
 import { fetchShiftPreview, type ShiftPreview } from '@/lib/admin/api';
 
 interface ShiftPreviewDialogProps {
@@ -78,7 +79,7 @@ export function ShiftPreviewDialog({ open, onOpenChange, shiftId }: ShiftPreview
           </DialogDescription>
         </DialogHeader>
 
-        {loading && <p className="text-sm text-ink-muted">Memuat...</p>}
+        {loading && <LoadingHint>Memuat pratinjau shift…</LoadingHint>}
         {!loading && data && (
           <div className="space-y-4">
             <div className="rounded-lg border border-border bg-surface p-3">

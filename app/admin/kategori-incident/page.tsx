@@ -6,6 +6,8 @@ import { Check, Pencil, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SkeletonRows } from '@/components/ui/skeletons';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { apiFetch } from '@/lib/admin/api';
 import { IncidentSectionTabs } from '@/components/admin/incident-section-tabs';
 
@@ -129,7 +131,11 @@ export default function KategoriIncidentPage() {
       </form>
 
       <div className="rounded-xl border border-border bg-surface">
-        {loading && <p className="p-4 text-sm text-ink-muted">Memuat...</p>}
+        {loading && (
+          <SkeletonTransition>
+            <SkeletonRows count={5} />
+          </SkeletonTransition>
+        )}
         {!loading && categories.length === 0 && (
           <p className="p-4 text-sm text-ink-muted">Belum ada kategori</p>
         )}

@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, AlertTriangle, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 
 interface Incident {
   id: string;
-  branchId: string;
-  branchName: string;
+  branchId: string;  branchName: string;
   shiftInstanceId: string | null;
   categoryName: string;
   description: string;
@@ -23,6 +24,40 @@ interface Branch {
   id: string;
   name: string;
   code: string;
+}
+
+/**
+ * Placeholder saat daftar incident dimuat. Meniru bentuk kartu incident di
+ * bawah (judul + badge status + deskripsi + meta) supaya tidak ada layout shift,
+ * dan dibungkus `SkeletonTransition` supaya masuk dengan fade.
+ */
+function SkeletonIncidentList({ count = 4 }: { count?: number }) {
+  return (
+    <SkeletonTransition>
+      <div className="space-y-3" role="status" aria-label="Memuat daftar incident">
+        {Array.from({ length: count }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-xl border border-border bg-surface p-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-52" />
+              </div>
+              <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
+            </div>
+            <Skeleton className="mt-3 h-3 w-full" />
+            <Skeleton className="mt-1.5 h-3 w-4/5" />
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+              <Skeleton className="h-3 w-36" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </SkeletonTransition>
+  );
 }
 
 export function IncidentList() {
@@ -87,7 +122,7 @@ export function IncidentList() {
       </label>
 
       {loading ? (
-        <div className="rounded-xl border border-border bg-surface p-8 text-center text-sm text-ink-muted">Memuat daftar incident…</div>
+        <SkeletonIncidentList count={4} />
       ) : visible.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-ink-muted" />

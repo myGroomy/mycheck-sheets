@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoadingHint } from '@/components/ui/skeleton-transition';
 import {
   Select,
   SelectContent,
@@ -435,7 +436,7 @@ export default function ChecklistBuilderPage() {
               Pilih shift untuk mulai menyusun formulir SOP
             </p>
           )}
-          {shiftId && loading && <p className="text-sm text-ink-muted">Memuat...</p>}
+          {shiftId && loading && <LoadingHint className="justify-start p-0">Memuat formulir…</LoadingHint>}
           {shiftId && !loading && (
             <CategoryTree
               categories={categories}

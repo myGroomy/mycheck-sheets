@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { AlertCircle, ArrowRight, FileText, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, FileText } from 'lucide-react';
+import { QuantumLoader } from '@/components/ui/QuantumLoader';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 
 interface ReportItem {
@@ -53,7 +55,11 @@ export function ReportList() {
       </header>
       {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
       {loading ? (
-        <div className="flex min-h-40 items-center justify-center gap-2 rounded-xl border border-border bg-surface text-sm text-ink-muted"><Loader2 className="h-4 w-4 animate-spin" />Memuat laporan…</div>
+        <SkeletonTransition>
+          <div className="flex min-h-40 items-center justify-center rounded-xl border border-border bg-surface">
+            <QuantumLoader size="sm" text="Memuat laporan…" />
+          </div>
+        </SkeletonTransition>
       ) : reports.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
           <FileText className="mx-auto h-8 w-8 text-ink-muted" />

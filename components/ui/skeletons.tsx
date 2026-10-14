@@ -67,3 +67,93 @@ export function SkeletonHeader() {
     </div>
   );
 }
+
+/** Toolbar aksi di atas tabel (tombol refresh, filter, dsb). */
+export function SkeletonToolbar({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3",
+        className
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-9 w-32 rounded-lg" />
+        <Skeleton className="h-9 w-24 rounded-lg" />
+      </div>
+      <Skeleton className="h-9 w-28 rounded-lg" />
+    </div>
+  );
+}
+
+/** Tabel skeleton: header + `count` baris (5 kolom). */
+export function SkeletonTable({ count = 8 }: { count?: number }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-surface">
+      <div className="flex items-center gap-4 border-b border-border bg-canvas px-4 py-3">
+        {["w-32", "w-24", "w-20", "w-16", "w-12"].map((w, i) => (
+          <Skeleton key={i} className={cn("h-3 shrink-0", w)} />
+        ))}
+      </div>
+      <div className="divide-y divide-border">
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 px-4 py-3.5">
+            {["w-32", "w-24", "w-20", "w-16", "w-12"].map((w, j) => (
+              <Skeleton key={j} className={cn("h-3.5 shrink-0", w)} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Baris skeleton untuk container yang sudah ada (tanpa border sendiri).
+ * Dipakai halaman admin yang sudah membungkus daftar di dalam
+ * `<div className="rounded-xl border border-border bg-surface">`.
+ */
+export function SkeletonRows({
+  count = 4,
+  className,
+}: {
+  count?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("divide-y divide-border", className)}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="ml-auto h-3.5 w-24" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Kartu skeleton untuk layout grid (incident, laporan, dsb). */
+export function SkeletonCards({ count = 3 }: { count?: number }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="space-y-3 rounded-2xl border border-border bg-surface p-4"
+        >
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-full" />
+          <Skeleton className="h-3 w-3/4" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24 rounded-lg" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+

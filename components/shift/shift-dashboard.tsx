@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ArrowRight, CheckCircle2, Clock3, FolderKanban, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,37 @@ import { useCabang, type ShiftSummary } from '@/lib/CabangContext';
 function formatHHmm(value: string | null | undefined) {
   if (!value) return '-';
   return value.slice(0, 5);
+}
+
+/**
+ * Placeholder kartu per cabang saat daftar shift dimuat. Meniru kartu cabang
+ * di bawah (kode + nama + baris shift) supaya tidak ada layout shift.
+ */
+function SkeletonBranchList({ count = 3 }: { count?: number }) {
+  return (
+    <SkeletonTransition>
+      <div className="space-y-4" role="status" aria-label="Memuat daftar shift">
+        {Array.from({ length: count }).map((_, i) => (
+          <div
+            key={i}
+            className="space-y-4 rounded-2xl border border-border bg-surface p-4 shadow-sm"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 space-y-2">
+                <Skeleton className="h-3 w-12" />
+                <Skeleton className="h-4 w-40" />
+              </div>
+              <Skeleton className="h-6 w-24 shrink-0 rounded-full" />
+            </div>
+            <div className="space-y-2.5">
+              <Skeleton className="h-11 w-full rounded-xl" />
+              <Skeleton className="h-11 w-full rounded-xl" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </SkeletonTransition>
+  );
 }
 
 export function ShiftDashboardClient({ userId, userName }: { userId: string; userName: string }) {
@@ -169,9 +202,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
 
       <section id="daftar-shift" className="space-y-4">
         {loading ? (
-          <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-ink-muted">
-            Memuat daftar shift...
-          </div>
+          <SkeletonBranchList count={3} />
         ) : branches.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-ink-muted">
             Tidak ada cabang yang bisa diakses.

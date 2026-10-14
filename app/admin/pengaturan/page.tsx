@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { LoadingHint } from '@/components/ui/skeleton-transition';
 import {
   Select,
   SelectContent,
@@ -168,7 +169,7 @@ export default function PengaturanPage() {
         </Button>
       </div>
 
-      {loading && <p className="text-sm text-ink-muted">Memuat...</p>}
+      {loading && <LoadingHint className="justify-start p-0">Memuat pengaturan…</LoadingHint>}
 
       <div className="grid gap-4 md:grid-cols-2">
         {GROUPS.map((g) => (

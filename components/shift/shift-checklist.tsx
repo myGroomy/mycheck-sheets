@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
-import { AlertCircle, ArrowLeft, Clock3, Loader2, UserRound } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Clock3, UserRound } from 'lucide-react';
+import { QuantumLoader } from '@/components/ui/QuantumLoader';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import { ChecklistPointControls } from '@/components/shift/checklist-point-controls';
 import { ShiftCloseDialog } from '@/components/shift/shift-close-dialog';
@@ -358,11 +360,11 @@ export function ShiftChecklistClient({
   if (loading && !data) {
     return (
       <main className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
-        
-        <div className="flex min-h-[60dvh] items-center justify-center gap-2 text-sm text-ink-muted">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Memuat shift...
-        </div>
+        <SkeletonTransition>
+          <div className="flex min-h-[60dvh] items-center justify-center">
+            <QuantumLoader text="Memuat shift..." />
+          </div>
+        </SkeletonTransition>
       </main>
     );
   }
