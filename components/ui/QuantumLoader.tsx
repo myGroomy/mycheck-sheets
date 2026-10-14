@@ -44,8 +44,12 @@ export function QuantumLoader({ text, className, size = 'md' }: QuantumLoaderPro
  */
 export function PageLoader({
   text,
-  /** Padding boxed seperti kartu, atau penuh tanpa border. */
-  boxed = true,
+  /**
+   * Loader tanpa kartu (default). Semua halaman MYCHECK memakai mode ini
+   * supaya konsisten. `boxed` hanya tersedia bila ada kebutuhan khusus —
+   * halaman baru sebaiknya tetap memakai default.
+   */
+  boxed = false,
   className,
 }: {
   text?: string;
@@ -55,7 +59,13 @@ export function PageLoader({
   return (
     <div
       className={cn(
-        'flex min-h-40 items-center justify-center',
+        // Loader dikunci lebarnya (max-w-sm + mx-auto) dan dipusatkan.
+        // Sebelumnya box-nya memakai `w-full`, sehingga ikut selebar container
+        // halaman: di /admin/laporan (max-w-7xl) kotaknya ~1280px sementara
+        // di /incident/baru (max-w-2xl) hanya ~672px — spinner 40px di
+        // tengah kartu selebar layar terlihat jauh berbeda antar halaman.
+        // Lebar tetap membuat tampilan loader identik di semua halaman.
+        'mx-auto flex min-h-40 w-full max-w-sm items-center justify-center',
         boxed && 'rounded-xl border border-border bg-surface',
         className
       )}

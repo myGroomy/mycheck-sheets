@@ -79,7 +79,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
     }
   };
 
-  if (loading) return <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10"><SkeletonTransition><PageLoader text="Memuat detail incident…" boxed={false} /></SkeletonTransition></main>;
+  if (loading) return <main className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10"><SkeletonTransition><PageLoader text="Memuat detail incident…" /></SkeletonTransition></main>;
   if (!data) {
     return (
       <main className="mx-auto max-w-3xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
