@@ -149,20 +149,27 @@ export default function LoginPage() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE_EXPO }}
-      className="flex min-h-dvh items-center justify-center p-4 bg-canvas text-ink"
+      className="relative flex min-h-dvh items-center justify-center bg-canvas text-ink"
     >
-      <div className="w-full max-w-sm">
-        {/* Kembali */}
-        <Link
-          href="/"
-          className="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Kembali
-        </Link>
+      {/* Kembali — sengaja DI LUAR block yang di-center.
+          Kalau ikut di dalam flow, block jadi lebih tinggi dan form (bagian
+          paling penting) terdorong ke bawah. Dipisah ke kiri atas dengan
+          position absolute, jadi tidak menambah tinggi block. */}
+      <Link
+        href="/"
+        className="absolute left-4 top-4 z-10 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink sm:left-6 sm:top-6"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Kembali
+      </Link>
 
+      {/* Tanpa padding atas yang besar: padding ikut menambah tinggi block
+          yang di-center sehingga form terdorong ke bawah. Link "Kembali"
+          sudah dipisah keluar (absolute) dan tidak menambah tinggi, jadi
+          tidak perlu ruang tambahan di sini. */}
+      <div className="relative w-full max-w-sm px-4">
         {/* Logo & Header */}
-        <div className="mb-6 text-center">
+        <div className="text-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -192,25 +199,32 @@ export default function LoginPage() {
           </motion.p>
         </div>
 
-        <Suspense
-          fallback={
-            <div className="flex justify-center py-6">
-              <QuantumLoaderMini className="text-ink-muted" />
-            </div>
-          }
-        >
-          <LoginForm />
-        </Suspense>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-          className="mt-4 text-center text-xs text-ink-light"
-        >
-          v2.0 Google Sheets
-        </motion.p>
+        {/* Jarak 24px header→form memakai mt-6 di sini (bukan mb-6 pada
+            header) agar ikut terhitung dalam tinggi block yang di-center. */}
+        <div className="mt-6">
+          <Suspense
+            fallback={
+              <div className="flex justify-center py-6">
+                <QuantumLoaderMini className="text-ink-muted" />
+              </div>
+            }
+          >
+            <LoginForm />
+          </Suspense>
+        </div>
       </div>
+
+      {/* Versi diposisikan absolut di bawah agar TIDAK ikut menambah tinggi
+          block yang di-center. Kalau ikut di dalam flow, footer ini mendorong
+          form ke bawah ~47px dari titik tengah layar. */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+        className="absolute inset-x-0 bottom-4 text-center text-xs text-ink-light sm:bottom-6"
+      >
+        v2.0 Google Sheets
+      </motion.p>
     </motion.main>
   );
 }
