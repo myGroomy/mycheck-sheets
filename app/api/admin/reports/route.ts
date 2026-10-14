@@ -26,7 +26,8 @@ export const GET = withAuth(async (_req, ctx, _session) => {
   const pjNameFilter = params.get('pjName')?.trim().toLowerCase() ?? '';
   const days = daysParam ? Math.max(1, parseInt(daysParam, 10) || 7) : 7;
   const cutoffDate = new Date();
-  cutoffDate.setDate(cutoffDate.getDate() - days);
+  cutoffDate.setUTCHours(0, 0, 0, 0);
+  cutoffDate.setUTCDate(cutoffDate.getUTCDate() - (days - 1));
   const dateFrom = dateFromParam ? new Date(dateFromParam) : null;
   const dateTo = dateToParam ? new Date(dateToParam) : null;
 
@@ -97,7 +98,9 @@ export const GET = withAuth(async (_req, ctx, _session) => {
       const shiftDate = inst ? asStr(inst['shift_date']) : null;
       if (shiftDate) {
         const reportDate = new Date(`${shiftDate}T00:00:00Z`);
-        if (reportDate < cutoffDate) continue;
+        // An explicit date range (the UI's date filter) takes precedence over
+        // the default rolling window; otherwise past-day searches are hidden.
+        if (!dateFrom && !dateTo && reportDate < cutoffDate) continue;
         if (dateFrom && reportDate < dateFrom) continue;
         if (dateTo && reportDate > dateTo) continue;
       }

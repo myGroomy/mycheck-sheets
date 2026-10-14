@@ -244,6 +244,9 @@ export default function AdminReportsPage() {
           Hapus filter
         </Button>
       </section>
+      <p className="-mt-3 text-xs text-ink-muted">
+        Tanpa filter tanggal, hanya laporan 7 hari kalender terakhir yang ditampilkan.
+      </p>
 
       {notice && (
         <div role="status" className={`rounded-xl border p-3 text-sm ${notice.error ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
