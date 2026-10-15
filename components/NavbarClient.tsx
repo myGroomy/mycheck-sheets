@@ -229,7 +229,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
             role="dialog"
             aria-modal="true"
             aria-label="Menu lainnya"
-            className="fixed inset-x-0 bottom-0 z-[70] max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+            className="fixed inset-x-0 bottom-0 z-[70] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-2xl border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-border bg-surface px-5 pb-3 pt-4">
               <span className="text-sm font-bold text-ink">Lainnya</span>

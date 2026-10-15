@@ -70,7 +70,7 @@ export function ShiftPreviewDialog({ open, onOpenChange, shiftId }: ShiftPreview
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Pratinjau checklist</DialogTitle>
           <DialogDescription>

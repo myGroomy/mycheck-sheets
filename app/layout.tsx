@@ -43,6 +43,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: 'cover',
   themeColor: '#292524',
+  // Android: tanpa ini layout viewport TIDAK menyusut saat soft keyboard
+  // muncul — hanya visual viewport. Dialog yang `position: fixed` tetap
+  // di-anchor ke layout viewport full-height, sehingga field berada di belakang
+  // keyboard. Chrome lalu mencoba scrollIntoView tapi scroll body sudah dikunci
+  // Radix (react-remove-scroll), scroll gagal → focus lepas → keyboard tutup
+  // sendiri. `resizes-content` membuat layout viewport ikut menyusut, jadi
+  // dialog ter-anchor ulang ke area yang benar-benar terlihat.
+  interactiveWidget: 'resizes-content',
 };
 
 export default async function RootLayout({

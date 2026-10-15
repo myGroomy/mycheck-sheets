@@ -80,7 +80,7 @@ export function PageLoader({
 /** Varian layar penuh — untuk state loading satu halaman. */
 export function QuantumLoaderFull({ text }: { text?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh]">
+    <div className="flex min-h-[50dvh] flex-col items-center justify-center">
       <QuantumLoader text={text || 'Memuat'} size="lg" />
     </div>
   );

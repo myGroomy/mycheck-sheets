@@ -36,13 +36,16 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[45vh] w-full max-w-lg flex-col gap-4 rounded-t-2xl border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:rounded-t-2xl",
+        "fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[85dvh] w-full max-w-lg flex-col gap-4 rounded-t-2xl border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:rounded-t-2xl",
         className
       )}
       {...props}
     >
       <div className="mx-auto h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30 sm:hidden" />
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {/* Area scroll: `overscroll-contain` mencegah scroll halaman di
+          belakang ikut bergerak saat pengguna swipe di dalam dialog — ini yang
+          membuat Chrome sempat melepas fokus pada Android. */}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {children}
       </div>
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
