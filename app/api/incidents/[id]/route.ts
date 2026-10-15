@@ -48,7 +48,7 @@ withAuth(async (_req, ctx, _session) => {
     },
     notes, photos,
   });
-  response.headers.set('Cache-Control', 'private, max-age=30, must-revalidate');
+  response.headers.set('Cache-Control', 'no-store');
   response.headers.set('Vary', 'Cookie');
   return response;
 });

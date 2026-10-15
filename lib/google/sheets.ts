@@ -43,7 +43,7 @@ export function invalidateSheetCache(spreadsheetId?: string): void {
     return;
   }
   const prefix = `${spreadsheetId}!`;
-  for (const key of [...readCache.keys()]) {
+  for (const key of readCache.keys()) {
     if (key.startsWith(prefix)) readCache.delete(key);
   }
 }

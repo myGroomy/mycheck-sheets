@@ -11,9 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PasswordInput } from '@/components/ui/password-input';
+import { ConfirmCloseDialog } from '@/components/admin/confirm-close-dialog';
 
 export interface SensitiveActionValues {
   reason: string;
@@ -46,6 +47,8 @@ interface SensitiveActionDialogProps {
   extraValue?: string;
   /** Field tambahan wajib terisi sebelum submit diizinkan. */
   extraValid?: boolean;
+  /** Dipanggil saat user mulai mengetik untuk clear error dari parent */
+  onClearError?: () => void;
   onSubmit: (values: SensitiveActionValues) => void;
 }
 
@@ -66,11 +69,13 @@ export function SensitiveActionDialog({
   extraField,
   extraValue,
   extraValid = true,
+  onClearError,
   onSubmit,
 }: SensitiveActionDialogProps) {
   const [reason, setReason] = useState('');
   const [pin, setPin] = useState('');
   const [newPin, setNewPin] = useState('');
+  const [confirmClose, setConfirmClose] = useState(false);
 
   // Reset isian setiap kali dialog dibuka
   useEffect(() => {
@@ -80,6 +85,8 @@ export function SensitiveActionDialog({
       setNewPin('');
     }
   }, [open]);
+
+  const hasUnsavedData = reason.trim() !== '' || pin !== '';
 
   const reasonValid = reason.trim().length >= 3;
   const pinValid = !requirePin || /^\d{6}$/.test(pin);
@@ -98,7 +105,13 @@ export function SensitiveActionDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !loading && onOpenChange(o)}>
+    <Dialog open={open} onOpenChange={(o) => {
+      if (!o && hasUnsavedData && !loading) {
+        setConfirmClose(true);
+        return;
+      }
+      if (!loading) onOpenChange(o);
+    }}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -134,7 +147,7 @@ export function SensitiveActionDialog({
             <Textarea
               id="sa-reason"
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => { setReason(e.target.value); onClearError?.(); }}
               placeholder="Tulis alasan aksi ini (min. 3 karakter)"
               rows={3}
               required
@@ -149,13 +162,12 @@ export function SensitiveActionDialog({
               <Label htmlFor="sa-newpin">
                 PIN Baru (6 digit) <span className="text-error">*</span>
               </Label>
-              <Input
+              <PasswordInput
                 id="sa-newpin"
-                type="password"
                 inputMode="numeric"
                 maxLength={6}
                 value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setNewPin(e.target.value.replace(/\D/g, '')); onClearError?.(); }}
                 placeholder="6 digit angka"
                 autoComplete="off"
               />
@@ -171,13 +183,12 @@ export function SensitiveActionDialog({
                 <span className="text-ink-light">(tidak wajib)</span>
               )}
             </Label>
-            <Input
+            <PasswordInput
               id="sa-pin"
-              type="password"
               inputMode="numeric"
               maxLength={6}
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setPin(e.target.value.replace(/\D/g, '')); onClearError?.(); }}
               placeholder="Masukkan PIN Anda"
               autoComplete="off"
             />
@@ -201,6 +212,16 @@ export function SensitiveActionDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <ConfirmCloseDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        message="Data yang belum disimpan akan hilang. Tutup dialog?"
+        onConfirm={() => {
+          setConfirmClose(false);
+          onOpenChange(false);
+        }}
+      />
     </Dialog>
   );
 }

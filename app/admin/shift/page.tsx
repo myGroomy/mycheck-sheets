@@ -20,6 +20,7 @@ import { CopyBranchDialog } from '@/components/admin/copy-branch-dialog';
 import { ShiftFormDialog, type ShiftFormValues } from '@/components/admin/shift-form-dialog';
 import { ShiftPreviewDialog } from '@/components/admin/shift-preview-dialog';
 import { TemplateNotice } from '@/components/admin/template-notice';
+import { ConfirmDeleteDialog } from '@/components/admin/confirm-delete-dialog';
 import {
   copyFromBranch,
   createShift,
@@ -50,6 +51,9 @@ export default function ShiftPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [archiveQuery, setArchiveQuery] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<ShiftDefinition | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     const loadBranches = async () => {
@@ -82,21 +86,23 @@ export default function ShiftPage() {
     if (branchId) loadShifts(branchId);
   }, [branchId, loadShifts]);
 
-  const permanentlyDeleteShift = async (shift: ShiftDefinition) => {
-    if (
-      !window.confirm(
-        `Hapus permanen definisi shift "${shift.name}"? Tindakan ini hanya berhasil jika definisi belum memiliki shift historis atau konfigurasi turunan.`
-      )
-    ) return;
-    setBusyId(shift.id);
+  const permanentlyDeleteShift = async () => {
+    if (!deleteTarget) return;
+    setBusyId(deleteTarget.id);
+    setDeleteLoading(true);
+    setDeleteError(null);
     try {
-      await deleteShift(shift.id);
-      toast.success(`Definisi shift "${shift.name}" dihapus permanen`);
+      await deleteShift(deleteTarget.id);
+      toast.success(`Definisi shift "${deleteTarget.name}" dihapus permanen`);
+      setDeleteTarget(null);
       await loadShifts(branchId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Definisi shift tidak dapat dihapus');
+      const msg = err instanceof Error ? err.message : 'Definisi shift tidak dapat dihapus';
+      setDeleteError(msg);
+      toast.error(msg);
     } finally {
       setBusyId(null);
+      setDeleteLoading(false);
     }
   };
 
@@ -305,7 +311,10 @@ export default function ShiftPage() {
                     variant="outline"
                     size="sm"
                     disabled={busyId === s.id}
-                    onClick={() => void permanentlyDeleteShift(s)}
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(s);
+                    }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Hapus permanen
@@ -353,6 +362,17 @@ export default function ShiftPage() {
           onSubmit={submitCopy}
         />
       )}
+
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Hapus Definisi Shift"
+        itemName={deleteTarget?.name ?? ''}
+        impact="Tindakan ini hanya berhasil jika definisi belum memiliki shift historis atau konfigurasi turunan."
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={() => void permanentlyDeleteShift()}
+      />
     </div>
   );
 }

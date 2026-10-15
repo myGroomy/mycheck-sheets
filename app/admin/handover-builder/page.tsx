@@ -22,6 +22,9 @@ import {
   type HandoverFormValues,
 } from '@/components/admin/handover-field-editor';
 import { TemplateNotice } from '@/components/admin/template-notice';
+import { ConfirmDeleteDialog } from '@/components/admin/confirm-delete-dialog';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useAutoSaveDraft } from '@/hooks/use-auto-save-draft';
 import {
   createHandoverField,
   deleteHandoverField,
@@ -64,6 +67,27 @@ export default function HandoverBuilderPage() {
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [labelDraft, setLabelDraft] = useState('');
   const [savingInline, setSavingInline] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<HandoverField | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Unsaved changes detection
+  const isDirty = labelDraft.trim() !== '';
+  useUnsavedChanges(isDirty);
+
+  // Auto-save draft label yang sedang diedit
+  const { savedAt: draftSavedAt, clearDraft, readDraft } = useAutoSaveDraft({
+    key: 'mycheck.handover-builder.draft',
+    isDirty,
+    getValue: () => ({ labelDraft, editingLabel }),
+  });
+
+  const restoreDraft = () => {
+    const draft = readDraft();
+    if (!draft || !draft.value.editingLabel) return;
+    setEditingLabel(draft.value.editingLabel);
+    setLabelDraft(draft.value.labelDraft);
+  };
 
   useEffect(() => {
     const loadBranches = async () => {
@@ -147,18 +171,21 @@ export default function HandoverBuilderPage() {
     }
   };
 
-  const permanentlyDeleteField = async (field: HandoverField) => {
-    if (
-      !window.confirm(
-        `Hapus permanen field "${field.label}"? Hanya bisa dilakukan bila belum pernah dipakai oleh shift.`
-      )
-    ) return;
+  const permanentlyDeleteField = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
     try {
-      await deleteHandoverField(field.id);
-      toast.success(`Field "${field.label}" dihapus permanen`);
+      await deleteHandoverField(deleteTarget.id);
+      toast.success(`Field "${deleteTarget.label}" dihapus permanen`);
+      setDeleteTarget(null);
       await loadFields(shiftId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Field tidak dapat dihapus');
+      const msg = err instanceof Error ? err.message : 'Field tidak dapat dihapus';
+      setDeleteError(msg);
+      toast.error(msg);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -272,6 +299,25 @@ export default function HandoverBuilderPage() {
       </div>
 
       <TemplateNotice />
+
+      {/* Indikator draft tersimpan + aksi draft */}
+      {(draftSavedAt || isDirty) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-canvas px-3 py-2 text-xs text-ink-muted">
+          <span>
+            {draftSavedAt
+              ? `Draft label tersimpan ${new Date(draftSavedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Ada label yang belum disimpan'}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={restoreDraft}>
+              Mulai dari draft
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clearDraft}>
+              Hapus draft
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <ArchiveFilter
@@ -412,7 +458,14 @@ export default function HandoverBuilderPage() {
                   {f.isActive ? 'Arsipkan' : 'Pulihkan'}
                 </Button>
                 {showArchived && f.canDelete && (
-                  <Button variant="outline" size="sm" onClick={() => void permanentlyDeleteField(f)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(f);
+                    }}
+                  >
                     <Trash2 className="h-3.5 w-3.5" />
                     Hapus permanen
                   </Button>
@@ -469,6 +522,17 @@ export default function HandoverBuilderPage() {
         saving={saving}
         error={formError}
         onSubmit={submitField}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Hapus Bidang Handover"
+        itemName={deleteTarget?.label ?? ''}
+        impact="Hanya bisa dilakukan bila belum pernah dipakai oleh shift."
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={() => void permanentlyDeleteField()}
       />
     </div>
   );

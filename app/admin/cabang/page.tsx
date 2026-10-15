@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Check, Copy, ExternalLink, Pencil, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +73,13 @@ function LinkableId({
   actionLabel: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   if (!value) {
     return <span className="text-xs text-ink-light">—</span>;
@@ -83,7 +90,8 @@ function LinkableId({
       await navigator.clipboard.writeText(value);
       setCopied(true);
       toast.success(`${label} disalin`);
-      setTimeout(() => setCopied(false), 1500);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error('Gagal menyalin. Salin manual dari teks.');
     }
@@ -430,7 +438,7 @@ export default function CabangPage() {
               <Input
                 id="branch-name"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => { setForm({ ...form, name: e.target.value }); setFormError(null); }}
                 placeholder="Bandung Pusat"
                 required
               />
@@ -442,7 +450,7 @@ export default function CabangPage() {
               <Input
                 id="branch-code"
                 value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+                onChange={(e) => { setForm({ ...form, code: e.target.value.toUpperCase() }); setFormError(null); }}
                 placeholder="BDG01"
                 maxLength={10}
                 required
@@ -454,7 +462,7 @@ export default function CabangPage() {
               <Input
                 id="branch-address"
                 value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                onChange={(e) => { setForm({ ...form, address: e.target.value }); setFormError(null); }}
                 placeholder="Jl. Merdeka No. 1"
               />
             </div>
@@ -466,7 +474,7 @@ export default function CabangPage() {
                 id="branch-tz"
                 list="tz-options"
                 value={form.timezone}
-                onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+                onChange={(e) => { setForm({ ...form, timezone: e.target.value }); setFormError(null); }}
                 placeholder="Asia/Jakarta"
                 required
               />

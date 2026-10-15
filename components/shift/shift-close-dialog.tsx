@@ -12,6 +12,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { PasswordInput } from '@/components/ui/password-input';
+import { ConfirmCloseDialog } from '@/components/admin/confirm-close-dialog';
+import { uploadPhotoWithProgress } from '@/lib/upload-photo';
 
 interface HandoverField {
   id: string;
@@ -63,6 +66,7 @@ export function ShiftCloseDialog({
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmClose, setConfirmClose] = useState(false);
   const [reportNumber, setReportNumber] = useState<string | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
   const [summaryStats, setSummaryStats] = useState<{
@@ -70,6 +74,8 @@ export function ShiftCloseDialog({
     done: number;
     skipped: number;
   } | null>(null);
+
+  const hasUnsavedData = Object.keys(values).length > 0 || freeText.trim() !== '';
 
   const missingFields = fields.filter((field) => {
     if (!field.is_required) return false;
@@ -110,6 +116,9 @@ export function ShiftCloseDialog({
         : {};
       return { ...current, [field.id]: { ...existing, [type]: value } };
     });
+    // Auto-clear error saat user memperbaiki isian
+    setError(null);
+    setPhotoError(null);
   };
 
   const getFieldValue = (field: HandoverField, type: string): unknown => {
@@ -147,29 +156,23 @@ export function ShiftCloseDialog({
         setHandoverId(id);
       }
       for (const file of Array.from(files)) {
-        const form = new FormData();
-        form.set('file', file);
-        form.set('ownerType', 'handover');
-        form.set('ownerId', id);
-        form.set('shiftInstanceId', shiftId);
-        const response = await fetch('/api/photos/upload', {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'fetch' },
-          body: form,
+        const { photoId } = await uploadPhotoWithProgress({
+          file,
+          ownerType: 'handover',
+          ownerId: id,
+          shiftInstanceId: shiftId,
         });
-        const result = (await response.json()) as { error?: string; photo_id?: string };
-        if (!response.ok || !result.photo_id) throw new Error(result.error || 'Foto handover gagal diunggah.');
         setValues((current) => {
           const types = field.input_types?.length ? field.input_types : [field.field_type];
           if (types.length === 1) {
             const currentIds = Array.isArray(current[field.id]) ? current[field.id] as string[] : [];
-            return { ...current, [field.id]: [...currentIds, result.photo_id] };
+            return { ...current, [field.id]: [...currentIds, photoId] };
           }
           const currentValue = current[field.id] && typeof current[field.id] === 'object'
             ? current[field.id] as Record<string, unknown>
             : {};
           const currentIds = Array.isArray(currentValue['foto']) ? currentValue['foto'] as string[] : [];
-          return { ...current, [field.id]: { ...currentValue, foto: [...currentIds, result.photo_id] } };
+          return { ...current, [field.id]: { ...currentValue, foto: [...currentIds, photoId] } };
         });
       }
     } catch (cause) {
@@ -237,7 +240,16 @@ export function ShiftCloseDialog({
       <Button type="button" onClick={() => { reset(); setOpen(true); }}>
         Tutup Shift
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(next) => {
+          if (!next && hasUnsavedData && !busy && !reportNumber) {
+            setConfirmClose(true);
+            return;
+          }
+          setOpen(next);
+        }}
+      >
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
           {reportNumber ? (
             <div className="py-4 text-center">
@@ -421,7 +433,10 @@ export function ShiftCloseDialog({
                     Catatan tambahan
                     <textarea
                       value={freeText}
-                      onChange={(event) => setFreeText(event.target.value)}
+                      onChange={(event) => {
+                        setFreeText(event.target.value);
+                        setError(null);
+                      }}
                       rows={3}
                       maxLength={2000}
                       className="w-full rounded-lg border border-border bg-surface p-3 text-base"
@@ -429,7 +444,15 @@ export function ShiftCloseDialog({
                     />
                   </label>
                   <label className="flex min-h-11 items-center gap-3 rounded-lg border border-border p-3 text-sm">
-                    <input type="checkbox" checked={noIncident} onChange={(event) => setNoIncident(event.target.checked)} className="h-5 w-5" />
+                    <input
+                      type="checkbox"
+                      checked={noIncident}
+                      onChange={(event) => {
+                        setNoIncident(event.target.checked);
+                        setError(null);
+                      }}
+                      className="h-5 w-5"
+                    />
                     Tidak ada incident yang perlu diteruskan
                   </label>
                 </section>
@@ -445,14 +468,16 @@ export function ShiftCloseDialog({
                   </div>
                   <label className="block space-y-1 text-sm font-medium">
                     <span className="flex items-center gap-2"><LockKeyhole className="h-4 w-4" /> PIN Anda</span>
-                    <input
-                      type="password"
+                    <PasswordInput
                       inputMode="numeric"
                       autoComplete="current-password"
                       maxLength={6}
                       value={pin}
-                      onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
-                      className="min-h-12 w-full rounded-lg border border-border bg-surface px-3 text-lg tracking-[0.4em]"
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                        setPin(event.target.value.replace(/\D/g, ''));
+                        setError(null);
+                      }}
+                      className="min-h-12 text-lg tracking-[0.4em]"
                     />
                   </label>
                 </section>
@@ -483,6 +508,17 @@ export function ShiftCloseDialog({
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmCloseDialog
+        open={confirmClose}
+        onOpenChange={setConfirmClose}
+        message="Isian handover yang belum disimpan akan hilang. Tutup dialog?"
+        onConfirm={() => {
+          reset();
+          setConfirmClose(false);
+          setOpen(false);
+        }}
+      />
     </>
   );
 }

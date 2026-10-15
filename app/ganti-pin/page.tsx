@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CheckCircle2 } from 'lucide-react';
+import { PasswordInput } from '@/components/ui/password-input';
 
 export default function GantiPinPage() {
   const router = useRouter();
@@ -12,6 +14,28 @@ export default function GantiPinPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [countdown, setCountdown] = useState(0);
+
+  // Auto-redirect 2 detik setelah sukses
+  useEffect(() => {
+    if (!success) return;
+
+    setCountdown(2);
+    redirectTimerRef.current = setTimeout(() => {
+      router.push('/');
+    }, 2000);
+
+    const interval = setInterval(() => {
+      setCountdown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+      clearInterval(interval);
+    };
+  }, [success, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,10 +76,7 @@ export default function GantiPinPage() {
         return;
       }
 
-      setSuccess('PIN berhasil diperbarui. Mengalihkan...');
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
+      setSuccess('PIN berhasil diperbarui.');
     } catch {
       setError('Terjadi kesalahan jaringan. Coba lagi.');
     } finally {
@@ -89,8 +110,11 @@ export default function GantiPinPage() {
           )}
 
           {success && (
-            <div className="rounded-lg bg-green-50 border border-green-200 p-3 text-xs font-medium text-green-700">
-              {success}
+            <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 p-3 text-xs font-medium text-green-700">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>
+                {success} Alih ke beranda dalam {countdown} detik...
+              </span>
             </div>
           )}
 
@@ -98,15 +122,14 @@ export default function GantiPinPage() {
             <label htmlFor="oldPin" className="block text-xs font-medium text-ink-muted mb-1">
               PIN Lama / Awal (6 Digit) <span className="text-red-500">*</span>
             </label>
-            <input
+            <PasswordInput
               id="oldPin"
-              type="password"
               inputMode="numeric"
               maxLength={6}
               value={oldPin}
-              onChange={(e) => setOldPin((e.target as HTMLInputElement).value.replace(/\D/g, ''))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOldPin(e.target.value.replace(/\D/g, ''))}
               placeholder="123456"
-              className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-center text-lg tracking-widest font-bold text-ink focus:border-ink focus:outline-none"
+              className="h-12 text-center text-lg tracking-widest font-bold"
               required
             />
           </div>
@@ -115,15 +138,14 @@ export default function GantiPinPage() {
             <label htmlFor="newPin" className="block text-xs font-medium text-ink-muted mb-1">
               PIN Baru (6 Digit) <span className="text-red-500">*</span>
             </label>
-            <input
+            <PasswordInput
               id="newPin"
-              type="password"
               inputMode="numeric"
               maxLength={6}
               value={newPin}
-              onChange={(e) => setNewPin((e.target as HTMLInputElement).value.replace(/\D/g, ''))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPin(e.target.value.replace(/\D/g, ''))}
               placeholder="======="
-              className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-center text-lg tracking-widest font-bold text-ink focus:border-ink focus:outline-none"
+              className="h-12 text-center text-lg tracking-widest font-bold"
               required
             />
             <p className="mt-1 text-[10px] text-ink-light">
@@ -135,15 +157,14 @@ export default function GantiPinPage() {
             <label htmlFor="confirmPin" className="block text-xs font-medium text-ink-muted mb-1">
               Konfirmasi PIN Baru <span className="text-red-500">*</span>
             </label>
-            <input
+            <PasswordInput
               id="confirmPin"
-              type="password"
               inputMode="numeric"
               maxLength={6}
               value={confirmPin}
-              onChange={(e) => setConfirmPin((e.target as HTMLInputElement).value.replace(/\D/g, ''))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
               placeholder="======="
-              className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-center text-lg tracking-widest font-bold text-ink focus:border-ink focus:outline-none"
+              className="h-12 text-center text-lg tracking-widest font-bold"
               required
             />
           </div>

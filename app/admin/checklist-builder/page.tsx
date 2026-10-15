@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { toast } from 'sonner';
 import { Check, ExternalLink, Pencil, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,13 @@ import {
 } from '@/components/admin/point-editor-dialog';
 import { ShiftPreviewDialog } from '@/components/admin/shift-preview-dialog';
 import { TemplateNotice } from '@/components/admin/template-notice';
+import { ConfirmDeleteDialog } from '@/components/admin/confirm-delete-dialog';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useAutoSaveDraft } from '@/hooks/use-auto-save-draft';
+import {
+  checklistBuilderReducer,
+  INITIAL_CHECKLIST_BUILDER_STATE,
+} from '@/lib/reducers/checklist-builder-reducer';
 import {
   createCategory,
   createPoint,
@@ -74,40 +81,110 @@ interface CategoryFormValues {
 }
 
 export default function ChecklistBuilderPage() {
-  const [branches, setBranches] = useState<AdminBranch[]>([]);
-  const [branchId, setBranchId] = useState('');
-  const [shifts, setShifts] = useState<ShiftDefinition[]>([]);
-  const [shiftId, setShiftId] = useState('');
-  const [categories, setCategories] = useState<CategoryWithPoints[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [state, dispatch] = useReducer(checklistBuilderReducer, INITIAL_CHECKLIST_BUILDER_STATE);
+  const {
+    branches,
+    branchId,
+    shifts,
+    shiftId,
+    categories,
+    selectedCategoryId,
+    selectedPointId,
+    loading,
+    categoryOpen,
+    editingCategory,
+    categoryName,
+    categorySort,
+    categoryActive,
+    savingCategory,
+    categoryError,
+    pointOpen,
+    editingPoint,
+    savingPoint,
+    pointError,
+    previewOpen,
+    busyId,
+    showArchived,
+    archiveQuery,
+    deleteTarget,
+    deleteError,
+    deleteLoading,
+    editingTitle,
+    editingInstruction,
+    titleDraft,
+    instructionDraft,
+    savingInline,
+  } = state;
 
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<SopCategory | null>(null);
-  const [categoryName, setCategoryName] = useState('');
-  const [categorySort, setCategorySort] = useState(0);
-  const [categoryActive, setCategoryActive] = useState(true);
-  const [savingCategory, setSavingCategory] = useState(false);
-  const [categoryError, setCategoryError] = useState<string | null>(null);
-
-  const [pointOpen, setPointOpen] = useState(false);
+  // Helper dispatches
+  const setBranches = (v: AdminBranch[]) => dispatch({ type: 'SET_DATA', payload: { branches: v } });
+  const setBranchId = (v: string) => dispatch({ type: 'SET_DATA', payload: { branchId: v } });
+  const setShifts = (v: ShiftDefinition[]) => dispatch({ type: 'SET_DATA', payload: { shifts: v } });
+  const setShiftId = (v: string) => dispatch({ type: 'SET_DATA', payload: { shiftId: v } });
+  const setLoading = (v: boolean) => dispatch({ type: 'SET_LOADING', payload: v });
+  const setSelectedCategoryId = (v: string | null) => dispatch({ type: 'SELECT_CATEGORY', payload: v });
+  const setSelectedPointId = (v: string | null) => dispatch({ type: 'SELECT_POINT', payload: v });
+  const setCategoryOpen = (v: boolean) => dispatch({ type: 'TOGGLE_CATEGORY_FORM', payload: { open: v, category: v ? editingCategory : null } });
+  const setCategoryName = (v: string) => dispatch({ type: 'UPDATE_CATEGORY_DRAFT', payload: { categoryName: v } });
+  const setCategorySort = (v: number) => dispatch({ type: 'UPDATE_CATEGORY_DRAFT', payload: { categorySort: v } });
+  const setCategoryActive = (v: boolean) => dispatch({ type: 'UPDATE_CATEGORY_DRAFT', payload: { categoryActive: v } });
+  const setSavingCategory = (v: boolean) => dispatch({ type: 'SET_SAVING', payload: { field: 'category', value: v } });
+  const setCategoryError = (v: string | null) => dispatch({ type: 'SET_ERROR', payload: { field: 'category', value: v } });
+  const setPointOpen = (v: boolean) => dispatch({ type: 'TOGGLE_POINT_FORM', payload: { open: v, point: v ? editingPoint : null, categoryId: null } });
+  const setEditingPoint = (v: ChecklistPoint | null) => dispatch({ type: 'SET_DATA', payload: { editingPoint: v } });
+  const setSavingPoint = (v: boolean) => dispatch({ type: 'SET_SAVING', payload: { field: 'point', value: v } });
+  const setPointError = (v: string | null) => dispatch({ type: 'SET_ERROR', payload: { field: 'point', value: v } });
+  const setPreviewOpen = (v: boolean) => dispatch({ type: 'TOGGLE_PREVIEW', payload: v });
+  const setBusyId = (v: string | null) => dispatch({ type: 'SET_BUSY_ID', payload: v });
+  const setArchiveQuery = (v: string) => dispatch({ type: 'SET_ARCHIVE', payload: { showArchived, query: v } });
+  const setDeleteTarget = (v: typeof deleteTarget) => dispatch({ type: 'SET_DELETE_TARGET', payload: v });
+  const setDeleteError = (v: string | null) => dispatch({ type: 'SET_DATA', payload: { deleteError: v } });
+  const setDeleteLoading = (v: boolean) => dispatch({ type: 'SET_DATA', payload: { deleteLoading: v } });
+  const setEditingTitle = (v: boolean) => dispatch({ type: 'SET_DATA', payload: { editingTitle: v } });
+  const setEditingInstruction = (v: boolean) => dispatch({ type: 'SET_DATA', payload: { editingInstruction: v } });
+  const setTitleDraft = (v: string) => dispatch({ type: 'UPDATE_INLINE_DRAFT', payload: { titleDraft: v } });
+  const setInstructionDraft = (v: string) => dispatch({ type: 'UPDATE_INLINE_DRAFT', payload: { instructionDraft: v } });
+  const setSavingInline = (v: boolean) => dispatch({ type: 'SET_SAVING', payload: { field: 'inline', value: v } });
   const [pointCategoryId, setPointCategoryId] = useState<string | null>(null);
-  const [editingPoint, setEditingPoint] = useState<ChecklistPoint | null>(null);
-  const [savingPoint, setSavingPoint] = useState(false);
-  const [pointError, setPointError] = useState<string | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<ChecklistPoint | null>(null);
 
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
-  const [archiveQuery, setArchiveQuery] = useState('');
+  // Unsaved changes detection
+  const isDirty = categoryName.trim() !== '' || titleDraft !== '' || instructionDraft !== '';
+  useUnsavedChanges(isDirty);
 
-  // Inline editing state
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [editingInstruction, setEditingInstruction] = useState(false);
-  const [titleDraft, setTitleDraft] = useState('');
-  const [instructionDraft, setInstructionDraft] = useState('');
-  const [savingInline, setSavingInline] = useState(false);
+  // Auto-save draft (hanya draft teks, bukan data yang sudah tersimpan)
+  const { savedAt: draftSavedAt, clearDraft, readDraft } = useAutoSaveDraft({
+    key: 'mycheck.checklist-builder.draft',
+    isDirty,
+    getValue: () => ({
+      categoryName,
+      categorySort,
+      categoryActive,
+      titleDraft,
+      instructionDraft,
+    }),
+  });
+
+  const restoreDraft = () => {
+    const draft = readDraft();
+    if (!draft) return;
+    dispatch({
+      type: 'UPDATE_CATEGORY_DRAFT',
+      payload: {
+        categoryName: draft.value.categoryName ?? '',
+        categorySort: draft.value.categorySort ?? 0,
+        categoryActive: draft.value.categoryActive ?? true,
+      },
+    });
+    dispatch({
+      type: 'UPDATE_INLINE_DRAFT',
+      payload: {
+        titleDraft: draft.value.titleDraft ?? '',
+        instructionDraft: draft.value.instructionDraft ?? '',
+      },
+    });
+    dispatch({ type: 'TOGGLE_CATEGORY_FORM', payload: { open: true, category: null } });
+  };
 
   useEffect(() => {
     const loadBranches = async () => {
@@ -115,12 +192,15 @@ export default function ChecklistBuilderPage() {
         const data = await listBranches();
         const active = data.branches.filter((b) => b.isActive);
         setBranches(active);
-        if (active.length > 0) setBranchId((prev) => prev || active[0].id);
+        if (active.length > 0) {
+          setBranchId(branchId || active[0].id);
+        }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Gagal memuat cabang');
       }
     };
     loadBranches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -135,7 +215,7 @@ export default function ChecklistBuilderPage() {
 
   const loadTree = useCallback(async (id: string) => {
     if (!id) {
-      setCategories([]);
+      dispatch({ type: 'SET_DATA', payload: { categories: [] } });
       return;
     }
     setLoading(true);
@@ -147,16 +227,19 @@ export default function ChecklistBuilderPage() {
           return { ...cat, points: points.points };
         })
       );
-      setCategories(withPoints);
-      setSelectedCategoryId((prev) =>
-        prev && withPoints.some((c) => c.id === prev) ? prev : (withPoints[0]?.id ?? null)
+      dispatch({ type: 'SET_DATA', payload: { categories: withPoints } });
+      setSelectedCategoryId(
+        selectedCategoryId && withPoints.some((c) => c.id === selectedCategoryId)
+          ? selectedCategoryId
+          : (withPoints[0]?.id ?? null)
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal memuat section SOP');
     } finally {
       setLoading(false);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategoryId]);
 
   useEffect(() => {
     loadTree(shiftId);
@@ -174,7 +257,7 @@ export default function ChecklistBuilderPage() {
         await createCategory(shiftId, values);
         toast.success('Section ditambahkan');
       }
-      setCategoryOpen(false);
+      dispatch({ type: 'TOGGLE_CATEGORY_FORM', payload: { open: false, category: null } });
       await loadTree(shiftId);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Gagal menyimpan section SOP';
@@ -215,41 +298,45 @@ export default function ChecklistBuilderPage() {
     }
   };
 
-  const permanentlyDeleteCategory = async (cat: SopCategory) => {
-    if (
-      !window.confirm(
-        `Hapus permanen section "${cat.name}"? Hanya bisa dilakukan bila belum dipakai dan tidak memiliki item checklist.`
-      )
-    ) return;
-    setBusyId(cat.id);
+  const permanentlyDeleteCategory = async () => {
+    if (!deleteTarget || deleteTarget.kind !== 'category') return;
+    setBusyId(deleteTarget.id);
+    setDeleteLoading(true);
+    setDeleteError(null);
     try {
-      await deleteCategory(cat.id);
-      if (selectedCategoryId === cat.id) setSelectedCategoryId(null);
-      toast.success(`Section "${cat.name}" dihapus permanen`);
+      await deleteCategory(deleteTarget.id);
+      if (selectedCategoryId === deleteTarget.id) setSelectedCategoryId(null);
+      toast.success(`Section "${deleteTarget.name}" dihapus permanen`);
+      dispatch({ type: 'SET_DELETE_TARGET', payload: null });
       await loadTree(shiftId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Section tidak dapat dihapus');
+      const msg = err instanceof Error ? err.message : 'Section tidak dapat dihapus';
+      setDeleteError(msg);
+      toast.error(msg);
     } finally {
       setBusyId(null);
+      setDeleteLoading(false);
     }
   };
 
-  const permanentlyDeletePoint = async (point: ChecklistPoint) => {
-    if (
-      !window.confirm(
-        `Hapus permanen item "${point.title}"? Hanya bisa dilakukan bila belum pernah dipakai oleh shift.`
-      )
-    ) return;
-    setBusyId(point.id);
+  const permanentlyDeletePoint = async () => {
+    if (!deleteTarget || deleteTarget.kind !== 'point') return;
+    setBusyId(deleteTarget.id);
+    setDeleteLoading(true);
+    setDeleteError(null);
     try {
-      await deletePoint(point.id);
-      if (selectedPointId === point.id) setSelectedPointId(null);
-      toast.success(`Item "${point.title}" dihapus permanen`);
+      await deletePoint(deleteTarget.id);
+      if (selectedPointId === deleteTarget.id) setSelectedPointId(null);
+      toast.success(`Item "${deleteTarget.name}" dihapus permanen`);
+      dispatch({ type: 'SET_DELETE_TARGET', payload: null });
       await loadTree(shiftId);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Item tidak dapat dihapus');
+      const msg = err instanceof Error ? err.message : 'Item tidak dapat dihapus';
+      setDeleteError(msg);
+      toast.error(msg);
     } finally {
       setBusyId(null);
+      setDeleteLoading(false);
     }
   };
 
@@ -265,7 +352,7 @@ export default function ChecklistBuilderPage() {
         await createPoint(pointCategoryId, values);
         toast.success('Item checklist ditambahkan');
       }
-      setPointOpen(false);
+      dispatch({ type: 'TOGGLE_POINT_FORM', payload: { open: false, point: null, categoryId: null } });
       await loadTree(shiftId);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Gagal menyimpan pertanyaan';
@@ -307,43 +394,40 @@ export default function ChecklistBuilderPage() {
     const b = categories[to];
     if (!a || !b) return;
     const prev = categories;
-    setCategories((cur) => {
-      const next = [...cur];
-      next[from] = b;
-      next[to] = a;
-      return next;
-    });
+    const next = [...prev];
+    next[from] = b;
+    next[to] = a;
+    dispatch({ type: 'SET_DATA', payload: { categories: next } });
     try {
       await updateCategory(a.id, { sortOrder: b.sortOrder ?? 0 });
       await updateCategory(b.id, { sortOrder: a.sortOrder ?? 0 });
       toast.success('Urutan section diperbarui');
     } catch (err) {
-      setCategories(prev);
+      dispatch({ type: 'SET_DATA', payload: { categories: prev } });
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah urutan section');
     }
   };
 
-  const swapPointOrder = async (categoryId: string, from: number, to: number) => {
-    const cat = categories.find((c) => c.id === categoryId);
+  const swapPointOrder = async (catId: string, from: number, to: number) => {
+    const cat = categories.find((c) => c.id === catId);
     const a = cat?.points[from];
     const b = cat?.points[to];
     if (!cat || !a || !b) return;
     const prev = categories;
-    setCategories((cur) =>
-      cur.map((c) => {
-        if (c.id !== categoryId) return c;
-        const points = [...c.points];
-        points[from] = b;
-        points[to] = a;
-        return { ...c, points };
-      })
-    );
+    const next = prev.map((c) => {
+      if (c.id !== catId) return c;
+      const points = [...c.points];
+      points[from] = b;
+      points[to] = a;
+      return { ...c, points };
+    });
+    dispatch({ type: 'SET_DATA', payload: { categories: next } });
     try {
       await updatePoint(a.id, { sortOrder: b.sortOrder });
       await updatePoint(b.id, { sortOrder: a.sortOrder });
       toast.success('Urutan item diperbarui');
     } catch (err) {
-      setCategories(prev);
+      dispatch({ type: 'SET_DATA', payload: { categories: prev } });
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah urutan item');
     }
   };
@@ -351,14 +435,12 @@ export default function ChecklistBuilderPage() {
   // Inline editing helpers
   const startEditTitle = () => {
     if (!selectedPoint) return;
-    setTitleDraft(selectedPoint.title);
-    setEditingTitle(true);
+    dispatch({ type: 'START_INLINE_EDIT_TITLE', payload: selectedPoint.title });
   };
 
   const startEditInstruction = () => {
     if (!selectedPoint) return;
-    setInstructionDraft(selectedPoint.instruction ?? '');
-    setEditingInstruction(true);
+    dispatch({ type: 'START_INLINE_EDIT_INSTRUCTION', payload: selectedPoint.instruction ?? '' });
   };
 
   const saveInlineTitle = async () => {
@@ -371,7 +453,7 @@ export default function ChecklistBuilderPage() {
     setSavingInline(true);
     try {
       await updatePoint(selectedPoint.id, { title: trimmed });
-      setEditingTitle(false);
+      dispatch({ type: 'SET_DATA', payload: { editingTitle: false, titleDraft: '' } });
       toast.success('Judul diperbarui');
       await loadTree(shiftId);
     } catch (err) {
@@ -387,7 +469,7 @@ export default function ChecklistBuilderPage() {
     setSavingInline(true);
     try {
       await updatePoint(selectedPoint.id, { instruction: trimmed === '' ? null : trimmed });
-      setEditingInstruction(false);
+      dispatch({ type: 'SET_DATA', payload: { editingInstruction: false, instructionDraft: '' } });
       toast.success('Petunjuk diperbarui');
       await loadTree(shiftId);
     } catch (err) {
@@ -428,9 +510,15 @@ export default function ChecklistBuilderPage() {
       category.name.toLowerCase().includes(normalizedArchiveQuery) ||
       category.points.length > 0
     );
-  const selectedPoint = visibleCategories
-    .flatMap((category) => category.points)
-    .find((point) => point.id === selectedPointId) ?? null;
+  if (selectedPoint && selectedPoint.id !== selectedPointId) {
+    setSelectedPoint(null);
+  }
+  if (!selectedPoint && selectedPointId) {
+    const found = visibleCategories
+      .flatMap((category) => category.points)
+      .find((point) => point.id === selectedPointId);
+    if (found) setSelectedPoint(found);
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 pb-24 sm:px-6 sm:py-7 md:pb-10 lg:px-8 xl:px-10">
@@ -454,14 +542,33 @@ export default function ChecklistBuilderPage() {
       </div>
 
       <TemplateNotice />
+
+      {/* Indikator draft tersimpan + aksi draft */}
+      {(draftSavedAt || isDirty) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-canvas px-3 py-2 text-xs text-ink-muted">
+          <span>
+            {draftSavedAt
+              ? `Draft tersimpan ${new Date(draftSavedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Ada isian yang belum disimpan'}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={restoreDraft}>
+              Mulai dari draft
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clearDraft}>
+              Hapus draft
+            </Button>
+          </div>
+        </div>
+      )}
+
       <ArchiveFilter
         archived={showArchived}
         onChange={(archived) => {
-          setShowArchived(archived);
-          setArchiveQuery('');
-          setShiftId((current) =>
-            shifts.some((shift) => shift.id === current && shift.isActive !== archived)
-              ? current
+          dispatch({ type: 'SET_ARCHIVE', payload: { showArchived: archived, query: '' } });
+          setShiftId(
+            shifts.some((shift) => shift.id === shiftId && shift.isActive !== archived)
+              ? shiftId
               : ''
           );
           setSelectedCategoryId(null);
@@ -543,38 +650,30 @@ export default function ChecklistBuilderPage() {
               selectedCategoryId={selectedCategoryId}
               onSelectCategory={setSelectedCategoryId}
               onAddCategory={() => {
-                setEditingCategory(null);
-                setCategoryName('');
-                setCategorySort(categories.length);
-                setCategoryActive(true);
-                setCategoryError(null);
-                setCategoryOpen(true);
+                dispatch({ type: 'TOGGLE_CATEGORY_FORM', payload: { open: true, category: null } });
               }}
               onEditCategory={(cat) => {
-                setEditingCategory(cat);
-                setCategoryName(cat.name);
-                setCategorySort(cat.sortOrder ?? 0);
-                setCategoryActive(cat.isActive);
-                setCategoryError(null);
-                setCategoryOpen(true);
+                dispatch({ type: 'START_EDIT_CATEGORY', payload: cat });
               }}
               onToggleCategory={toggleCategory}
-              onDeleteCategory={(category) => void permanentlyDeleteCategory(category)}
+              onDeleteCategory={(category) => {
+                setDeleteError(null);
+                setDeleteTarget({ kind: 'category', id: category.id, name: category.name });
+              }}
               onAddPoint={(categoryId) => {
                 setPointCategoryId(categoryId);
-                setEditingPoint(null);
-                setPointError(null);
-                setPointOpen(true);
+                dispatch({ type: 'TOGGLE_POINT_FORM', payload: { open: true, point: null, categoryId } });
               }}
               onEditPoint={(point) => {
                 setPointCategoryId(point.sopCategoryId);
-                setEditingPoint(point);
                 setSelectedPointId(point.id);
-                setPointError(null);
-                setPointOpen(true);
+                dispatch({ type: 'START_EDIT_POINT', payload: point });
               }}
               onTogglePoint={togglePoint}
-              onDeletePoint={(point) => void permanentlyDeletePoint(point)}
+              onDeletePoint={(point) => {
+                setDeleteError(null);
+                setDeleteTarget({ kind: 'point', id: point.id, name: point.title });
+              }}
               onDuplicateCategory={(cat) => void duplicateCategory(cat)}
               onDuplicatePoint={(point) => void duplicatePoint(point)}
               onReorderCategory={(from, to) => void swapCategoryOrder(from, to)}
@@ -727,7 +826,7 @@ export default function ChecklistBuilderPage() {
               <Input
                 id="cb-category-name"
                 value={categoryName}
-                onChange={(e) => setCategoryName(e.target.value)}
+                onChange={(e) => { setCategoryName(e.target.value); setCategoryError(null); }}
                 placeholder="mis. Dapur"
                 required
                 minLength={2}
@@ -741,14 +840,14 @@ export default function ChecklistBuilderPage() {
                   type="number"
                   inputMode="numeric"
                   value={categorySort}
-                  onChange={(e) => setCategorySort(Number(e.target.value) || 0)}
+                  onChange={(e) => { setCategorySort(Number(e.target.value) || 0); setCategoryError(null); }}
                 />
               </div>
               <label className="flex items-end gap-2 pb-2 text-sm">
                 <input
                   type="checkbox"
                   checked={categoryActive}
-                  onChange={(e) => setCategoryActive(e.target.checked)}
+                  onChange={(e) => { setCategoryActive(e.target.checked); setCategoryError(null); }}
                   className="h-4 w-4"
                 />
                 Aktif
@@ -777,6 +876,7 @@ export default function ChecklistBuilderPage() {
         point={editingPoint}
         saving={savingPoint}
         error={pointError}
+        onClearError={() => setPointError(null)}
         onSubmit={submitPoint}
       />
 
@@ -784,6 +884,27 @@ export default function ChecklistBuilderPage() {
         open={previewOpen}
         onOpenChange={setPreviewOpen}
         shiftId={shiftId}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title={deleteTarget?.kind === 'point' ? 'Hapus Item Checklist' : 'Hapus Section'}
+        itemName={deleteTarget?.name ?? ''}
+        impact={
+          deleteTarget?.kind === 'point'
+            ? 'Hanya bisa dilakukan bila belum pernah dipakai oleh shift.'
+            : 'Hanya bisa dilakukan bila belum dipakai dan tidak memiliki item checklist.'
+        }
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={() => {
+          if (deleteTarget?.kind === 'point') {
+            void permanentlyDeletePoint();
+          } else {
+            void permanentlyDeleteCategory();
+          }
+        }}
       />
     </div>
   );

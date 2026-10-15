@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { toast } from 'sonner';
 import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -115,6 +116,10 @@ export default function PengaturanPage() {
   const [saving, setSaving] = useState(false);
   const [installing, setInstalling] = useState(false);
   const { canInstall, isStandalone, isSupported, install } = usePwaInstall();
+  const originalSettings = useRef<Record<string, Setting>>({});
+
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(originalSettings.current);
+  useUnsavedChanges(isDirty);
 
   const load = async () => {
     setLoading(true);
@@ -125,6 +130,7 @@ export default function PengaturanPage() {
         map[s.key] = s;
       });
       setSettings(map);
+      originalSettings.current = map;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal memuat pengaturan');
     } finally {

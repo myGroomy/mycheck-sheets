@@ -109,6 +109,7 @@ export default function AkunPage() {
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   const [job, setJob] = useState<SensitiveJob | null>(null);
@@ -142,6 +143,7 @@ export default function AkunPage() {
     setEditUser(null);
     setForm(EMPTY_FORM);
     setFormError(null);
+    setFieldErrors({});
     setFormOpen(true);
   };
 
@@ -155,20 +157,28 @@ export default function AkunPage() {
       branchIds: u.branches.map((b) => b.id),
     });
     setFormError(null);
+    setFieldErrors({});
     setFormOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setFieldErrors({});
 
-    if (form.name.trim().length < 2) return setFormError('Nama minimal 2 karakter');
-    if (form.branchIds.length === 0) return setFormError('Pilih minimal satu cabang akses');
+    const errors: Record<string, string> = {};
+    if (form.name.trim().length < 2) errors.name = 'Nama minimal 2 karakter';
+    if (form.branchIds.length === 0) errors.branchIds = 'Pilih minimal satu cabang akses';
 
     if (!editUser) {
       if (form.username.trim().length < 3 || !/^[a-zA-Z0-9._-]+$/.test(form.username.trim()))
-        return setFormError('Username minimal 3 karakter (huruf, angka, titik, strip, underscore)');
-      if (!/^\d{6}$/.test(form.initialPin)) return setFormError('PIN awal harus 6 angka');
+        errors.username = 'Username minimal 3 karakter (huruf, angka, titik, strip, underscore)';
+      if (!/^\d{6}$/.test(form.initialPin)) errors.initialPin = 'PIN awal harus 6 angka';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
     }
 
     setSaving(true);
@@ -552,7 +562,7 @@ export default function AkunPage() {
               <Input
                 id="user-name"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => { setForm({ ...form, name: e.target.value }); setFieldErrors((prev) => ({ ...prev, name: '' })); }}
                 placeholder="Rina Wulandari"
                 required
               />
@@ -564,12 +574,17 @@ export default function AkunPage() {
               <Input
                 id="user-username"
                 value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                onChange={(e) => { setForm({ ...form, username: e.target.value }); setFieldErrors((prev) => ({ ...prev, username: '' })); }}
                 placeholder="rina"
                 disabled={!!editUser}
                 autoComplete="off"
+                aria-invalid={!!fieldErrors.username}
+                aria-describedby={fieldErrors.username ? 'user-username-error' : undefined}
                 required
               />
+              {fieldErrors.username && (
+                <p id="user-username-error" className="text-[11px] text-error">{fieldErrors.username}</p>
+              )}
               {editUser && (
                 <p className="text-[11px] text-ink-light">Username tidak dapat diubah</p>
               )}
@@ -585,12 +600,18 @@ export default function AkunPage() {
                   inputMode="numeric"
                   maxLength={6}
                   value={form.initialPin}
-                  onChange={(e) =>
-                    setForm({ ...form, initialPin: e.target.value.replace(/\D/g, '') })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, initialPin: e.target.value.replace(/\D/g, '') });
+                    setFieldErrors((prev) => ({ ...prev, initialPin: '' }));
+                  }}
                   placeholder="6 digit angka"
                   autoComplete="off"
+                  aria-invalid={!!fieldErrors.initialPin}
+                  aria-describedby={fieldErrors.initialPin ? 'user-pin-error' : undefined}
                 />
+                {fieldErrors.initialPin && (
+                  <p id="user-pin-error" className="text-[11px] text-error">{fieldErrors.initialPin}</p>
+                )}
                 <p className="text-[11px] text-ink-light">
                   User dapat menggantinya setelah login
                 </p>
@@ -627,14 +648,15 @@ export default function AkunPage() {
                       type="checkbox"
                       className="h-4 w-4 accent-ink"
                       checked={form.branchIds.includes(b.id)}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setForm({
                           ...form,
                           branchIds: e.target.checked
                             ? [...form.branchIds, b.id]
                             : form.branchIds.filter((id) => id !== b.id),
-                        })
-                      }
+                        });
+                        setFieldErrors((prev) => ({ ...prev, branchIds: '' }));
+                      }}
                     />
                     {b.name}
                   </label>
@@ -672,6 +694,7 @@ export default function AkunPage() {
         loading={jobLoading}
         error={jobError}
         withNewPin={job?.kind === 'reset-pin'}
+        onClearError={() => setJobError(null)}
         onSubmit={runSensitive}
       />
     </div>

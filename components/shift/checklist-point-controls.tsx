@@ -13,6 +13,7 @@ import {
   AttachmentTitle,
 } from '@/components/ui/attachment';
 import { Spinner } from '@/components/ui/spinner';
+import { uploadPhotoWithProgress } from '@/lib/upload-photo';
 
 type InputType =
   | 'centang'
@@ -112,6 +113,7 @@ export function ChecklistPointControls({
   });
   const [combinedUploadError, setCombinedUploadError] = useState<string | null>(null);
   const [combinedUploading, setCombinedUploading] = useState(false);
+  const [photoProgress, setPhotoProgress] = useState(0);
   const [skipOpen, setSkipOpen] = useState(false);
   const [skipReason, setSkipReason] = useState('');
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -131,22 +133,15 @@ export function ChecklistPointControls({
     setUploading(true);
     try {
       const compressed = await compressPhoto(file);
-      const form = new FormData();
-      form.set('file', compressed);
-      form.set('ownerType', 'entry');
-      form.set('ownerId', point.point_ref);
-      form.set('shiftInstanceId', shiftId);
-
-      const response = await fetch('/api/photos/upload', {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'fetch' },
-        body: form,
+      await uploadPhotoWithProgress({
+        file: compressed,
+        ownerType: 'entry',
+        ownerId: point.point_ref,
+        shiftInstanceId: shiftId,
+        onProgress: (percent) => setPhotoProgress(percent),
+      }).then(async ({ photoId }) => {
+        await onComplete(photoId);
       });
-      const result = (await response.json()) as { error?: string; photo_id?: string };
-      if (!response.ok || !result.photo_id) {
-        throw new Error(result.error || 'Foto gagal diunggah.');
-      }
-      await onComplete(result.photo_id);
     } catch (error) {
       setPhotoError(error instanceof Error ? error.message : 'Foto gagal diunggah.');
     } finally {
@@ -169,23 +164,18 @@ export function ChecklistPointControls({
     try {
       for (const file of Array.from(files)) {
         const compressed = await compressPhoto(file);
-        const form = new FormData();
-        form.set('file', compressed);
-        form.set('ownerType', 'entry');
-        form.set('ownerId', point.point_ref);
-        form.set('shiftInstanceId', shiftId);
-        const response = await fetch('/api/photos/upload', {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'fetch' },
-          body: form,
+        const { photoId } = await uploadPhotoWithProgress({
+          file: compressed,
+          ownerType: 'entry',
+          ownerId: point.point_ref,
+          shiftInstanceId: shiftId,
+          onProgress: (percent) => setPhotoProgress(percent),
         });
-        const result = (await response.json()) as { error?: string; photo_id?: string };
-        if (!response.ok || !result.photo_id) throw new Error(result.error || 'Foto gagal diunggah.');
         setCombinedValues((current) => ({
           ...current,
           foto: [
             ...(Array.isArray(current['foto']) ? current['foto'].filter((id): id is string => typeof id === 'string') : []),
-            result.photo_id,
+            photoId,
           ],
         }));
       }
@@ -509,8 +499,21 @@ export function ChecklistPointControls({
               <Spinner />
             </AttachmentMedia>
             <AttachmentContent>
-              <AttachmentTitle>Mengunggah foto...</AttachmentTitle>
-              <AttachmentDescription>Kompres & upload sedang berjalan</AttachmentDescription>
+              <AttachmentTitle>
+                Mengunggah foto{photoProgress > 0 ? ` · ${photoProgress}%` : '...'}
+              </AttachmentTitle>
+              <AttachmentDescription>
+                {photoProgress > 0 ? (
+                  <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                    <span
+                      className="block h-full rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${photoProgress}%` }}
+                    />
+                  </span>
+                ) : (
+                  'Kompres & upload sedang berjalan'
+                )}
+              </AttachmentDescription>
             </AttachmentContent>
             <AttachmentActions>
               <AttachmentAction aria-label="Batalkan upload" disabled>

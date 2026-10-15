@@ -19,7 +19,7 @@ interface User {
 
 type LoginResult =
   | { success: true; role: UserRole; mustChangePin: boolean }
-  | { success: false; error: string };
+  | { success: false; error: string; code?: string };
 
 /**
  * Status perpindahan sesi. Dipakai untuk menampilkan QuantumLoader overlay
@@ -104,8 +104,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (data?.error?.message as string | undefined) ??
         (typeof data?.error === 'string' ? (data.error as string) : undefined) ??
         'Username atau PIN salah';
+      const errCode = typeof data?.code === 'string' ? data.code : undefined;
       setTransition('idle');
-      return { success: false, error: errMsg };
+      return { success: false, error: errMsg, code: errCode };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setTransition('idle');

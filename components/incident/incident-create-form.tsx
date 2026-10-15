@@ -6,6 +6,7 @@ import { AlertCircle, ArrowLeft, Camera, Loader2, Send } from 'lucide-react';
 import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
+import { uploadPhotoWithProgress } from '@/lib/upload-photo';
 
 interface Option {
   id: string;
@@ -40,6 +41,7 @@ export function IncidentCreateForm() {
   });
   const [severity, setSeverity] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
@@ -100,20 +102,20 @@ export function IncidentCreateForm() {
       if (!response.ok || !result.incident_id) throw new Error(result.error || 'Incident gagal dibuat.');
 
       const uploadErrors: string[] = [];
-      for (const file of files) {
-        const formData = new FormData();
-        formData.set('file', file);
-        formData.set('ownerType', 'incident');
-        formData.set('ownerId', result.incident_id);
-        formData.set('shiftInstanceId', shiftInstanceId);
-        const uploadResponse = await fetch('/api/photos/upload', {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'fetch' },
-          body: formData,
-        });
-        if (!uploadResponse.ok) {
-          const uploadResult = (await uploadResponse.json()) as { error?: string };
-          uploadErrors.push(uploadResult.error || `Foto ${file.name} gagal diunggah.`);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          await uploadPhotoWithProgress({
+            file,
+            ownerType: 'incident',
+            ownerId: result.incident_id,
+            shiftInstanceId,
+            onProgress: (percent) => {
+              setUploadProgress((prev) => ({ ...prev, [i]: percent }));
+            },
+          });
+        } catch (err) {
+          uploadErrors.push(err instanceof Error ? err.message : `Foto ${file.name} gagal diunggah.`);
         }
       }
 
@@ -223,12 +225,31 @@ export function IncidentCreateForm() {
         </label>
         {files.length > 0 && (
           <ul className="space-y-2">
-            {files.map((file, index) => (
-              <li key={`${file.name}-${index}`} className="flex items-center justify-between rounded-lg border border-border bg-canvas px-3 py-2 text-sm">
-                <span className="truncate">{file.name}</span>
-                <button type="button" className="ml-3 text-error underline" onClick={() => setFiles((current) => current.filter((_, position) => position !== index))}>Hapus</button>
-              </li>
-            ))}
+            {files.map((file, index) => {
+              const progress = uploadProgress[index];
+              const isUploading = saving && progress !== undefined;
+              return (
+                <li key={`${file.name}-${index}`} className="rounded-lg border border-border bg-canvas px-3 py-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate">{file.name}</span>
+                    {!saving && (
+                      <button type="button" className="ml-3 text-error underline" onClick={() => setFiles((current) => current.filter((_, position) => position !== index))}>Hapus</button>
+                    )}
+                  </div>
+                  {isUploading && (
+                    <div className="mt-2">
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-200">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-[10px] text-ink-muted">{progress}%</p>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
 

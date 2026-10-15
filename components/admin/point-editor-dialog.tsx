@@ -37,6 +37,8 @@ interface PointEditorDialogProps {
   point?: ChecklistPoint | null;
   saving?: boolean;
   error?: string | null;
+  /** Dipanggil saat user mulai mengetik untuk clear error dari parent */
+  onClearError?: () => void;
   onSubmit: (values: PointFormValues) => void;
 }
 
@@ -89,6 +91,7 @@ export function PointEditorDialog({
   point,
   saving,
   error,
+  onClearError,
   onSubmit,
 }: PointEditorDialogProps) {
   const [values, setValues] = useState<PointFormValues>(EMPTY);
@@ -152,7 +155,7 @@ export function PointEditorDialog({
             <Input
               id="point-title"
               value={values.title}
-              onChange={(e) => set('title', e.target.value)}
+              onChange={(e) => { set('title', e.target.value); onClearError?.(); }}
               placeholder="mis. Berapa suhu chiller saat ini?"
               required
               minLength={2}
@@ -304,7 +307,7 @@ export function PointEditorDialog({
                 type="number"
                 inputMode="numeric"
                 value={values.sortOrder}
-                onChange={(e) => set('sortOrder', Number(e.target.value) || 0)}
+                onChange={(e) => { set('sortOrder', Number(e.target.value) || 0); onClearError?.(); }}
               />
             </div>
             <div className="flex items-end gap-4 pb-2">
@@ -312,7 +315,7 @@ export function PointEditorDialog({
                 <input
                   type="checkbox"
                   checked={values.isRequired}
-                  onChange={(e) => set('isRequired', e.target.checked)}
+                  onChange={(e) => { set('isRequired', e.target.checked); onClearError?.(); }}
                   className="h-4 w-4"
                 />
                 Wajib
@@ -321,7 +324,7 @@ export function PointEditorDialog({
                 <input
                   type="checkbox"
                   checked={values.isActive}
-                  onChange={(e) => set('isActive', e.target.checked)}
+                  onChange={(e) => { set('isActive', e.target.checked); onClearError?.(); }}
                   className="h-4 w-4"
                 />
                 Aktif

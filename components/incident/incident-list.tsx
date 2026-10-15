@@ -65,14 +65,14 @@ export function IncidentList() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (forceRefresh = false) => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/incidents', {
-        cache: forceRefresh ? 'reload' : 'default',
         headers: { 'X-Requested-With': 'fetch' },
       });
       const result = (await response.json()) as {
@@ -90,6 +90,30 @@ export function IncidentList() {
     }
   }, []);
 
+  // Refresh manual: spinner kecil, bukan skeleton penuh.
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    setError(null);
+    void fetch('/api/incidents', {
+      cache: 'reload',
+      headers: { 'X-Requested-With': 'fetch' },
+    })
+      .then(async (response) => {
+        const result = (await response.json()) as {
+          error?: string;
+          branches?: Branch[];
+          incidents?: Incident[];
+        };
+        if (!response.ok) throw new Error(result.error || 'Gagal memuat incident.');
+        setBranches(result.branches ?? []);
+        setIncidents(result.incidents ?? []);
+      })
+      .catch((cause: unknown) => {
+        setError(cause instanceof Error ? cause.message : 'Gagal memuat incident.');
+      })
+      .finally(() => setRefreshing(false));
+  }, []);
+
   useEffect(() => { void load(); }, [load]);
 
   const visible = incidents.filter((incident) => !branchId || incident.branchId === branchId);
@@ -104,8 +128,8 @@ export function IncidentList() {
           <p className="mt-1 text-sm text-ink-muted">Lihat laporan incident dan tindak lanjut cabang Anda.</p>
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={() => void load(true)} disabled={loading} aria-label="Muat ulang incident">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <Button type="button" variant="outline" onClick={refresh} disabled={loading || refreshing} aria-label="Muat ulang incident">
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </Button>
           <Button asChild><Link href="/incident/baru"><Plus className="mr-2 h-4 w-4" />Buat Incident</Link></Button>
         </div>

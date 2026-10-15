@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense, useCallback, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Lock, Timer } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { QuantumLoaderMini } from '@/components/ui/QuantumLoader';
+import { PasswordInput } from '@/components/ui/password-input';
 
 // Kurva expo-out yang sama dengan halaman login STOKIS.
 const EASE_EXPO = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -26,8 +27,33 @@ function LoginForm() {
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [errorType, setErrorType] = useState<'wrong_pin' | 'user_not_found' | 'account_inactive' | 'network' | 'lockout' | null>(null);
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  const lockoutTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Lockout countdown timer
+  useEffect(() => {
+    if (!lockoutUntil) return;
+    const updateRemaining = () => {
+      const remaining = Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000));
+      setLockoutRemaining(remaining);
+      if (remaining <= 0 && lockoutTimerRef.current) {
+        clearInterval(lockoutTimerRef.current);
+        lockoutTimerRef.current = null;
+        setLockoutUntil(null);
+        setAttempts(0);
+      }
+    };
+    updateRemaining();
+    lockoutTimerRef.current = setInterval(updateRemaining, 1000);
+    return () => {
+      if (lockoutTimerRef.current) clearInterval(lockoutTimerRef.current);
+    };
+  }, [lockoutUntil]);
 
   // Getar form saat kredensial ditolak — pola yang sama dengan STOKIS.
   const fail = useCallback((message: string) => {
@@ -47,14 +73,32 @@ function LoginForm() {
       return;
     }
 
+    // Client-side lockout check
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      setError(`Terlalu banyak percobaan. Coba lagi dalam ${lockoutRemaining} detik.`);
+      setErrorType('lockout');
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setErrorType(null);
 
     try {
       const result = await login(username.trim(), pin);
       if (!result.success) {
         fail(result.error || 'Login gagal');
+        setErrorType(result.code === 'WRONG_PIN' ? 'wrong_pin' : result.code === 'USER_NOT_FOUND' ? 'user_not_found' : result.code === 'ACCOUNT_INACTIVE' ? 'account_inactive' : 'network');
         setPin('');
+
+        // Lockout after 5 failed attempts
+        const nextAttempts = attempts + 1;
+        setAttempts(nextAttempts);
+        if (nextAttempts >= 5) {
+          setLockoutUntil(Date.now() + 5 * 60 * 1000); // 5 minutes
+          setAttempts(0);
+        }
+
         setLoading(false);
         return;
       }
@@ -83,8 +127,31 @@ function LoginForm() {
       className="rounded-xl border border-border bg-surface p-5 shadow-sm"
     >
       {error && (
-        <div role="alert" className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-xs font-medium text-red-700">
-          {error}
+        <div
+          role="alert"
+          className={`mb-4 rounded-lg border p-3 text-xs font-medium ${
+            errorType === 'lockout'
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : errorType === 'user_not_found'
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-red-50 border-red-200 text-red-700'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {errorType === 'lockout' ? (
+              <Timer className="h-4 w-4 shrink-0" />
+            ) : errorType === 'account_inactive' ? (
+              <Lock className="h-4 w-4 shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 shrink-0" />
+            )}
+            <span>{error}</span>
+          </div>
+          {errorType === 'lockout' && lockoutRemaining > 0 && (
+            <p className="mt-1 text-[10px] opacity-75">
+              Coba lagi dalam {lockoutRemaining} detik
+            </p>
+          )}
         </div>
       )}
 
@@ -108,17 +175,16 @@ function LoginForm() {
         <label htmlFor="pin" className="block text-xs font-medium text-ink-muted mb-2">
           PIN (6 Digit) <span className="text-red-500">*</span>
         </label>
-        <input
+        <PasswordInput
           id="pin"
-          type="password"
           inputMode="numeric"
           pattern="[0-9]*"
           maxLength={6}
           value={pin}
-          onChange={(e) => setPin(e.currentTarget.value.replace(/\D/g, '').slice(0, 6))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
           autoComplete="current-password"
           placeholder="••••••"
-          className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-center text-xl font-semibold text-ink tracking-[0.5em] placeholder:text-ink-light/30 focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink"
+          className="h-12 text-center text-xl font-semibold tracking-[0.5em] placeholder:text-ink-light/30"
           required
         />
       </div>

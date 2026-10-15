@@ -97,7 +97,7 @@ withAuth(async (_req, ctx, _session) => {
     categories: categories.map((c) => ({ id: c.id, name: c.name, sortOrder: c.sortOrder })),
     branches: branchRows, incidents: incidents.slice(0, 100),
   });
-  response.headers.set('Cache-Control', 'private, max-age=60, must-revalidate');
+  response.headers.set('Cache-Control', 'no-store');
   response.headers.set('Vary', 'Cookie');
   return response;
 });

@@ -33,16 +33,23 @@ export async function POST(_req: NextRequest) {
     const isAktif = (v: unknown) =>
       v === true || v === 'true' || v === 'TRUE' || v === 'True' || v === '1' || v === 1;
 
-    if (!user || String(user['PIN'] ?? '') !== pin) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'Username atau PIN salah' },
+        { error: 'Username tidak ditemukan', code: 'USER_NOT_FOUND' },
+        { status: 404 }
+      );
+    }
+
+    if (String(user['PIN'] ?? '') !== pin) {
+      return NextResponse.json(
+        { error: 'PIN yang Anda masukkan salah', code: 'WRONG_PIN' },
         { status: 401 }
       );
     }
 
     if (!isAktif(user['Aktif'])) {
       return NextResponse.json(
-        { error: 'Akun Anda nonaktif. Hubungi Admin.' },
+        { error: 'Akun Anda nonaktif. Hubungi Admin.', code: 'ACCOUNT_INACTIVE' },
         { status: 403 }
       );
     }

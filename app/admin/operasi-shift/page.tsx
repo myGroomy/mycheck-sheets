@@ -601,6 +601,7 @@ export default function OperasiShiftPage() {
         }
         extraValue={newPjId}
         extraValid={opAction !== 'change_pj' || newPjId.length > 0}
+        onClearError={() => setOpError(null)}
         onSubmit={submitOp}
       />
 

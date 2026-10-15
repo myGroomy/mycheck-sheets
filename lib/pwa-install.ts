@@ -8,7 +8,7 @@
 // tidak akan dapat event-nya. Oleh karena itu state disimpan di globalThis
 // dan dibagi ke semua komponen yang membutuhkannya.
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
