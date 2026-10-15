@@ -153,7 +153,7 @@ export function SensitiveActionDialog({
               required
             />
             {reason.length > 0 && !reasonValid && (
-              <p className="text-[11px] text-error">Alasan minimal 3 karakter</p>
+              <p className="text-xs text-error">Alasan minimal 3 karakter</p>
             )}
           </div>
 
@@ -193,7 +193,7 @@ export function SensitiveActionDialog({
               autoComplete="off"
             />
             {!pinValid && pin.length > 0 && (
-              <p className="text-[11px] text-error">PIN harus 6 angka</p>
+              <p className="text-xs text-error">PIN harus 6 angka</p>
             )}
           </div>
 

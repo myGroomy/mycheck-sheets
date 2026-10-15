@@ -244,7 +244,7 @@ export function IncidentCreateForm() {
                           style={{ width: `${progress}%` }}
                         />
                       </div>
-                      <p className="mt-1 text-[10px] text-ink-muted">{progress}%</p>
+                      <p className="mt-1 text-2xs text-ink-muted">{progress}%</p>
                     </div>
                   )}
                 </li>

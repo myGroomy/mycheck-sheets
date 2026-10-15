@@ -487,7 +487,7 @@ export default function OperasiShiftPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-xs">{i.shiftDate}</TableCell>
-                  <TableCell className="font-mono text-[11px]">{i.pjUserId || '—'}</TableCell>
+                  <TableCell className="font-mono text-xs">{i.pjUserId || '—'}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -589,11 +589,11 @@ export default function OperasiShiftPage() {
                 </SelectContent>
               </Select>
               {pjCandidates.length === 0 && (
-                <p className="text-[11px] text-ink-light">
+                <p className="text-xs text-ink-light">
                   Tidak ada petugas aktif dengan akses ke cabang ini.
                 </p>
               )}
-              <p className="text-[11px] text-ink-light">
+              <p className="text-xs text-ink-light">
                 Hanya petugas aktif yang punya akses ke {opTarget?.branchName}.
               </p>
             </div>
@@ -670,7 +670,7 @@ export default function OperasiShiftPage() {
                 </SelectContent>
               </Select>
               {!definitionsLoading && definitions.length === 0 && (
-                <p className="text-[11px] text-ink-light">Belum ada shift aktif di cabang ini.</p>
+                <p className="text-xs text-ink-light">Belum ada shift aktif di cabang ini.</p>
               )}
             </div>
 
@@ -691,7 +691,7 @@ export default function OperasiShiftPage() {
                 </SelectContent>
               </Select>
               {onBehalfCandidates.length === 0 && (
-                <p className="text-[11px] text-ink-light">
+                <p className="text-xs text-ink-light">
                   Tidak ada petugas aktif dengan akses ke cabang ini.
                 </p>
               )}
@@ -722,7 +722,7 @@ export default function OperasiShiftPage() {
               </div>
             )}
 
-            <p className="text-[11px] text-ink-light">
+            <p className="text-xs text-ink-light">
               Aksi ini tidak memerlukan PIN, tetapi tetap tercatat di audit log beserta alasan.
             </p>
 

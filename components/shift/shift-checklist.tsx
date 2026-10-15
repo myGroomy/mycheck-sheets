@@ -450,7 +450,7 @@ export function ShiftChecklistClient({
                         <p className="font-medium text-ink">{point.title}</p>
                         {point.instruction && <p className="text-xs text-ink-muted">{point.instruction}</p>}
                       </div>
-                      <div className="flex flex-col items-end gap-1 text-right text-[11px] text-ink-muted">
+                      <div className="flex flex-col items-end gap-1 text-right text-xs text-ink-muted">
                         {point.target_time && (
                           <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{formatTime(point.target_time)}</span>
                         )}
@@ -498,9 +498,9 @@ export function ShiftChecklistClient({
                 <div key={participant.user_id} className="flex items-center justify-between rounded-lg border border-border bg-canvas px-3 py-2 text-sm">
                   <div>
                     <p className="font-medium text-ink">{participant.name}</p>
-                    <p className="text-[11px] uppercase tracking-wide text-ink-muted">{participant.first_action_type}</p>
+                    <p className="text-xs uppercase tracking-wide text-ink-muted">{participant.first_action_type}</p>
                   </div>
-                  <div className="text-right text-[11px] text-ink-muted">
+                  <div className="text-right text-xs text-ink-muted">
                     <p>{participant.items_done} item</p>
                     {participant.is_pj && <p className="font-semibold text-emerald-700">PJ</p>}
                   </div>

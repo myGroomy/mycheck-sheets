@@ -23,7 +23,8 @@ status di `IMPLEMENTATION_PLAN.md`.
 /admin/akun
 /admin/shift
 /admin/checklist-builder
-/admin/handover-builder
+/admin/handover
+/admin/handover/builder
 /admin/kategori-incident
 /admin/operasi-shift
 /admin/incident
@@ -91,7 +92,8 @@ Navigasi aktual didefinisikan di `components/NavbarClient.tsx`.
 | `/admin/incident`, `/admin/kategori-incident` | Daftar incident dan halaman kategori; navigasi mengelompokkannya dalam area Incident. |
 | `/admin/laporan` | Daftar laporan, tautan publik, ekspor yang tersedia. |
 | `/admin/cabang`, `/admin/akun` | Pengelolaan Registry. |
-| `/admin/shift`, `/admin/checklist-builder`, `/admin/handover-builder` | Konfigurasi shift dan template. |
+| `/admin/shift`, `/admin/checklist-builder` | Konfigurasi shift dan template. |
+| `/admin/handover`, `/admin/handover/builder` | Satu halaman dua tab: riwayat handover, dan template bidang serah terima. Route lama `/admin/handover-builder` dialihkan ke tab builder. |
 | `/admin/pengaturan` | Pengaturan yang terdaftar di catalog kode. |
 | `/admin/audit-log` | Baca/filter audit log. |
 

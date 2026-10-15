@@ -255,7 +255,7 @@ export function PreviousHandoverCard({ shiftId }: { shiftId: string }) {
                     key={field.id}
                     className="rounded-lg border border-border bg-canvas px-3 py-2"
                   >
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
                       {field.label}
                     </dt>
                     <dd className="mt-0.5 whitespace-pre-wrap text-sm text-ink">

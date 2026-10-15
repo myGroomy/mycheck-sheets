@@ -446,7 +446,7 @@ export default function AkunPage() {
                 <TableCell className="font-medium">
                   {u.name}
                   {u.mustChangePin && (
-                    <span className="ml-2 text-[10px] font-semibold uppercase text-warning">
+                    <span className="ml-2 text-2xs font-semibold uppercase text-warning">
                       belum ganti PIN
                     </span>
                   )}
@@ -583,10 +583,10 @@ export default function AkunPage() {
                 required
               />
               {fieldErrors.username && (
-                <p id="user-username-error" className="text-[11px] text-error">{fieldErrors.username}</p>
+                <p id="user-username-error" className="text-xs text-error">{fieldErrors.username}</p>
               )}
               {editUser && (
-                <p className="text-[11px] text-ink-light">Username tidak dapat diubah</p>
+                <p className="text-xs text-ink-light">Username tidak dapat diubah</p>
               )}
             </div>
             {!editUser && (
@@ -610,9 +610,9 @@ export default function AkunPage() {
                   aria-describedby={fieldErrors.initialPin ? 'user-pin-error' : undefined}
                 />
                 {fieldErrors.initialPin && (
-                  <p id="user-pin-error" className="text-[11px] text-error">{fieldErrors.initialPin}</p>
+                  <p id="user-pin-error" className="text-xs text-error">{fieldErrors.initialPin}</p>
                 )}
-                <p className="text-[11px] text-ink-light">
+                <p className="text-xs text-ink-light">
                   User dapat menggantinya setelah login
                 </p>
               </div>

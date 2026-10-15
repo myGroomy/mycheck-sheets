@@ -148,7 +148,7 @@ export default function GantiPinPage() {
               className="h-12 text-center text-lg tracking-widest font-bold"
               required
             />
-            <p className="mt-1 text-[10px] text-ink-light">
+            <p className="mt-1 text-2xs text-ink-light">
               Gunakan 6 angka yang tidak mudah ditebak (bukan 123456/111111)
             </p>
           </div>

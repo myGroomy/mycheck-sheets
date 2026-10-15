@@ -1,0 +1,548 @@
+'use client';
+
+// components/handover/handover-builder-section.tsx
+// FITUR builder di dalam halaman `/admin/handover` (tab "Builder").
+//
+// Dulumnya halaman mandiri `/admin/handover-builder`. Sekarang builder hanya
+// salah satu bagian dari halaman Handover: admin bisa melihat riwayat handover
+// DAN mengelola template field-nya di satu tempat. Petugas tidak memakai bagian
+// ini — mereka hanya melihat riwayat (lihat app/handover/page.tsx).
+//
+// Route lama `/admin/handover-builder` sudah diarahkan ke `/admin/handover`.
+
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { Check, GripVertical, Pencil, Plus, Power, Trash2, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ArchiveFilter } from '@/components/admin/archive-filter';
+import { filterArchiveView, splitByArchive } from '@/lib/admin/lifecycle-policy';
+import { Input } from '@/components/ui/input';
+import { SkeletonRows } from '@/components/ui/skeletons';
+import { SkeletonTransition } from '@/components/ui/skeleton-transition';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  HandoverFieldEditor,
+  type HandoverFormValues,
+} from '@/components/admin/handover-field-editor';
+import { TemplateNotice } from '@/components/admin/template-notice';
+import { ConfirmDeleteDialog } from '@/components/admin/confirm-delete-dialog';
+import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
+import { useAutoSaveDraft } from '@/hooks/use-auto-save-draft';
+import {
+  createHandoverField,
+  deleteHandoverField,
+  listBranches,
+  listHandoverFields,
+  listShifts,
+  updateHandoverField,
+  type AdminBranch,
+  type HandoverField,
+  type ShiftDefinition,
+} from '@/lib/admin/api';
+
+const FIELD_TYPE_LABEL: Record<string, string> = {
+  teks: 'Teks',
+  angka: 'Angka',
+  pilihan: 'Pilihan',
+  ya_tidak: 'Ya / Tidak',
+  paragraf: 'Paragraf',
+  tanggal_waktu: 'Tanggal dan waktu',
+  foto: 'Foto',
+};
+
+export function HandoverBuilderSection() {
+  const [branches, setBranches] = useState<AdminBranch[]>([]);
+  const [branchId, setBranchId] = useState('');
+  const [shifts, setShifts] = useState<ShiftDefinition[]>([]);
+  const [shiftId, setShiftId] = useState('');
+  const [fields, setFields] = useState<HandoverField[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<HandoverField | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveQuery, setArchiveQuery] = useState('');
+
+  // Inline editing state
+  const [editingLabel, setEditingLabel] = useState<string | null>(null);
+  const [labelDraft, setLabelDraft] = useState('');
+  const [savingInline, setSavingInline] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<HandoverField | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Unsaved changes detection
+  const isDirty = labelDraft.trim() !== '';
+  useUnsavedChanges(isDirty);
+
+  // Auto-save draft label yang sedang diedit
+  const { savedAt: draftSavedAt, clearDraft, readDraft } = useAutoSaveDraft({
+    key: 'mycheck.handover-builder.draft',
+    isDirty,
+    getValue: () => ({ labelDraft, editingLabel }),
+  });
+
+  const restoreDraft = () => {
+    const draft = readDraft();
+    if (!draft || !draft.value.editingLabel) return;
+    setEditingLabel(draft.value.editingLabel);
+    setLabelDraft(draft.value.labelDraft);
+  };
+
+  useEffect(() => {
+    const loadBranches = async () => {
+      try {
+        const data = await listBranches();
+        const active = data.branches.filter((b) => b.isActive);
+        setBranches(active);
+        if (active.length > 0) setBranchId((prev) => prev || active[0].id);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Gagal memuat cabang');
+      }
+    };
+    loadBranches();
+  }, []);
+
+  useEffect(() => {
+    if (!branchId) return;
+    setShiftId('');
+    listShifts(branchId)
+      .then((data) => setShifts(data.shifts))
+      .catch((err: unknown) =>
+        toast.error(err instanceof Error ? err.message : 'Gagal memuat shift')
+      );
+  }, [branchId]);
+
+  const loadFields = useCallback(async (id: string) => {
+    if (!id) {
+      setFields([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await listHandoverFields(id);
+      setFields(data.fields);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal memuat bidang serah terima');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFields(shiftId);
+  }, [shiftId, loadFields]);
+
+  const submitField = async (values: HandoverFormValues) => {
+    if (!shiftId) return;
+    setSaving(true);
+    setFormError(null);
+    try {
+      if (editing) {
+        await updateHandoverField(editing.id, values);
+        toast.success('Bidang serah terima diperbarui');
+      } else {
+        await createHandoverField(shiftId, values);
+        toast.success('Bidang serah terima ditambahkan');
+      }
+      setEditorOpen(false);
+      await loadFields(shiftId);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Gagal menyimpan bidang serah terima';
+      setFormError(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleActive = async (field: HandoverField) => {
+    try {
+      if (field.isActive) {
+        await updateHandoverField(field.id, { isActive: false });
+        toast.success('Bidang diarsipkan. Riwayat handover tetap tersimpan.');
+      } else {
+        await updateHandoverField(field.id, { isActive: true });
+        toast.success('Bidang diaktifkan');
+      }
+      await loadFields(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal mengubah status');
+    }
+  };
+
+  const permanentlyDeleteField = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      await deleteHandoverField(deleteTarget.id);
+      toast.success(`Field "${deleteTarget.label}" dihapus permanen`);
+      setDeleteTarget(null);
+      await loadFields(shiftId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Field tidak dapat dihapus';
+      setDeleteError(msg);
+      toast.error(msg);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const { active: activeFields, archived: archivedFields } = splitByArchive(fields);
+  const visibleFields = filterArchiveView(fields, {
+    showArchived,
+    query: archiveQuery,
+    searchFields: (field) => [field.label],
+  });
+
+  const swapOrder = async (from: number, to: number) => {
+    const a = fields[from];
+    const b = fields[to];
+    if (!a || !b) return;
+    const prev = fields;
+    setFields((current) => {
+      const next = [...current];
+      next[from] = b;
+      next[to] = a;
+      return next;
+    });
+    try {
+      await updateHandoverField(a.id, { sortOrder: b.sortOrder });
+      await updateHandoverField(b.id, { sortOrder: a.sortOrder });
+      toast.success('Urutan diperbarui');
+    } catch (err) {
+      setFields(prev);
+      toast.error(err instanceof Error ? err.message : 'Gagal mengubah urutan');
+    }
+  };
+
+  const startEditLabel = (fieldId: string) => {
+    const field = fields.find((f) => f.id === fieldId);
+    if (!field) return;
+    setEditingLabel(fieldId);
+    setLabelDraft(field.label);
+  };
+
+  const saveInlineLabel = async (fieldId: string) => {
+    const trimmed = labelDraft.trim();
+    if (trimmed.length < 2) {
+      toast.error('Label minimal 2 karakter');
+      return;
+    }
+    setSavingInline(true);
+    try {
+      await updateHandoverField(fieldId, { label: trimmed });
+      setEditingLabel(null);
+      toast.success('Label diperbarui');
+      await loadFields(shiftId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan label');
+    } finally {
+      setSavingInline(false);
+    }
+  };
+
+  const onDrop = (to: number) => {
+    if (dragIndex === null || dragIndex === to) {
+      setDragIndex(null);
+      return;
+    }
+    void swapOrder(dragIndex, to);
+    setDragIndex(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Heading halaman & tab ditangani oleh /admin/handover, jadi di sini
+          hanya penjelasan singkat builder-nya sendiri. */}
+      <p className="text-xs text-ink-muted">
+        Daftar bidang serah terima per definisi shift. Seret baris untuk mengubah urutan.
+      </p>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div className="space-y-1">
+          <label htmlFor="handover-branch" className="text-xs font-medium text-ink-muted">
+            Cabang
+          </label>
+          <Select value={branchId} onValueChange={setBranchId}>
+            <SelectTrigger id="handover-branch">
+              <SelectValue placeholder="Pilih cabang" />
+            </SelectTrigger>
+            <SelectContent>
+              {branches.map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  {b.name} ({b.code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <label htmlFor="handover-shift" className="text-xs font-medium text-ink-muted">
+            Shift
+          </label>
+          <Select value={shiftId} onValueChange={setShiftId}>
+            <SelectTrigger id="handover-shift">
+              <SelectValue placeholder="Pilih shift" />
+            </SelectTrigger>
+            <SelectContent>
+              {shifts.filter((shift) => shift.isActive !== showArchived).map((s) => (
+                <SelectItem key={s.id} value={s.id}>
+                  {s.name} ({s.startTime} - {s.endTime}){showArchived ? ' · Arsip' : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <TemplateNotice />
+
+      {/* Indikator draft tersimpan + aksi draft */}
+      {(draftSavedAt || isDirty) && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-canvas px-3 py-2 text-xs text-ink-muted">
+          <span>
+            {draftSavedAt
+              ? `Draft label tersimpan ${new Date(draftSavedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Ada label yang belum disimpan'}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={restoreDraft}>
+              Mulai dari draft
+            </Button>
+            <Button variant="ghost" size="sm" onClick={clearDraft}>
+              Hapus draft
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ArchiveFilter
+          archived={showArchived}
+          onChange={(archived) => {
+            setShowArchived(archived);
+            setArchiveQuery('');
+            setShiftId((current) =>
+              shifts.some((shift) => shift.id === current && shift.isActive !== archived)
+                ? current
+                : ''
+            );
+          }}
+          activeCount={activeFields.length}
+          archivedCount={archivedFields.length}
+          searchValue={archiveQuery}
+          onSearchChange={setArchiveQuery}
+          searchPlaceholder="Cari bidang handover arsip..."
+        />
+        {!showArchived && (
+          <Button
+            disabled={!shiftId}
+            onClick={() => {
+              setEditing(null);
+              setFormError(null);
+              setEditorOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            Tambah bidang
+          </Button>
+        )}
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface">
+        {!shiftId && <p className="p-4 text-sm text-ink-muted">Pilih shift terlebih dahulu</p>}
+        {shiftId && loading && (
+          <SkeletonTransition>
+            <SkeletonRows count={5} />
+          </SkeletonTransition>
+        )}
+        {shiftId && !loading && visibleFields.length === 0 && (
+          <p className="p-4 text-sm text-ink-muted">
+            {showArchived ? 'Belum ada bidang di arsip' : 'Belum ada bidang aktif'}
+          </p>
+        )}
+        {shiftId &&
+          !loading &&
+          visibleFields.map((f, index) => (
+            <div
+              key={f.id}
+              draggable={!showArchived}
+              onDragStart={() => !showArchived && setDragIndex(index)}
+              onDragOver={(e) => !showArchived && e.preventDefault()}
+              onDrop={() => !showArchived && onDrop(index)}
+              onDragEnd={() => setDragIndex(null)}
+              className={`flex items-center gap-2 border-b border-border p-3 last:border-b-0 ${
+                dragIndex === index ? 'bg-primary/5' : ''
+              }`}
+            >
+              {!showArchived && (
+                <GripVertical
+                  className="h-4 w-4 shrink-0 cursor-grab text-ink-muted"
+                  aria-hidden
+                />
+              )}
+              <div className="min-w-[140px] flex-1">
+                {!showArchived && editingLabel === f.id ? (
+                  <div className="space-y-1">
+                    <Input
+                      value={labelDraft}
+                      onChange={(e) => setLabelDraft(e.target.value)}
+                      className="h-7 text-sm"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') void saveInlineLabel(f.id);
+                        if (e.key === 'Escape') setEditingLabel(null);
+                      }}
+                    />
+                    <div className="flex gap-1">
+                      <Button size="sm" onClick={() => void saveInlineLabel(f.id)} disabled={savingInline}>
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingLabel(null)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : !showArchived ? (
+                  <button
+                    type="button"
+                    onClick={() => startEditLabel(f.id)}
+                    className="group flex items-center gap-1 text-left"
+                    title="Klik untuk mengubah label"
+                  >
+                    <span className="text-sm font-medium">
+                      {index + 1}. {f.label}
+                      {f.isRequired && <span className="text-danger"> *</span>}
+                    </span>
+                    <Pencil className="h-3 w-3 text-ink-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                  </button>
+                ) : (
+                  <span className="text-sm font-medium">{index + 1}. {f.label}</span>
+                )}
+                <div className="mt-1">
+                  <p className="text-xs text-ink-muted">
+                    {(f.inputTypes?.length ? f.inputTypes : [f.fieldType])
+                      .map((type) => FIELD_TYPE_LABEL[type] ?? type)
+                      .join(' + ')}
+                  </p>
+                  {(f.inputTypes ?? [f.fieldType]).some((type) => ['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type)) && f.options && (
+                    <p className="mt-0.5 text-xs text-ink-muted">
+                      {(Array.isArray(f.options) ? f.options : [f.options]).join(', ')}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Badge variant={f.isActive ? 'default' : 'secondary'}>
+                {f.isActive ? 'Aktif' : 'Nonaktif'}
+              </Badge>
+              <div className="flex flex-wrap gap-2">
+                {!showArchived && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditing(f);
+                    setFormError(null);
+                    setEditorOpen(true);
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  Ubah
+                </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => toggleActive(f)}>
+                  <Power className="h-3.5 w-3.5" />
+                  {f.isActive ? 'Arsipkan' : 'Pulihkan'}
+                </Button>
+                {showArchived && f.canDelete && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(f);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Hapus permanen
+                  </Button>
+                )}
+                {showArchived && !f.canDelete && (
+                  <span className="self-center text-xs text-ink-muted">
+                    Sudah digunakan: hanya dapat dipulihkan
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+      </div>
+
+      <div className="rounded-xl border border-border bg-surface">
+        <div className="border-b border-border p-3">
+          <p className="text-sm font-semibold">Pratinjau</p>
+          <p className="text-xs text-ink-muted">Form serah terima seperti dilihat petugas</p>
+        </div>
+        {!shiftId ? (
+          <p className="p-4 text-sm text-ink-muted">Pilih shift untuk melihat pratinjau</p>
+        ) : (
+          <div className="space-y-2 p-3">
+            {fields.filter((f) => f.isActive).length === 0 ? (
+              <p className="text-sm text-ink-muted">Belum ada bidang aktif</p>
+            ) : (
+              fields
+                .filter((f) => f.isActive)
+                .map((f) => (
+                  <div key={f.id} className="space-y-1">
+                    <label className="text-xs font-medium">
+                      {f.label}
+                      {f.isRequired && <span className="text-danger"> *</span>}
+                    </label>
+                    {(f.inputTypes?.length ? f.inputTypes : [f.fieldType]).map((type) => (
+                      <div key={type} className="rounded border border-border bg-background p-2 text-xs text-ink-muted">
+                        {FIELD_TYPE_LABEL[type] ?? type}
+                        {['pilihan', 'pilihan_ganda', 'kotak_centang', 'dropdown'].includes(type) && f.options?.length
+                          ? `: ${f.options.join(', ')}`
+                          : type === 'foto' ? ' — unggah satu atau lebih foto' : ' — input petugas'}
+                      </div>
+                    ))}
+                  </div>
+                ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <HandoverFieldEditor
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        field={editing}
+        saving={saving}
+        error={formError}
+        onSubmit={submitField}
+      />
+
+      <ConfirmDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(o) => !o && setDeleteTarget(null)}
+        title="Hapus Bidang Handover"
+        itemName={deleteTarget?.label ?? ''}
+        impact="Hanya bisa dilakukan bila belum pernah dipakai oleh shift."
+        loading={deleteLoading}
+        error={deleteError}
+        onConfirm={() => void permanentlyDeleteField()}
+      />
+    </div>
+  );
+}

@@ -103,7 +103,7 @@ function LinkableId({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex max-w-[13rem] items-center gap-1.5 rounded-md border border-border bg-canvas px-2 py-1 font-mono text-[11px] text-ink transition-colors hover:border-ink-muted hover:bg-surface hover:text-ink"
+        className="inline-flex max-w-[13rem] items-center gap-1.5 rounded-md border border-border bg-canvas px-2 py-1 font-mono text-xs text-ink transition-colors hover:border-ink-muted hover:bg-surface hover:text-ink"
         title={`${actionLabel} (${value})`}
       >
         <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
@@ -455,7 +455,7 @@ export default function CabangPage() {
                 maxLength={10}
                 required
               />
-              <p className="text-[11px] text-ink-light">2–10 karakter, unik antar cabang</p>
+              <p className="text-xs text-ink-light">2–10 karakter, unik antar cabang</p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="branch-address">Alamat</Label>
@@ -483,7 +483,7 @@ export default function CabangPage() {
                   <option key={tz} value={tz} />
                 ))}
               </datalist>
-              <p className="text-[11px] text-ink-light">Contoh: Asia/Jakarta, Asia/Makassar</p>
+              <p className="text-xs text-ink-light">Contoh: Asia/Jakarta, Asia/Makassar</p>
             </div>
             <DialogFooter>
               <Button

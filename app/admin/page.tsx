@@ -12,7 +12,7 @@ export default async function AdminIndex() {
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted sm:text-xs">
+          <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-ink-muted sm:text-xs">
             Admin • {ctx.user.name}
           </p>
           <h1 className="mt-1 truncate text-xl font-bold sm:text-2xl">Dashboard</h1>
@@ -43,7 +43,7 @@ export default async function AdminIndex() {
             { label: 'Cabang', href: '/admin/cabang', description: 'Periksa cabang dan spreadsheet.' },
             { label: 'Shift', href: '/admin/shift', description: 'Atur definisi dan jadwal shift.' },
             { label: 'Checklist / SOP', href: '/admin/checklist-builder', description: 'Atur kategori dan item kerja.' },
-            { label: 'Handover', href: '/admin/handover-builder', description: 'Tentukan isian serah terima.' },
+            { label: 'Handover', href: '/admin/handover', description: 'Riwayat & isian serah terima.' },
             { label: 'Akun & akses', href: '/admin/akun', description: 'Beri petugas akses cabang.' },
           ].map((step, index) => (
             <li key={step.href}>
@@ -78,7 +78,7 @@ export default async function AdminIndex() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="font-medium">{branch.name}</p>
-                    <p className="text-[11px] uppercase tracking-wide text-ink-muted">{branch.code}</p>
+                    <p className="text-xs uppercase tracking-wide text-ink-muted">{branch.code}</p>
                   </div>
                   <div className="flex gap-2 text-xs text-ink-muted">
                     <span className="rounded-full border border-border px-2 py-1">{Number(branch.activeShifts)} jalan</span>
@@ -119,10 +119,10 @@ export default async function AdminIndex() {
                 <div key={`${alert.branchName}-${alert.shiftName}-${idx}`} className="rounded-lg border border-border bg-canvas p-3">
                   <p className="text-sm font-medium">{alert.branchName}</p>
                   <p className="mt-1 text-xs text-ink-muted">{alert.shiftName}</p>
-                  <p className="mt-2 text-[11px] text-warning">
+                  <p className="mt-2 text-xs text-warning">
                     Shift berjalan sejak {alert.openedAt ? new Date(alert.openedAt).toLocaleString('id-ID') : '—'}
                   </p>
-                  <p className="mt-1 text-[11px] text-ink-muted">PJ: {alert.pjName || '—'}</p>
+                  <p className="mt-1 text-xs text-ink-muted">PJ: {alert.pjName || '—'}</p>
                 </div>
               ))
             )}
@@ -136,11 +136,11 @@ export default async function AdminIndex() {
 function MetricCard({ label, value, helper }: { label: string; value: number; helper: string }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-4 text-center">
-      <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.14em] text-ink-muted sm:text-xs">
+      <p className="text-xs font-semibold uppercase leading-tight tracking-[0.14em] text-ink-muted sm:text-xs">
         {label}
       </p>
       <div className="mt-2 text-2xl font-bold sm:mt-3 sm:text-3xl">{value}</div>
-      <p className="mt-1 text-[11px] text-ink-muted sm:text-xs">{helper}</p>
+      <p className="mt-1 text-xs text-ink-muted sm:text-xs">{helper}</p>
     </div>
   );
 }

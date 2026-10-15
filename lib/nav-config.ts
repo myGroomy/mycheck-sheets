@@ -57,7 +57,8 @@ const ADMIN_NAV: NavGroup[] = [
       { name: 'Cabang', href: '/admin/cabang', icon: Building2 },
       { name: 'Shift', href: '/admin/shift', icon: ClipboardCheck },
       { name: 'Checklist / SOP', href: '/admin/checklist-builder', icon: ListChecks },
-      { name: 'Handover', href: '/admin/handover-builder', icon: FileText },
+      // Handover menyatukan riwayat + builder dalam satu halaman (tab).
+      { name: 'Handover', href: '/admin/handover', icon: FileText, aliases: ['/admin/handover-builder'] },
     ],
   },
   {
@@ -82,6 +83,7 @@ const PETUGAS_NAV: NavGroup[] = [
     title: 'Utama',
     items: [
       { name: 'Checklist', href: '/daftar-shift', icon: ClipboardCheck, aliases: ['/shift'] },
+      { name: 'Handover', href: '/handover', icon: FileText },
       { name: 'Incident', href: '/incident', icon: AlertTriangle },
       { name: 'Laporan', href: '/report', icon: FileText },
     ],

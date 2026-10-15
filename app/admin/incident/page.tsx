@@ -415,7 +415,7 @@ export default function IncidentAdminPage() {
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-xs">
                   {i.reportedAt.slice(0, 16).replace('T', ' ')}
-                  <p className="text-[11px] text-ink-light">{i.reportedBy}</p>
+                  <p className="text-xs text-ink-light">{i.reportedBy}</p>
                 </TableCell>
                 <TableCell>
                   <Badge variant={i.status === 'open' ? 'default' : 'secondary'}>
@@ -476,7 +476,7 @@ export default function IncidentAdminPage() {
       </div>
 
       {/* Isi asli incident tidak dapat diedit (BR-41); koreksi lewat catatan. */}
-      <p className="text-[11px] text-ink-light">
+      <p className="text-xs text-ink-light">
         Isi asli incident tidak dapat diubah koreksi dan catatan(admin) ditulis sebagai catatan
         tambahan. Tautan ke shift diatur dari halaman detail incident.
       </p>

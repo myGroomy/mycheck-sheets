@@ -59,6 +59,44 @@
   /* ---- Font ---- */
   --font-sans: var(--font-plus-jakarta-sans), sans-serif;
 
+  /* ---- Skala tipografi (golden ratio) -------------------------------
+     Token ini MENGGANTUKI skala default Tailwind (text-xs..text-5xl),
+     jadi seluruh className existing langsung ikut terselaraskan.
+
+     phi (golden ratio) = 1.618 dipakai untuk tier display. Satu langkah
+     phi dari 20px = 32.4px, dari 32px = 51.8px. Dilakukan sebagai
+     langkah "setiap_other" (akar phi = 1.272) supaya nama tokennya tetap
+     familiar: text-xs, text-2xl, dst.
+
+     Tier teks (kecil) sengaja dikompresi, bukan phi penuh: 14 / 1.618
+     = 8.6px, lalu 8.6 / 1.618 = 5.3px -- keduanya di bawah batas
+     keterbacaan untuk UI padat. Semua angka dibulatkan ke px bulat
+     supaya tidak menghasilkan 10.5px / 15.75px seperti skala default
+     Tailwind (root html app ini 14px, bukan 16px).
+
+     10 -> 11 -> 13 -> 14 -> 16            (tier teks, terkompresi)
+     16 -> 20 -> 25 -> 32 -> 41 -> 52      (akar phi per langkah) */
+  --text-2xs: 10px;
+  --text-2xs--line-height: 1.4;
+  --text-xs: 11px;
+  --text-xs--line-height: 1.45;
+  --text-sm: 13px;
+  --text-sm--line-height: 1.5;
+  --text-base: 14px;
+  --text-base--line-height: 1.55;
+  --text-lg: 16px;
+  --text-lg--line-height: 1.45;
+  --text-xl: 20px;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 25px;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 32px;
+  --text-3xl--line-height: 1.2;
+  --text-4xl: 41px;
+  --text-4xl--line-height: 1.15;
+  --text-5xl: 52px;
+  --text-5xl--line-height: 1.1;
+
   /* ---- Animasi ---- */
   /* Cincin QuantumLoader: dua cincin berputar berlawanan arah (2.5s, offset
      -1.25s di komponen). Di-port dari STOKIS. */

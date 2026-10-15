@@ -164,7 +164,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
       
       <header className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted sm:text-xs">MyCheck</p>
+          <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-ink-muted sm:text-xs">MyCheck</p>
           <h1 className="mt-1 text-xl font-bold text-ink sm:text-2xl">Halo, {userName}</h1>
         </div>
         <div className="flex shrink-0 items-center gap-2 rounded-lg border border-border bg-canvas px-3 py-2 text-sm text-ink-muted">
@@ -214,10 +214,10 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
               <div key={branch.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wide text-ink-muted sm:text-xs">{branch.code}</p>
+                    <p className="text-2xs uppercase tracking-wide text-ink-muted sm:text-xs">{branch.code}</p>
                     <h2 className="mt-1 truncate text-base font-bold text-ink sm:text-lg">{branch.name}</h2>
                   </div>
-                  <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-canvas px-2.5 py-1 text-[10px] text-ink-muted sm:text-xs">
+                  <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-canvas px-2.5 py-1 text-2xs text-ink-muted sm:text-xs">
                     <FolderKanban className="h-3.5 w-3.5" />
                     {branch.timezone}
                   </div>
@@ -244,7 +244,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
                             <div className="min-w-0">
                               <div className="flex min-w-0 items-center gap-2">
                                 <h3 className="min-w-0 truncate font-semibold text-ink">{item.name}</h3>
-                                <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-[10px] font-semibold uppercase text-ink-muted">
+                                <span className="rounded-full border border-border bg-surface px-2 py-0.5 text-2xs font-semibold uppercase text-ink-muted">
                                   {statusText}
                                 </span>
                               </div>

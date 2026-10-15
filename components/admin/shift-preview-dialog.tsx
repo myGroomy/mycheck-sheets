@@ -109,7 +109,7 @@ export function ShiftPreviewDialog({ open, onOpenChange, shiftId }: ShiftPreview
                         className="flex items-start gap-2 rounded-lg border border-border p-2"
                       >
                         <span
-                          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-border text-[10px] text-ink-muted"
+                          className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border border-border text-2xs text-ink-muted"
                           aria-hidden
                         >
                           {p.inputType === 'angka' ? '#' : '✓'}

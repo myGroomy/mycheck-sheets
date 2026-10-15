@@ -148,7 +148,7 @@ function LoginForm() {
             <span>{error}</span>
           </div>
           {errorType === 'lockout' && lockoutRemaining > 0 && (
-            <p className="mt-1 text-[10px] opacity-75">
+            <p className="mt-1 text-2xs opacity-75">
               Coba lagi dalam {lockoutRemaining} detik
             </p>
           )}

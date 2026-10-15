@@ -237,7 +237,7 @@ export default function PengaturanPage() {
                         onChange={(e) => setValue(f.key, e.target.value.replace(/[^\d-]/g, ''))}
                       />
                     )}
-                    {f.hint && <p className="text-[11px] text-ink-light">{f.hint}</p>}
+                    {f.hint && <p className="text-xs text-ink-light">{f.hint}</p>}
                     {f.key === 'whatsapp_template' && (
                       <div className="rounded-lg border border-border bg-canvas p-3 text-xs">
                         <span className="mb-1 block font-semibold uppercase tracking-wide text-ink-muted">
@@ -303,7 +303,7 @@ export default function PengaturanPage() {
                 {installing ? 'Memasang...' : 'Pasang sekarang'}
               </Button>
             )}
-            <p className="text-[11px] text-ink-light">
+            <p className="text-xs text-ink-light">
               Banner install bisa disembunyikan, tapi tombol ini selalu tersedia di settings.
             </p>
           </CardContent>

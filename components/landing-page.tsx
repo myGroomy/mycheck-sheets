@@ -55,7 +55,7 @@ export function LandingPage() {
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#292524] text-white">
             <Check className="h-5 w-5" strokeWidth={2.5} />
           </span>
-          <span className="text-[15px] font-bold tracking-tight">MyCheck</span>
+          <span className="text-lg font-bold tracking-tight">MyCheck</span>
         </Link>
         <div className="flex items-center gap-3">
           <span className="hidden text-sm text-[#77716b] sm:inline">Untuk operasional F&amp;B</span>
@@ -122,10 +122,10 @@ export function LandingPage() {
                   </span>
                   <div>
                     <p className="text-sm font-bold tracking-tight">MyCheck</p>
-                    <p className="text-[11px] text-[#8a847d]">Operasional harian</p>
+                    <p className="text-xs text-[#8a847d]">Operasional harian</p>
                   </div>
                 </div>
-                <span className="rounded-full border border-[#d9e4d9] bg-[#edf4ed] px-3 py-1 text-[10px] font-semibold text-[#52705a]">SHIFT BERJALAN</span>
+                <span className="rounded-full border border-[#d9e4d9] bg-[#edf4ed] px-3 py-1 text-2xs font-semibold text-[#52705a]">SHIFT BERJALAN</span>
               </div>
               <div className="space-y-4 p-5 sm:p-6">
                 <div className="flex items-end justify-between gap-4">
@@ -135,7 +135,7 @@ export function LandingPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-semibold tracking-tight">12<span className="text-sm font-normal text-[#89837b]">/18</span></p>
-                    <p className="text-[10px] uppercase tracking-wider text-[#89837b]">item selesai</p>
+                    <p className="text-2xs uppercase tracking-wider text-[#89837b]">item selesai</p>
                   </div>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-[#e9e6df]">
@@ -145,9 +145,9 @@ export function LandingPage() {
                   <div className="mb-3 flex items-center justify-between">
                     <div>
                       <p className="text-xs font-semibold">Persiapan area</p>
-                      <p className="mt-0.5 text-[10px] text-[#89837b]">4 dari 5 tugas selesai</p>
+                      <p className="mt-0.5 text-2xs text-[#89837b]">4 dari 5 tugas selesai</p>
                     </div>
-                    <span className="rounded-full bg-[#edf4ed] px-2.5 py-1 text-[10px] font-semibold text-[#52705a]">4/5</span>
+                    <span className="rounded-full bg-[#edf4ed] px-2.5 py-1 text-2xs font-semibold text-[#52705a]">4/5</span>
                   </div>
                   <div className="space-y-2.5">
                     {[
@@ -156,38 +156,38 @@ export function LandingPage() {
                       ['Periksa suhu chiller', true],
                       ['Siapkan area kasir', false],
                     ].map(([label, done]) => (
-                      <div key={String(label)} className="flex items-center gap-2.5 text-[11px] text-[#625c55]">
+                      <div key={String(label)} className="flex items-center gap-2.5 text-xs text-[#625c55]">
                         <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${done ? 'border-[#718b72] bg-[#718b72] text-white' : 'border-[#d7d3cc]'}`}>
                           {done ? <Check className="h-2.5 w-2.5" /> : null}
                         </span>
                         <span className={done ? 'text-[#89837b]' : ''}>{label}</span>
-                        {label === 'Periksa suhu chiller' && <span className="ml-auto text-[9px] text-[#89837b]">08.12 · Rina</span>}
+                        {label === 'Periksa suhu chiller' && <span className="ml-auto text-2xs text-[#89837b]">08.12 · Rina</span>}
                       </div>
                     ))}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-[#e8e5df] bg-white p-3.5">
-                    <p className="text-[10px] uppercase tracking-wide text-[#89837b]">Tim di shift</p>
+                    <p className="text-2xs uppercase tracking-wide text-[#89837b]">Tim di shift</p>
                     <div className="mt-2 flex items-center">
                       {['R', 'D', 'A'].map((initial, index) => (
-                        <span key={initial} className={`-ml-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-[9px] font-semibold text-white first:ml-0 ${index === 0 ? 'bg-[#8a6a56]' : index === 1 ? 'bg-[#617b6a]' : 'bg-[#a18259]'}`}>
+                        <span key={initial} className={`-ml-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white text-2xs font-semibold text-white first:ml-0 ${index === 0 ? 'bg-[#8a6a56]' : index === 1 ? 'bg-[#617b6a]' : 'bg-[#a18259]'}`}>
                           {initial}
                         </span>
                       ))}
-                      <span className="ml-2 text-[10px] text-[#706a63]">3 petugas</span>
+                      <span className="ml-2 text-2xs text-[#706a63]">3 petugas</span>
                     </div>
                   </div>
                   <div className="rounded-2xl border border-[#e8e5df] bg-white p-3.5">
-                    <p className="text-[10px] uppercase tracking-wide text-[#89837b]">Handover terakhir</p>
-                    <p className="mt-2 text-[11px] font-medium">Sudah dibaca <span className="ml-1 text-[#718b72]">✓</span></p>
-                    <p className="mt-0.5 text-[9px] text-[#89837b]">oleh Rina · 07.03</p>
+                    <p className="text-2xs uppercase tracking-wide text-[#89837b]">Handover terakhir</p>
+                    <p className="mt-2 text-xs font-medium">Sudah dibaca <span className="ml-1 text-[#718b72]">✓</span></p>
+                    <p className="mt-0.5 text-2xs text-[#89837b]">oleh Rina · 07.03</p>
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-between border-t border-[#e8e5df] bg-white px-5 py-3.5">
-                <span className="text-[10px] text-[#89837b]">Progress tersimpan otomatis</span>
-                <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-[#52705a]"><span className="h-1.5 w-1.5 rounded-full bg-[#718b72]" /> Semua tersinkron</span>
+                <span className="text-2xs text-[#89837b]">Progress tersimpan otomatis</span>
+                <span className="inline-flex items-center gap-1.5 text-2xs font-semibold text-[#52705a]"><span className="h-1.5 w-1.5 rounded-full bg-[#718b72]" /> Semua tersinkron</span>
               </div>
             </div>
           </div>
@@ -195,8 +195,8 @@ export function LandingPage() {
             <div className="flex items-center gap-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f5efe4] text-[#866e4f]"><ShieldCheck className="h-5 w-5" /></span>
               <div>
-                <p className="text-[11px] font-semibold">Setiap aksi tercatat</p>
-                <p className="text-[10px] text-[#89837b]">Nama · waktu · status</p>
+                <p className="text-xs font-semibold">Setiap aksi tercatat</p>
+                <p className="text-2xs text-[#89837b]">Nama · waktu · status</p>
               </div>
             </div>
           </div>

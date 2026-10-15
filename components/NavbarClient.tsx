@@ -117,7 +117,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
           <nav aria-label="Navigasi utama" className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
             {navGroups.map((group) => (
               <section key={group.title} aria-label={group.title}>
-                <h2 className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-light">
+                <h2 className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-ink-light">
                   {group.title}
                 </h2>
                 <div className="space-y-0.5">
@@ -154,7 +154,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-ink">{user.nama}</p>
-                  <p className="truncate text-[11px] text-ink-muted">
+                  <p className="truncate text-xs text-ink-muted">
                     {user.role === 'admin' ? 'Administrator' : 'Petugas'}
                   </p>
                 </div>
@@ -191,7 +191,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 prefetch={false}
                 aria-current={active ? 'page' : undefined}
                 onClick={() => setMoreOpen(false)}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[10px] font-medium leading-tight ${
+                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-2xs font-medium leading-tight ${
                   active ? 'text-ink' : 'text-ink-muted'
                 }`}
               >
@@ -203,7 +203,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
           {hasMoreItems && (
             <button
               onClick={() => setMoreOpen((v) => !v)}
-              className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[10px] font-medium leading-tight ${
+              className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-2xs font-medium leading-tight ${
                 moreOpen ? 'text-ink' : 'text-ink-muted'
               }`}
               aria-label="Menu lainnya"
@@ -244,7 +244,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
             <div className="px-3 pb-4">
               {mobileMoreGroups.map((group) => (
                 <section key={group.title} className="pb-4">
-                  <h2 className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-light">
+                  <h2 className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-ink-light">
                     {group.title}
                   </h2>
                   {group.items.map((item) => {
@@ -269,7 +269,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 </section>
               ))}
               <section>
-                <h2 className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-light">
+                <h2 className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-ink-light">
                   Akun
                 </h2>
                 <button

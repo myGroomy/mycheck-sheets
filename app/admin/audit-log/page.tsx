@@ -83,14 +83,14 @@ function AuditLogDetails({ row }: { row: AuditLogRow }) {
       )}
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase text-ink-muted">Sebelum</p>
-          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-[11px]">
+          <p className="mb-1 text-xs font-semibold uppercase text-ink-muted">Sebelum</p>
+          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-xs">
             {row.before !== null ? JSON.stringify(row.before, null, 2) : '—'}
           </pre>
         </div>
         <div>
-          <p className="mb-1 text-[11px] font-semibold uppercase text-ink-muted">Sesudah</p>
-          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-[11px]">
+          <p className="mb-1 text-xs font-semibold uppercase text-ink-muted">Sesudah</p>
+          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-xs">
             {row.after !== null ? JSON.stringify(row.after, null, 2) : '—'}
           </pre>
         </div>
@@ -265,7 +265,7 @@ export default function AuditLogPage() {
             ? `${row.objectType}${row.objectId ? `:${row.objectId.slice(-8)}` : ''}`
             : 'Objek tidak tersedia',
           status: (
-            <Badge variant="secondary" className="font-mono text-[10px]">
+            <Badge variant="secondary" className="font-mono text-2xs">
               #{row.seq}
             </Badge>
           ),
@@ -346,17 +346,17 @@ export default function AuditLogPage() {
                   <TableCell className="text-xs">
                     {row.actorName ?? '—'}
                     {row.actorUsername && (
-                      <span className="block font-mono text-[10px] text-ink-light">
+                      <span className="block font-mono text-2xs text-ink-light">
                         {row.actorUsername}
                       </span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-mono text-[10px]">
+                    <Badge variant="secondary" className="font-mono text-2xs">
                       {row.action}
                     </Badge>
                   </TableCell>
-                  <TableCell className="max-w-40 truncate font-mono text-[11px] text-ink-muted">
+                  <TableCell className="max-w-40 truncate font-mono text-xs text-ink-muted">
                     {row.objectType}
                     {row.objectId ? `:${row.objectId.slice(-8)}` : ''}
                   </TableCell>
@@ -387,18 +387,18 @@ export default function AuditLogPage() {
                       )}
                       <div className="grid gap-3 md:grid-cols-2">
                         <div>
-                          <p className="mb-1 text-[11px] font-semibold uppercase text-ink-muted">
+                          <p className="mb-1 text-xs font-semibold uppercase text-ink-muted">
                             Sebelum
                           </p>
-                          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-[11px]">
+                          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-xs">
                             {row.before !== null ? JSON.stringify(row.before, null, 2) : '—'}
                           </pre>
                         </div>
                         <div>
-                          <p className="mb-1 text-[11px] font-semibold uppercase text-ink-muted">
+                          <p className="mb-1 text-xs font-semibold uppercase text-ink-muted">
                             Sesudah
                           </p>
-                          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-[11px]">
+                          <pre className="max-h-64 overflow-auto rounded-lg border border-border bg-surface p-2 text-xs">
                             {row.after !== null ? JSON.stringify(row.after, null, 2) : '—'}
                           </pre>
                         </div>

@@ -352,7 +352,7 @@ function Meta({ label, value }: { label: string; value: string }) {
 }
 
 function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
-  return <div className="rounded-xl border border-border bg-surface p-4 text-center print:rounded-none print:border print:bg-white print:p-2"><p className="text-[11px] uppercase leading-tight tracking-wide text-ink-muted sm:text-xs">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-[11px] text-ink-muted sm:text-xs">{detail}</p></div>;
+  return <div className="rounded-xl border border-border bg-surface p-4 text-center print:rounded-none print:border print:bg-white print:p-2"><p className="text-xs uppercase leading-tight tracking-wide text-ink-muted sm:text-xs">{label}</p><p className="mt-2 text-2xl font-bold">{value}</p><p className="mt-1 text-xs text-ink-muted sm:text-xs">{detail}</p></div>;
 }
 
 function statusText(status: string) {
