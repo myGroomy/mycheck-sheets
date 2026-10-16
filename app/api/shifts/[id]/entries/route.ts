@@ -13,6 +13,7 @@ import {
   updateRow,
 } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
+import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import { entryId as deterministicEntryId } from '../../../../../lib/ids';
 import { isCanonicalEntry, resetDuplicateEntryRows } from '../../../../../lib/concurrency';
 import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
@@ -196,9 +197,11 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   let snapshot: Snapshot;
-  try {
-    snapshot = JSON.parse(String(instance['template_snapshot'] ?? '{}')) as Snapshot;
-  } catch {
+  // Snapshot bisa gzip+base64 (lihat lib/template-snapshot.ts); JSON.parse
+  // buta akan menolak format itu dan memblokir input checklist untuk shift lama.
+  // null = kolom kosong ATAU tidak terbaca (rusak). Keduanya tidak boleh lolos.
+  snapshot = readTemplateSnapshot(instance) ?? ({} as Snapshot);
+  if (!snapshot.shift) {
     return NextResponse.json({ error: 'Snapshot template tidak valid' }, { status: 500 });
   }
 

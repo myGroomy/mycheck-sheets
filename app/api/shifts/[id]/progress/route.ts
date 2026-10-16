@@ -5,6 +5,7 @@ import { getZonedParts, isPointActiveOn } from '../../../../../lib/shift/time';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
 import { filterRows, listMonthlyRows } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
+import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
 
 interface ProgressEntry {
@@ -53,9 +54,10 @@ withAuth(async (_req, ctx, _session) => {
   if (branchAccessError) return branchAccessError;
 
   let snapshot: Snapshot;
-  try {
-    snapshot = JSON.parse(String(instance['template_snapshot'] ?? '{}')) as Snapshot;
-  } catch {
+  // Snapshot bisa gzip+base64 (lihat lib/template-snapshot.ts).
+  // null = kolom kosong ATAU tidak terbaca (rusak) — keduanya tidak boleh lolos.
+  snapshot = readTemplateSnapshot(instance) ?? ({} as Snapshot);
+  if (!snapshot.shift) {
     return NextResponse.json({ error: 'Snapshot template tidak valid' }, { status: 500 });
   }
 

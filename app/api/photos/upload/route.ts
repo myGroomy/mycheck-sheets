@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { withAuth } from '../../../../lib/api-auth';
 import { resolveInstance } from '../../../../lib/instance-resolver';
+import { readTemplateSnapshot } from '../../../../lib/template-snapshot';
+import type { Snapshot } from '../../../../lib/db/snapshot';
 import { resolveCabang } from '../../../../lib/google/registry';
 import {
   ensureMonthlySheet,
@@ -147,12 +149,7 @@ withAuth(async (_req, ctx, _session) => {
     }
 
     if (ownerType === 'entry') {
-      let snapshot: { categories?: { points?: { point_ref: string }[] }[] } = {};
-      try {
-        snapshot = JSON.parse(asStr(resolved.instance['template_snapshot']));
-      } catch {
-        snapshot = {};
-      }
+      const snapshot = readTemplateSnapshot(resolved.instance) ?? ({} as Snapshot);
       const pointExists = (snapshot.categories ?? []).some((c) =>
         (c.points ?? []).some((p) => p.point_ref === ownerId)
       );

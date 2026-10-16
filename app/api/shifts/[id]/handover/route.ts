@@ -10,6 +10,7 @@ import {
   updateRow,
 } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
+import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 
 interface HandoverFieldSnapshot {
   id: string;
@@ -79,11 +80,9 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   let snapshot: { handover_fields?: HandoverFieldSnapshot[] };
-  try {
-    snapshot = JSON.parse(String(instance['template_snapshot'] ?? '{}'));
-  } catch {
-    snapshot = {};
-  }
+  // Snapshot bisa gzip+base64 (lihat lib/template-snapshot.ts). JSON.parse buta
+  // membuat field wajib hilang, jadi handover bisa disimpan tanpa field wajib.
+  snapshot = readTemplateSnapshot(instance) ?? ({} as { handover_fields?: HandoverFieldSnapshot[] });
   const values = body.values ?? {};
   const missingRequired: string[] = [];
   const invalidFields: string[] = [];

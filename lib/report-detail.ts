@@ -7,6 +7,7 @@ import { resolveCabang, getCabangList } from './google/registry';
 import { listAllUsers } from './google/registry-admin';
 import { filterRows, listMonthlyRows, asJson, asStr } from './store';
 import { tabMonthOf } from './instance-resolver';
+import { readTemplateSnapshot } from './template-snapshot';
 import type { Snapshot } from './db/snapshot';
 
 export interface ReportDetail {
@@ -203,12 +204,10 @@ export async function buildReportDetail(
       };
     });
 
-  let templateSnapshot: Snapshot | null = null;
-  try {
-    templateSnapshot = JSON.parse(asStr(shift['template_snapshot'])) as Snapshot;
-  } catch {
-    templateSnapshot = null;
-  }
+  // Snapshot bisa tersimpan sebagai JSON biasa ATAU gzip+base64 (lihat
+  // lib/template-snapshot.ts). JSON.parse buta mengembalikan null untuk yang
+  // gzip, dan null berarti `categories: []` -> checklist kosong di laporan.
+  const templateSnapshot = readTemplateSnapshot(shift);
 
   return {
     branch: {

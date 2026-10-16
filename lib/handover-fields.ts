@@ -10,6 +10,7 @@
 // konfigurasi handover.
 
 import { asStr } from './store';
+import { decodeTemplateSnapshot } from './template-snapshot';
 import { formatReportValue } from './shared/report-values';
 import type { Snapshot } from './db/snapshot';
 
@@ -25,14 +26,8 @@ export interface HandoverFieldView {
 }
 
 /** Parse snapshot template; null bila rusak (jangan gagalkan seluruh respons). */
-export function parseHandoverSnapshot(raw: unknown): Snapshot | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(asStr(raw)) as Snapshot;
-    return parsed && typeof parsed === 'object' ? parsed : null;
-  } catch {
-    return null;
-  }
+export function parseHandoverSnapshot(raw: unknown, encoding?: unknown): Snapshot | null {
+  return decodeTemplateSnapshot(raw, encoding);
 }
 
 /** Parse kolom `values`; objek kosong bila rusak. */

@@ -13,6 +13,8 @@ import {
   updateRow,
 } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
+import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
+import type { Snapshot } from '../../../../../lib/db/snapshot';
 import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
 
 interface CloseBody {
@@ -82,11 +84,10 @@ withAuth(async (_req, ctx, _session) => {
       is_required?: boolean;
     }>;
   };
-  try {
-    snapshot = JSON.parse(String(instance['template_snapshot'] ?? '{}'));
-  } catch {
-    snapshot = {};
-  }
+  // Snapshot bisa gzip+base64 (lihat lib/template-snapshot.ts); JSON.parse buta
+  // akan menghasilkan `{}` sehingga requiredPoints kosong dan shift bisa ditutup
+  // tanpa memvalidasi item wajib sama sekali.
+  snapshot = readTemplateSnapshot(instance) ?? ({} as Snapshot);
 
   const requiredPoints = (snapshot.categories ?? []).flatMap((category) => category.points ?? []);
   const requiredIds = requiredPoints.filter((point) => point.is_required).map((point) => point.point_ref);

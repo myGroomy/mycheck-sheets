@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { PasswordInput } from '@/components/ui/password-input';
 import { ConfirmCloseDialog } from '@/components/admin/confirm-close-dialog';
+import { ShareReportButton } from '@/components/report/share-report-button';
 import { uploadPhotoWithProgress } from '@/lib/upload-photo';
 
 interface HandoverField {
@@ -281,11 +282,20 @@ export function ShiftCloseDialog({
 
               <div className="mt-6 flex flex-col gap-2">
                 {reportId && (
-                  <Button asChild>
-                    <Link href={`/report/${encodeURIComponent(reportId)}`}>
-                      Lihat laporan
-                    </Link>
-                  </Button>
+                  <>
+                    <Button asChild>
+                      <Link href={`/report/${encodeURIComponent(reportId)}`}>
+                        Lihat laporan
+                      </Link>
+                    </Button>
+                    {/* Link publik hanya untuk admin; petugas mendapat link
+                        aplikasi. Lihat catatan role di ShareReportButton. */}
+                    <ShareReportButton
+                      reportId={reportId}
+                      reportNumber={reportNumber ?? ''}
+                      variant="outline"
+                    />
+                  </>
                 )}
                 <Button asChild variant="outline">
                   <Link href="/">Kembali ke beranda</Link>
