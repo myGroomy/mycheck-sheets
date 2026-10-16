@@ -58,13 +58,7 @@ export default function AdminChecklistHistoryPage() {
   }, [load]);
 
   return (
-    <main className="mx-auto max-w-4xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Riwayat</p>
-        <h1 className="mt-1 text-2xl font-bold">Eksekusi Checklist</h1>
-        <p className="mt-1 text-sm text-ink-muted">Laporan shift dari cabang yang dapat Anda akses.</p>
-      </header>
-
+    <div className="space-y-5">
       <div className="flex items-center gap-3">
         <label className="space-y-1 text-sm font-medium flex-1 sm:max-w-xs">
           Cabang
@@ -141,6 +135,6 @@ export default function AdminChecklistHistoryPage() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }

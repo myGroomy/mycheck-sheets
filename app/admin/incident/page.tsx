@@ -10,6 +10,12 @@ import { Link2Off, MessageSquarePlus, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -69,6 +75,10 @@ export default function IncidentAdminPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  // Pengaturan jendela tautan shift incident (diambil dari /api/admin/settings)
+  const [linkWindowHours, setLinkWindowHours] = useState<number | null>(null);
+  const [linkWindowSaving, setLinkWindowSaving] = useState(false);
+
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'semua' | 'open' | 'selesai'>('semua');
   const [categoryFilter, setCategoryFilter] = useState('semua');
@@ -85,14 +95,39 @@ export default function IncidentAdminPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch<{ incidents: IncidentRow[] }>('/api/incidents');
-      setIncidents(res.incidents);
+      const [incidentRes, settingsRes] = await Promise.all([
+        apiFetch<{ incidents: IncidentRow[] }>('/api/incidents'),
+        apiFetch<{ settings: { key: string; value: string | number | boolean }[] }>(
+          '/api/admin/settings'
+        ),
+      ]);
+      setIncidents(incidentRes.incidents);
+      const linkWindow = settingsRes.settings.find((s) => s.key === 'incident_link_window_hours');
+      setLinkWindowHours(linkWindow ? Number(linkWindow.value) : null);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal memuat incident');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const saveLinkWindow = async () => {
+    if (linkWindowHours === null) return;
+    setLinkWindowSaving(true);
+    try {
+      await apiFetch('/api/admin/settings', {
+        method: 'PUT',
+        json: {
+          settings: [{ key: 'incident_link_window_hours', value: String(linkWindowHours) }],
+        },
+      });
+      toast.success('Jendela tautan shift disimpan');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan jendela tautan');
+    } finally {
+      setLinkWindowSaving(false);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -181,6 +216,40 @@ export default function IncidentAdminPage() {
       <p className="text-xs text-ink-muted">
         {openCount} masih open dari {filtered.length} tampil
       </p>
+
+      {/* Pengaturan jendela tautan shift (ADM-IN-05) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Pengaturan Tautan Shift Incident</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="link-window-hours">
+              Jendela tautan setelah shift berakhir (jam)
+            </Label>
+            <Input
+              id="link-window-hours"
+              type="number"
+              value={linkWindowHours ?? ''}
+              onChange={(e) => setLinkWindowHours(Number(e.target.value) || null)}
+              min="0"
+              disabled={loading || linkWindowSaving}
+              className="w-32"
+            />
+            <p className="text-xs text-ink-light">
+              Incident yang dilaporkan lebih dari jendela ini setelah shift
+              berakhir akan dianggap &quot;Di luar shift&quot; dan tidak dapat
+              ditautkan ke shift tersebut.
+            </p>
+          </div>
+          <Button
+            onClick={saveLinkWindow}
+            disabled={linkWindowSaving || linkWindowHours === null}
+          >
+            {linkWindowSaving ? 'Menyimpan...' : 'Simpan Jendela'}
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Filter (ADM-IN-01) */}
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">

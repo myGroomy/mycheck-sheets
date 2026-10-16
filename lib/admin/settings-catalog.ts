@@ -51,6 +51,13 @@ export const SETTINGS_CATALOG: SettingDefinition[] = [
     description: 'Izinkan point wajib di-skip bila ada alasan.',
   },
   {
+    key: 'incident_link_window_hours',
+    value: '24',
+    valueType: 'int',
+    description:
+      'Jendela waktu (jam) setelah shift berakhir di dalamnya incident masih boleh ditautkan ke shift tersebut. Melebihi jendela ini, incident dianggap di luar shift.',
+  },
+  {
     key: 'app_notice',
     value: '',
     valueType: 'text',

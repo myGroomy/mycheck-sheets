@@ -7,5 +7,7 @@
 import { HandoverHistory } from '@/components/handover/handover-history';
 
 export default function AdminHandoverHistoryPage() {
-  return <HandoverHistory showBranchFilter />;
+  // Layout /admin/handover sudah punya header "Handover" sendiri,
+  // jadi komponen cukup merender daftar + filter cabang.
+  return <HandoverHistory showBranchFilter showHeader={false} />;
 }

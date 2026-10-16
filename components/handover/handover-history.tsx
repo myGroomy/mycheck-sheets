@@ -82,7 +82,7 @@ function errorMessage(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-export function HandoverHistory({ showBranchFilter = true }: { showBranchFilter?: boolean }) {
+export function HandoverHistory({ showBranchFilter = true, showHeader = true }: { showBranchFilter?: boolean; showHeader?: boolean }) {
   const [entries, setEntries] = useState<HandoverHistoryEntry[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [branchId, setBranchId] = useState(ALL_BRANCHES);
@@ -172,13 +172,19 @@ export function HandoverHistory({ showBranchFilter = true }: { showBranchFilter?
   return (
     <section aria-label="Riwayat handover" className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold">Handover</h1>
-          <p className="text-xs text-ink-muted">
-            Catatan serah terima dari shift yang sudah tutup.
-            {unreadCount > 0 && ` ${unreadCount} belum Anda baca.`}
-          </p>
-        </div>
+        {showHeader ? (
+          <div>
+            <h1 className="text-xl font-bold">Handover</h1>
+            <p className="text-xs text-ink-muted">
+              Catatan serah terima dari shift yang sudah tutup.
+              {unreadCount > 0 && ` ${unreadCount} belum Anda baca.`}
+            </p>
+          </div>
+        ) : (
+          unreadCount > 0 && (
+            <p className="text-xs text-ink-muted">{unreadCount} belum Anda baca.</p>
+          )
+        )}
         <div className="flex items-end gap-2">
           {showBranchFilter && branches.length > 1 && (
             <div className="min-w-[180px] space-y-1">

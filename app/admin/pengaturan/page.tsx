@@ -53,10 +53,6 @@ const GROUPS: { title: string; fields: FieldDef[] }[] = [
     title: 'Waktu & Toleransi',
     fields: [
       { key: 'tolerance_default_minutes', label: 'Toleransi baku item (menit)' },
-      {
-        key: 'incident_link_window_hours',
-        label: 'Jendela tautan incident setelah shift (jam)',
-      },
     ],
   },
   {
