@@ -1,21 +1,12 @@
 # Rencana v2: Photo Evidence di Google Drive via Google Apps Script
 
-> **Status dokumen:** RENCANA v2, **sebagian sudah diimplementasikan** (belum di-commit). Menggantikan [`PHOTO-EVIDENCE-DRIVE.md`](http://PHOTO-EVIDENCE-DRIVE.md) v1. Perubahan utama dirangkum diS15.
+> **Status dokumen:** RENCANA v2. Belum ada implementasi. Menggantikan [`PHOTO-EVIDENCE-DRIVE.md`](http://PHOTO-EVIDENCE-DRIVE.md) v1. Perubahan utama dirangkum di §15.
 >
 > Legenda status:
 >
 > - **\[SAH\]**: fakta terverifikasi di source code atau API Google saat dokumen ditulis
 > - **\[RENCANA\]**: yang hendak dikerjakan
 > - **\[BELUM DIUJI\]**: belum dijalankan, jangan dianggap lulus
->
-> **Status implementasi (per 16 Okt 2026):**
->
-> - Fase A–H sudah ditulis di working tree. Uji otomatis hijau: `npm run test` 180/180, `npm run lint` bersih untuk berkas yang disentuh, `npm run typecheck` bersih, `npm run build` OK.
-> - **Belum ada satu pun uji runtime terhadap Google Drive, GAS, Registry, atau spreadsheet sungguhan.** Semua uji memakai fake Sheets in-memory.
-> - **Fase 0 terblokir:** service account tidak bisa menghapus permission `anyone` (`permissions.delete` → "The authenticated user cannot delete the permission"). Jalur resmi lewat `revokePublicWrite` GAS. Tooling siap (`scripts/revoke-public-write.ts`), tetapi menunggu deploy GAS.
-> - **Fase A terblokir:** GAS harus dideploy manual oleh pemilik akun; env `MYCHECK_GAS_URL`, `MYCHECK_GAS_UPLOAD_KEY`, `MYCHECK_GAS_ADMIN_KEY` belum diset.
-> - **Fase D belum dijalankan:** `Branch_Folder_ID`/`Evidence_Folder_ID` untuk `CBGBDG01` masih kosong, jadi fallback `ensureBranchPhotoFolder` masih dipakai (§7.4).
-> - ChecklistS14 masih `[BELUM DIUJI]`.
 
 ---
 
@@ -26,20 +17,20 @@ Upload foto evidence saat ini **tidak pernah berhasil** karena service account t
 Versi ini juga menutup celah yang ditemukan pada v1: penomoran berkas yang bisa bentrok, pemeriksaan folder yang salah untuk kedalaman dua tingkat, urutan pembuatan cabang yang tidak idempotent, kunci API yang terlalu kuat, dan batas 5 foto yang dihitung lintas shift.
 
 
-| #   | Keputusan                                                                                                                       |
-| --- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Fase 0 (wajib pertama):** cabut izin `anyoneWithLink: writer` pada root dan folder cabang.                                    |
-| 2   | Pembuatan cabang menghasilkan satu **folder cabang** berisi spreadsheet cabang dan folder `Evidence/`.                          |
-| 3   | GAS membuat struktur cabang dalam satu panggilan, dan operasi ini **idempotent** (aman diulang).                                |
-| 4   | Foto **boleh diakses publik** lewat `Anyone with the link: viewer`, dibatasi **per berkas**, tidak pernah pada folder.          |
-| 5   | GAS dideploy sebagai **Execute as:** [`<n`](mailto:taufikalwan47@gmail.com), **Access: Anyone**, dengan **dua kunci terpisah**. |
-| 6   | Foto di laporan ditampilkan sebagai **tombol** menuju link Drive, bukan gambar inline.                                          |
-| 7   | Format berkas: WebP, maks 1600 px, target ≤150 KB.                                                                              |
-| 8   | Nama berkas: `[KODE]-[tgl]-[slot]-[user]-[urutan].webp`. Urutan diberikan oleh GAS di bawah lock.                               |
-| 9   | `[slot]` diturunkan dari `start_time` shift definition, bukan dari nama shift.                                                  |
-| 10  | Kolom Registry **baru** `Branch_Folder_ID` dan `Evidence_Folder_ID`. `Folder_Drive_ID` tidak lagi ditulis.                      |
-| 11  | Batas foto per pertanyaan dihitung **per shift**, hanya untuk status `uploaded`.                                                |
-| 12  | Urutan pembuatan cabang: **Registry dulu (nonaktif), GAS, lalu Registry aktif**.                                                |
+| #   | Keputusan                                                                                                                    |
+| --- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Fase 0 (wajib pertama):** cabut izin `anyoneWithLink: writer` pada root dan folder cabang.                                 |
+| 2   | Pembuatan cabang menghasilkan satu **folder cabang** berisi spreadsheet cabang dan folder `Evidence/`.                       |
+| 3   | GAS membuat struktur cabang dalam satu panggilan, dan operasi ini **idempotent** (aman diulang).                             |
+| 4   | Foto **boleh diakses publik** lewat `Anyone with the link: viewer`, dibatasi **per berkas**, tidak pernah pada folder.       |
+| 5   | GAS dideploy sebagai **Execute as:** [`<mail_user>`](mailto:<mail_user>), **Access: Anyone**, dengan **dua kunci terpisah**. |
+| 6   | Foto di laporan ditampilkan sebagai **tombol** menuju link Drive, bukan gambar inline.                                       |
+| 7   | Format berkas: WebP, maks 1600 px, target ≤150 KB.                                                                           |
+| 8   | Nama berkas: `[KODE]-[tgl]-[slot]-[user]-[urutan].webp`. Urutan diberikan oleh GAS di bawah lock.                            |
+| 9   | `[slot]` diturunkan dari `start_time` shift definition, bukan dari nama shift.                                               |
+| 10  | Kolom Registry **baru** `Branch_Folder_ID` dan `Evidence_Folder_ID`. `Folder_Drive_ID` tidak lagi ditulis.                   |
+| 11  | Batas foto per pertanyaan dihitung **per shift**, hanya untuk status `uploaded`.                                             |
+| 12  | Urutan pembuatan cabang: **Registry dulu (nonaktif), GAS, lalu Registry aktif**.                                             |
 
 
 ---
@@ -224,9 +215,6 @@ Action yang tersedia:
 | `ping`                  | keduanya             | Health check dan verifikasi kunci                 |
 | `uploadPhoto`           | `KEY_UPLOAD`         | Simpan satu foto ke folder evidence               |
 | `createBranchStructure` | `KEY_ADMIN`          | Buat atau kembalikan struktur cabang (idempotent) |
-| `revokePublicWrite`     | `KEY_ADMIN`          | Cabut izin `anyone` pada root/folder cabang (Fase 0) |
-
-Service account tidak bisa melakukan Fase 0 sendiri: `permissions.delete` ditolak dengan "The authenticated user cannot delete the permission" meskipun `capabilities.canShare = true`, karena izin `anyone` diwarisi dan SA bukan owner root. Hanya GAS (berjalan sebagai owner) yang bisa mencabut.
 
 
 #### Action `ping`
@@ -252,7 +240,7 @@ Service account tidak bisa melakukan Fase 0 sendiri: `permissions.delete` ditola
 
 ```
 
-`reused: true` berarti struktur sudah ada dari percobaan sebelumnya dan dikembalikan apa adanya (lihatS5).
+`reused: true` berarti struktur sudah ada dari percobaan sebelumnya dan dikembalikan apa adanya (lihat §5).
 
 Langkah di dalam GAS:
 
@@ -281,26 +269,7 @@ Langkah 3 dan 5 membuat pemanggilan ulang aman. Bila langkah sebelumnya gagal di
 
 ```
 
-`baseName` tidak memuat urutan. GAS yang menentukan `-N` (lihatS3.3).
-
-#### Action `revokePublicWrite`
-
-```jsonc
-// request — tanpa folderIds: seluruh ALLOWED_ROOT_IDS diproses
-{ "action": "revokePublicWrite", "x-api-key": "<KEY_ADMIN>",
-  "payload": { "folderIds": ["1fBD-...", "1Bx6l_..."] } }
-
-// response
-{ "success": true,
-  "data": { "results": [ { "folderId": "...", "name": "CHECKLIST-APP",
-                           "revoked": 1, "remainingPublic": 0, "failed": [] } ],
-            "totalTargets": 2, "totalRemainingPublic": 0 } }
-
-```
-
-Hanya permission bertipe `anyone` yang dihapus; permission `user`/`domain` tidak pernah disentuh sehingga akses service account dan owner tetap utuh. Folder di luar subtree `ALLOWED_ROOT_IDS` ditolak.
-
-CLI: `npm run revoke:public-write` (`scripts/revoke-public-write.ts`), opsi `--dry-run` dan `--folder <ID>`. Script membaca ulang permission via service account setelah memanggil GAS, sehingga hasil verifikasi tidak bergantung pada laporan GAS.
+`baseName` tidak memuat urutan. GAS yang menentukan `-N` (lihat §3.3).
 
 ### 3.2 Autentikasi dan pembatasan laju
 
@@ -465,11 +434,11 @@ Dikerjakan manual, dengan cadangan.
 | Langkah | Aksi                                                                                                                             |
 | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 0       | Cadangkan Registry (export CSV). Catat ID folder `MyCheck - CBGBDG01` dan `Folder_Drive_ID` saat ini.                            |
-| 1       | Verifikasi folder `MyCheck - CBGBDG01` memang folder foto, dengan 0 berkas (sesuaiS1.2). Bila ada berkas, berhenti dan periksa. |
+| 1       | Verifikasi folder `MyCheck - CBGBDG01` memang folder foto, dengan 0 berkas (sesuai §1.2). Bila ada berkas, berhenti dan periksa. |
 | 2       | Buat subfolder `Evidence` di dalam `MyCheck - CBGBDG01`.                                                                         |
 | 3       | Pindahkan spreadsheet `CBGBDG01 - Bandung` ke dalam `MyCheck - CBGBDG01`.                                                        |
 | 4       | Isi `Branch_Folder_ID` = ID `MyCheck - CBGBDG01`, `Evidence_Folder_ID` = ID folder `Evidence`.                                   |
-| 5       | Set properti `mycheck_branch = CBGBDG01` pada folder cabang dan spreadsheet (agar idempotensiS3.1 berlaku).                     |
+| 5       | Set properti `mycheck_branch = CBGBDG01` pada folder cabang dan spreadsheet (agar idempotensi §3.1 berlaku).                     |
 | 6       | Uji: spreadsheet masih terbaca service account; `createBranchStructure` dengan `CBGBDG01` mengembalikan `reused = true`.         |
 | 7       | Cabut izin `anyoneWithLink: writer` yang tersisa (lihat Fase 0 bila belum dilakukan).                                            |
 
@@ -495,7 +464,7 @@ buildPhotoBaseName({ branchCode, shiftDate, startTime, username })
 | ---------- | ----------------------------- | --------------------------------------------------------------------- |
 | `[KODE]`   | REGISTRY `Kode`               | Huruf besar, buang karakter di luar `[A-Z0-9-]`, fallback `UMUM`      |
 | `[tgl]`    | `ShiftInstances.shift_date`   | `DDMMYYYY`. Bila kosong, tanggal hari ini di zona waktu cabang        |
-| `[slot]`   | `ShiftDefinitions.start_time` | LihatS7.2                                                            |
+| `[slot]`   | `ShiftDefinitions.start_time` | Lihat §7.2                                                            |
 | `[user]`   | session `username`            | Huruf kecil, buang karakter di luar `[a-z0-9._-]`, fallback `unknown` |
 | `[urutan]` | GAS, di bawah lock (§3.3)     | Mulai 1, per `baseName`                                               |
 
@@ -528,8 +497,6 @@ Kesesuaian dengan data \[SAH\]: shift aktif `Shift Pagi` (07:00) dan `Shift Sian
 | `lib/google/gas-client.ts`       | `callGas(action, payload, keyKind)`: POST JSON, `Content-Type: text/plain`, timeout eksplisit |
 | `lib/google/photo-upload-gas.ts` | Bungkus `uploadPhoto`, pemetaan galat eksplisit (§7.5)                                        |
 | `lib/google/branch-gas.ts`       | Bungkus `createBranchStructure`                                                               |
-| `lib/google/drive-permission-gas.ts` | Bungkus `revokePublicWrite` + `isFullyRevoked` (fail bila ada `remainingPublic`)          |
-| `scripts/revoke-public-write.ts` | CLI Fase 0: snapshot sebelum → GAS → verifikasi ulang lewat service account                   |
 
 
 Environment baru:
@@ -541,7 +508,7 @@ MYCHECK_GAS_ADMIN_KEY      # KEY_ADMIN
 
 ```
 
-> `STOKIS_API_KEY` tidak boleh disentuh. Variabel itu adalah signing key session (`lib/session.ts:9`), dan mengubahnya membatalkan seluruh sesi yang berjalan.
+> `SESSION_SECRET` tidak boleh disentuh. Variabel itu adalah signing key session (`lib/session.ts:9`), dan mengubahnya membatalkan seluruh sesi yang berjalan.
 
 Timeout: `callGas` memakai batas eksplisit (misalnya 25 detik). Batas fungsi serverless di Vercel harus lebih besar dari timeout ini.
 
@@ -726,10 +693,6 @@ Tidak ada item di bawah yang sudah dijalankan.
 
 - \[ \] Izin `anyoneWithLink: writer` pada root dan folder cabang sudah dicabut
 - \[ \] Akses tulis publik tidak lagi bisa dilakukan dari tautan (uji dengan sesi tanpa login)
-- \[ \] `npm run revoke:public-write -- --dry-run` melaporkan semua target tanpa memanggil GAS
-- \[ \] `revokePublicWrite` dengan `KEY_UPLOAD` ditolak (pemisahan kunci)
-- \[ \] `revokePublicWrite` hanya menghapus permission `anyone`; permission service account dan owner masih ada setelah dijalankan
-- \[ \] `revokePublicWrite` menolak folder di luar subtree `ALLOWED_ROOT_IDS`
 
 **A. GAS**
 
@@ -800,22 +763,22 @@ Tidak ada item di bawah yang sudah dijalankan.
 
 | Bagian v1 | Perubahan di v2                                                                                                                   |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------- |
-|S0        | Ditambah keputusan 1 (Fase 0), 10 (kolom baru), 11 (batas per shift), 12 (registry-first). Keputusan 5 dipecah menjadi dua kunci. |
-|S1.5      | Ditambah catatan ketidakkonsistenan `Folder_Drive_ID`.                                                                            |
-|S1.10     | Baru: batas 5 foto yang dihitung lintas shift.                                                                                    |
-|S3.1      | Ditambah action `ping`. `createBranchStructure` dibuat idempotent. `uploadPhoto` menerima `baseName`.                             |
-|S3.2      | Dua kunci terpisah dan batas laju.                                                                                                |
-|S3.3      | Penomoran `-N` dipindah ke GAS di bawah `LockService`. Ditambah `LockService` dan kemungkinan 503.                                |
-|S3.4      | Pemeriksaan leluhur rekursif (v1 hanya induk langsung, sehingga menolak `Evidence`).                                              |
-|S3.5      | Hardening disesuaikan dengan dua kunci dan batas laju.                                                                            |
-|S3.7      | Ditambah langkah versi deployment dan uji `ping`.                                                                                 |
-|S4        | `Folder_Drive_ID` tidak lagi ditulis, kolom baru di akhir.                                                                        |
-|S5        | Urutan registry-first dengan tabel kegagalan. Pemanggilan ulang aman.                                                             |
-|S6        | Ditambah verifikasi folder kosong, tanda `mycheck_branch`, dan uji `reused`.                                                      |
-|S7.1      | Nama berkas tanpa `-urutan` di sisi Next.js.                                                                                      |
-|S7.4      | Batas foto per shift. Urutan penulisan: upload dulu, baris `Photos` kemudian. Kolom `sha256`.                                     |
-|S7.5      | Galat 503 untuk sibuk, dan pemetaan 401/403 dari GAS.                                                                             |
-|S12       | Ditambah kunci bocor, konkurensi lintas script, dan titik gagal baris Photos.                                                     |
-|S13       | Ditambah rekonsiliasi, perbaikan audit log, dan resolver shift sebagai dokumen terpisah.                                          |
-|S14       | Ditambah uji regresi induk-langsung, pemisahan kunci, batas per shift, dan idempotensi.                                           |
-| Teks      | Typo dan kalimat rusak diS3.3,S4, danS7.2 diperbaiki.                                                                          |
+| §0        | Ditambah keputusan 1 (Fase 0), 10 (kolom baru), 11 (batas per shift), 12 (registry-first). Keputusan 5 dipecah menjadi dua kunci. |
+| §1.5      | Ditambah catatan ketidakkonsistenan `Folder_Drive_ID`.                                                                            |
+| §1.10     | Baru: batas 5 foto yang dihitung lintas shift.                                                                                    |
+| §3.1      | Ditambah action `ping`. `createBranchStructure` dibuat idempotent. `uploadPhoto` menerima `baseName`.                             |
+| §3.2      | Dua kunci terpisah dan batas laju.                                                                                                |
+| §3.3      | Penomoran `-N` dipindah ke GAS di bawah `LockService`. Ditambah `LockService` dan kemungkinan 503.                                |
+| §3.4      | Pemeriksaan leluhur rekursif (v1 hanya induk langsung, sehingga menolak `Evidence`).                                              |
+| §3.5      | Hardening disesuaikan dengan dua kunci dan batas laju.                                                                            |
+| §3.7      | Ditambah langkah versi deployment dan uji `ping`.                                                                                 |
+| §4        | `Folder_Drive_ID` tidak lagi ditulis, kolom baru di akhir.                                                                        |
+| §5        | Urutan registry-first dengan tabel kegagalan. Pemanggilan ulang aman.                                                             |
+| §6        | Ditambah verifikasi folder kosong, tanda `mycheck_branch`, dan uji `reused`.                                                      |
+| §7.1      | Nama berkas tanpa `-urutan` di sisi Next.js.                                                                                      |
+| §7.4      | Batas foto per shift. Urutan penulisan: upload dulu, baris `Photos` kemudian. Kolom `sha256`.                                     |
+| §7.5      | Galat 503 untuk sibuk, dan pemetaan 401/403 dari GAS.                                                                             |
+| §12       | Ditambah kunci bocor, konkurensi lintas script, dan titik gagal baris Photos.                                                     |
+| §13       | Ditambah rekonsiliasi, perbaikan audit log, dan resolver shift sebagai dokumen terpisah.                                          |
+| §14       | Ditambah uji regresi induk-langsung, pemisahan kunci, batas per shift, dan idempotensi.                                           |
+| Teks      | Typo dan kalimat rusak di §3.3, §4, dan §7.2 diperbaiki.                                                                          |

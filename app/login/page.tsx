@@ -1,16 +1,16 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AlertCircle, ArrowLeft, Lock, Timer } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { QuantumLoaderMini } from '@/components/ui/QuantumLoader';
-import { PinInput } from '@/components/ui/pin-input';
 
 // Kurva expo-out yang sama dengan halaman login STOKIS.
 const EASE_EXPO = [0.16, 1, 0.3, 1] as [number, number, number, number];
+const PIN_LENGTH = 6;
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -26,7 +26,6 @@ function LoginForm() {
 
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
-  const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'wrong_pin' | 'user_not_found' | 'account_inactive' | 'network' | 'lockout' | null>(null);
   const [loading, setLoading] = useState(false);
@@ -35,6 +34,15 @@ function LoginForm() {
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
   const lockoutTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Fokus ke username saat loading selesai (pola STOKIS).
+  useEffect(() => {
+    if (!loading) {
+      const el = document.getElementById('login-username');
+      el?.focus();
+    }
+  }, [loading]);
 
   // Lockout countdown timer
   useEffect(() => {
@@ -63,13 +71,15 @@ function LoginForm() {
     window.setTimeout(() => setShake(false), 500);
   }, []);
 
+  const canSubmit = username.trim().length > 0 && pin.length === PIN_LENGTH;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim()) {
       fail('Username wajib diisi');
       return;
     }
-    if (pin.length !== 6) {
+    if (pin.length !== PIN_LENGTH) {
       fail('PIN harus 6 digit angka');
       return;
     }
@@ -113,8 +123,6 @@ function LoginForm() {
 
   return (
     <motion.form
-      key={shake ? 'shake' : 'idle'}
-      ref={formRef}
       onSubmit={handleSubmit}
       initial={{ opacity: 0, x: -8 }}
       animate={shake ? { opacity: 1, x: [-8, 8, -6, 6, -3, 3, 0] } : { opacity: 1, x: 0 }}
@@ -155,7 +163,7 @@ function LoginForm() {
           Username
         </label>
         <input
-          id="username"
+          id="login-username"
           type="text"
           value={username}
           onChange={(e) => setUsername((e.target as HTMLInputElement).value)}
@@ -173,23 +181,77 @@ function LoginForm() {
         <label htmlFor="pin" className="block text-xs font-medium text-ink-muted mb-2">
           PIN (6 Digit) <span className="text-red-500">*</span>
         </label>
-        {/* 6 kotak, digit disamarkan, dan auto-submit saat lengkap. requestSubmit
-            memakai handler onSubmit form yang sama, sehingga validasi dan lockout
-            tetap lewat jalur yang sama persis seperti tombol Masuk. */}
-        <PinInput
-          id="pin"
-          value={pin}
-          onChange={setPin}
-          onComplete={() => formRef.current?.requestSubmit()}
-        />
+        {/* 6 kotak input terpisah (metode STOKIS): tanpa auto-submit,
+            pengguna harus menekan tombol "Masuk" secara sengaja. */}
+        <div className="flex items-center justify-center gap-2">
+          {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+            <input
+              key={i}
+              id={`login-pin-${i}`}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={1}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck="false"
+              disabled={loading}
+              value={pin[i] ?? ''}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 1);
+                const next = pin.slice(0, i) + val + pin.slice(i + 1);
+                setPin(next);
+                if (val && i < PIN_LENGTH - 1) {
+                  pinRefs.current[i + 1]?.focus();
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Backspace') {
+                  if (pin[i]) {
+                    const next = pin.slice(0, i) + '' + pin.slice(i + 1);
+                    setPin(next);
+                  } else if (i > 0) {
+                    pinRefs.current[i - 1]?.focus();
+                  }
+                } else if (e.key === 'ArrowLeft' && i > 0) {
+                  pinRefs.current[i - 1]?.focus();
+                } else if (e.key === 'ArrowRight' && i < PIN_LENGTH - 1) {
+                  pinRefs.current[i + 1]?.focus();
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, PIN_LENGTH);
+                if (pasted) {
+                  setPin(pasted);
+                  pinRefs.current[Math.min(pasted.length, PIN_LENGTH - 1)]?.focus();
+                }
+              }}
+              ref={(el) => {
+                pinRefs.current[i] = el;
+              }}
+              aria-invalid={Boolean(error)}
+              className="w-12 h-12 rounded-lg border border-border bg-canvas text-center text-xl font-mono tabular-nums text-ink focus:border-ink focus:outline-none disabled:opacity-50"
+            />
+          ))}
+          <p className="text-[10px] text-ink-muted mt-2 text-center">
+            {pin.length}/{PIN_LENGTH} digit
+          </p>
+          {error ? (
+            <p id="login-error" role="alert" className="text-xs text-red-600 text-center mt-2">
+              {error}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <motion.button
         type="submit"
-        disabled={loading}
-        whileHover={loading ? undefined : { scale: 1.01 }}
-        whileTap={loading ? undefined : { scale: 0.98 }}
-        className="w-full h-12 rounded-lg bg-ink text-canvas font-semibold text-sm hover:bg-ink/90 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
+        disabled={loading || !canSubmit}
+        whileHover={loading || !canSubmit ? undefined : { scale: 1.01 }}
+        whileTap={loading || !canSubmit ? undefined : { scale: 0.98 }}
+        className={`w-full h-12 rounded-lg bg-ink text-canvas font-semibold text-sm hover:bg-ink/90 transition-colors flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70 ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {loading ? (
           <>
@@ -197,7 +259,9 @@ function LoginForm() {
             Memproses...
           </>
         ) : (
-          'Masuk'
+          <>
+            <ArrowLeft className="h-4 w-4" /> Masuk
+          </>
         )}
       </motion.button>
     </motion.form>
@@ -263,15 +327,7 @@ export default function LoginPage() {
         {/* Jarak 24px header→form memakai mt-6 di sini (bukan mb-6 pada
             header) agar ikut terhitung dalam tinggi block yang di-center. */}
         <div className="mt-6">
-          <Suspense
-            fallback={
-              <div className="flex justify-center py-6">
-                <QuantumLoaderMini className="text-ink-muted" />
-              </div>
-            }
-          >
-            <LoginForm />
-          </Suspense>
+          <LoginForm />
         </div>
       </div>
 

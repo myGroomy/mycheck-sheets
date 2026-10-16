@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 import { getEnv } from '@/lib/env';
 
-const SESSION_SECRET = getEnv().STOKIS_API_KEY;
+const SESSION_SECRET = getEnv().SESSION_SECRET;
 const COOKIE_NAME = 'mycheck_session';
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 

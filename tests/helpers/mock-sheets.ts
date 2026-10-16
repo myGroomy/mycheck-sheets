@@ -27,7 +27,7 @@ import {
 
 // Env minimal yang dibaca registry sebelum fake client dipakai.
 process.env.REGISTRY_SPREADSHEET_ID ??= 'registry-uji';
-process.env.STOKIS_API_KEY ??= 'kunci-uji-yang-cukup-panjang-untuk-rotation';
+process.env.SESSION_SECRET ??= 'kunci-uji-yang-cukup-panjang-untuk-rotation';
 
 const require = createRequire(__filename);
 

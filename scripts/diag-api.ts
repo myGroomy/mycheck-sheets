@@ -1,7 +1,7 @@
 // scripts/diag-api.ts — panggil API live dengan sesi admin untuk lihat apa yang dikembalikan.
 import crypto from 'crypto';
 
-const SECRET = process.env.STOKIS_API_KEY!;
+const SECRET = process.env.SESSION_SECRET!;
 const PORT = process.env.PORT || '3000';
 
 function mintToken(data: { username: string; nama: string; role: 'admin' | 'petugas'; cabangId: string }): string {

@@ -56,7 +56,7 @@ diinginkan:
   dan membandingkan PIN sebagai teks biasa. Ini risiko keamanan yang belum
   diselesaikan; jangan menyalin PIN ke contoh, log, issue, atau dokumentasi.
 - `mycheck_session` adalah token HMAC-SHA256 stateless, masa berlaku 7 hari.
-  Signing key dibaca dari `STOKIS_API_KEY`; hanya nama variabel yang boleh
+  Signing key dibaca dari `SESSION_SECRET`; hanya nama variabel yang boleh
   dicantumkan dalam dokumentasi.
 - Cookie menggunakan `HttpOnly` dan `SameSite=Strict`; flag `Secure` dipasang
   pada production. Logout menghapus cookie browser. Endpoint `logout-all`

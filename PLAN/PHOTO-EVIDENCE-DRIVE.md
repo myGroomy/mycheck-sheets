@@ -462,7 +462,7 @@ MYCHECK_GAS_URL       # URL /exec dari GAS
 MYCHECK_GAS_API_KEY   # nilai dari SetKey
 ```
 
-> **`STOKIS_API_KEY` tidak boleh disentuh** — variabel itu adalah signing key
+> **`SESSION_SECRET` tidak boleh disentuh** — variabel itu adalah signing key
 > session (`lib/session.ts:9`). Mengubahnya akan membatalkan seluruh sesi yang
 > sedang berjalan.
 

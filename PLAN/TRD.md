@@ -44,7 +44,7 @@ Browser -> Next.js page/API -> Google Sheets API
   PIN disimpan plaintext di Registry; tidak ada hashing.
 - `lib/session.ts` membuat token HMAC-SHA256 stateless di cookie
   `mycheck_session`, expiry 7 hari. Secret signing memakai
-  `STOKIS_API_KEY` (minimal 32 karakter sesuai `lib/env.ts`).
+  `SESSION_SECRET` (minimal 32 karakter sesuai `lib/env.ts`).
 - Cookie memiliki `HttpOnly`, `SameSite=Strict`, dan `Secure` pada production.
 - `proxy.ts` memeriksa keberadaan cookie; helper page/API memvalidasi signature
   dan expiry. Handler menerapkan role/cabang sesuai pemakaiannya.

@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  STOKIS_API_KEY: z.string().min(32, 'STOKIS_API_KEY terlalu pendek (minimal 32 karakter)'),
+  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET terlalu pendek (minimal 32 karakter)'),
 });
 
 function validateEnv() {

@@ -83,12 +83,12 @@ screenshot, atau file yang dikomit.
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Email service account Google. |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Private key service account (newline escaped). |
 | `GOOGLE_DRIVE_FOLDER_ID` | ID folder Google Drive untuk storage foto. |
-| `STOKIS_API_KEY` | Secret HMAC-SHA256 untuk cookie sesi; wajib, minimal 32 karakter. |
+| `SESSION_SECRET` | Secret HMAC-SHA256 untuk cookie sesi; wajib, minimal 32 karakter. |
 | `NEXT_PUBLIC_APP_URL` | URL aplikasi yang dapat dipakai pada sisi klien. |
 | `CRON_SECRET` | Periksa route/helper cron dan `lib/env.ts` sebelum mengonfigurasi. |
 
 Lihat `.env.example` dan `lib/env.ts` untuk pemakaian environment aktual.
-`SESSION_SECRET` dan `PIN_PEPPER` bukan nama konfigurasi yang digunakan saat
+`PIN_PEPPER` bukan nama konfigurasi yang digunakan saat
 ini. PIN saat ini disimpan sebagai teks biasa di Registry; jangan menyebutnya
 sebagai PIN hash atau pepper.
 
