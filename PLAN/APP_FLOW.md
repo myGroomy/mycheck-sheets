@@ -22,12 +22,12 @@ status di `IMPLEMENTATION_PLAN.md`.
 /admin/cabang
 /admin/akun
 /admin/shift
-/admin/checklist-builder
+/admin/checklist
+/admin/checklist/builder
 /admin/handover
 /admin/handover/builder
-/admin/kategori-incident
-/admin/operasi-shift
 /admin/incident
+/admin/incident/kategori
 /admin/laporan
 /admin/pengaturan
 /admin/audit-log
@@ -42,18 +42,31 @@ diperiksa dari folder `app/`. Route `/home`, `/checklist`, `/akun`,
 
 ## 2. Shell dan navigasi aktual
 
-- Root layout memuat auth/cabang provider, `AuthGuard`, `PwaStatus`, serta
-  `NavbarClient`.
+- Root layout memuat auth/cabang provider, `WorkingBranchProvider`, `AuthGuard`,
+  `PwaStatus`, serta `NavbarClient`. `WorkingBranchProvider` menampung "cabang
+  kerja" admin dan hanya dibaca server dari cookie.
 - Tamu dapat membuka `/`, `/login`, `/docs/**`, dan `/r/**`.
-- Admin di luar area `/admin` mendapat menu menuju Dashboard/Operasi/Incident/
-  Laporan dan menu lainnya. Di area `/admin`, desktop menggunakan header dan
-  sidebar; layar kecil memakai bottom navigation Dashboard, Operasi, Incident,
-  Laporan, serta drawer Lainnya.
+- **Admin adalah superuser** (model `admin = petugas + privilege`). Navigasi
+  admin terdiri dari lima grup di `lib/nav-config.ts`:
+
+  | Grup | Item |
+  |---|---|
+  | Harian | Shift Saya (`/daftar-shift`), Incident (`/admin/incident`), Checklist / SOP (`/admin/checklist`), Handover (`/admin/handover`) |
+  | Operasional | Dashboard, Operasi Shift, Laporan |
+  | Konfigurasi | Cabang, Shift |
+  | Administrasi | Akun, Pengaturan, Audit Log |
+  | Bantuan | Panduan, Ganti PIN |
+
+- Area `/admin` desktop memakai sidebar; layar kecil memakai bottom navigation
+  dengan 4 item Harian + drawer "Lainnya" (total 5 tombol).
 - Petugas memakai halaman `/daftar-shift` sebagai tujuan kerja utama. Navigasi
-  bawah menyediakan Checklist, Incident, Laporan dan Lainnya; desktop memakai
-  menu header.
+  bawahnya menyediakan Checklist, Handover, Incident, Laporan dan Lainnya.
 - `/` bukan dashboard petugas aktif: halaman ini menampilkan landing page untuk
   tamu, mengarahkan admin ke `/admin`, dan petugas ke `/daftar-shift`.
+- Incident, Checklist, dan Handover adalah **halaman terpadu ber-tab**: riwayat
+  + builder/kategori di satu route. Route lama (`/admin/kategori-incident`,
+  `/admin/checklist-builder`, `/admin/handover-builder`) dialihkan ke tab
+  yang bersangkutan.
 - Service worker hanya cache manifest dan ikon/aset statis terpilih. Tidak ada
   cache checklist/report atau antrean penulisan offline.
 
@@ -89,10 +102,11 @@ Navigasi aktual didefinisikan di `components/NavbarClient.tsx`.
 |---|---|
 | `/admin` | Dashboard/indikator lintas cabang. |
 | `/admin/operasi-shift` | Daftar dan tindakan operasional shift. |
-| `/admin/incident`, `/admin/kategori-incident` | Daftar incident dan halaman kategori; navigasi mengelompokkannya dalam area Incident. |
+| `/admin/incident`, `/admin/incident/kategori` | Satu halaman dua tab: riwayat incident, dan pengelolaan kategori. Route lama `/admin/kategori-incident` dialihkan ke tab kategori. |
 | `/admin/laporan` | Daftar laporan, tautan publik, ekspor yang tersedia. |
 | `/admin/cabang`, `/admin/akun` | Pengelolaan Registry. |
-| `/admin/shift`, `/admin/checklist-builder` | Konfigurasi shift dan template. |
+| `/admin/shift` | Konfigurasi shift. |
+| `/admin/checklist`, `/admin/checklist/builder` | Satu halaman dua tab: riwayat eksekusi checklist, dan formulir SOP. Route lama `/admin/checklist-builder` dialihkan ke tab builder. |
 | `/admin/handover`, `/admin/handover/builder` | Satu halaman dua tab: riwayat handover, dan template bidang serah terima. Route lama `/admin/handover-builder` dialihkan ke tab builder. |
 | `/admin/pengaturan` | Pengaturan yang terdaftar di catalog kode. |
 | `/admin/audit-log` | Baca/filter audit log. |

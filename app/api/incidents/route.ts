@@ -17,6 +17,7 @@ interface IncidentBody {
   occurredAt?: string;
   severity?: 'rendah' | 'sedang' | 'tinggi';
   outsideShift?: boolean;
+  branchId?: string;
 }
 const SEVERITIES = new Set(['rendah', 'sedang', 'tinggi']);
 async function linkWindowHours(): Promise<number> {
@@ -142,7 +143,28 @@ withAuth(async (_req, ctx, _session) => {
     spreadsheetId = resolved.spreadsheetId;
     tabMonth = tabMonthOf(resolved.instance);
   } else {
-    branchId = ctx.branchIds[0] ?? null;
+    // Incident di luar shift tidak punya shift yang bisa menentukan cabang,
+    // jadi client wajib menyebutkannya.
+    //
+    // Untuk petugas ini aman karena branchIds mereka adalah cabang
+    // penugasan. Untuk admin TIDAK: branchIds = seluruh cabang aktif
+    // (lib/api-auth.ts), sehingga `branchIds[0]` hanya cabang pertama secara
+    // alfabetis dan sama sekali tidak menyatakan niat. Dulu kode ini memakai
+    // fallback itu, sehingga incident admin diam-diam masuk ke cabang yang
+    // salah. Sekarang: admin tanpa branchId ditolak, bukan ditebak.
+    const requested = body.branchId?.trim() || null;
+    if (requested) {
+      const accessError = requireBranchAccess(ctx, requested);
+      if (accessError) return accessError;
+      branchId = requested;
+    } else if (ctx.user.role === 'admin') {
+      return NextResponse.json(
+        { error: 'Pilih cabang kerja terlebih dahulu.' },
+        { status: 400 }
+      );
+    } else {
+      branchId = ctx.branchIds[0] ?? null;
+    }
   }
   if (!branchId) return NextResponse.json({ error: 'Cabang incident tidak ditentukan' }, { status: 400 });
   try {

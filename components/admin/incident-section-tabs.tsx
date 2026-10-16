@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 const tabs = [
   { label: 'Daftar Incident', href: '/admin/incident' },
-  { label: 'Kategori', href: '/admin/kategori-incident' },
+  { label: 'Kategori', href: '/admin/incident/kategori' },
 ];
 
 export function IncidentSectionTabs() {

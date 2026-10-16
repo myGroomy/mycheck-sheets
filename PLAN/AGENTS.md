@@ -95,6 +95,9 @@ diinginkan:
   petugas ke `/daftar-shift`.
 - Alur kerja petugas menggunakan `/daftar-shift`, `/shift/[id]`, `/incident`,
   `/incident/baru`, `/incident/[id]`, `/report`, dan `/report/[id]`.
+- Role admin bersifat superuser: admin juga boleh memakai halaman-halaman
+  petugas di atas, bukan hanya area `/admin`. Detailnya di
+  `SUPERUSER-ROLE-REFACTOR.md`.
 - Area admin memakai `/admin` beserta halaman di bawah `/admin/*`. Daftar
   route lengkap ada di `APP_FLOW.md`; route handler API aktual ada di `app/api`.
 - Laporan publik dan foto yang terkait token menggunakan `/r/[token]` serta
@@ -118,6 +121,16 @@ diinginkan:
   - `tests/admin-delete-routes.test.ts` — route handler DELETE dipanggil
     langsung (stub session di `tests/helpers/mock-auth.ts`), termasuk 401/403,
     penolakan berbasis histori/dependensi, fail-closed, dan audit log.
+  - `tests/handover-prev.test.ts` dan `tests/handovers-history.test.ts` —
+    resolusi dan daftar riwayat handover.
+  - `tests/working-branch.test.ts` — `POST /api/incidents` dan
+    `POST /api/shifts/open`: admin wajib menyebut cabang secara eksplisit,
+    petugas tetap boleh tanpa itu, dan incident tidak boleh bocor ke cabang
+    lain.
+  - `tests/superuser-role.test.ts` — kontrak role admin = petugas + privilege
+    di kedua sisinya (helper auth + batas privilege lewat route admin).
+  - `tests/nav-config.test.ts` — struktur navigasi pasca-Phase 5: grup, href,
+    alias sub-tab, ketiadaan ikon dobel, dan batas tombol mobile.
   - Belum ada uji komponen React, uji halaman, dan belum ada uji terhadap
     spreadsheet/izin Drive sungguhan. Jangan menyatakan alur runtime Sheets
     sebagai lulus tanpa menjalankannya.

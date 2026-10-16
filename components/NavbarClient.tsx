@@ -16,10 +16,12 @@
 // yang sesuai role tanpa menunggu fetch /api/auth/me di client. Begitu
 // useAuth() ter-resolve, role otomatis memakai data asli.
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useId } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
+import { useCabang } from '@/lib/CabangContext';
+import { useWorkingBranch } from '@/lib/working-branch';
 import {
   getMobileCoreItems,
   getMobileMoreGroups,
@@ -28,7 +30,50 @@ import {
   isStandalonePath,
 } from '@/lib/nav-config';
 import type { NavItem, UserRole } from '@/lib/nav-config';
-import { LogOut, X, MoreHorizontal } from 'lucide-react';
+import { LogOut, X, MoreHorizontal, Building2 } from 'lucide-react';
+
+/**
+ * Selector "cabang kerja" untuk admin.
+ *
+ * Admin punya akses ke seluruh cabang, jadi tanpa selector ini tidak ada yang
+ * menyatakan cabang mana yang sedang ia kerjakan. Ini bukan simplemente
+ * filter tampilan: `POST /api/shifts/open` dan `POST /api/incidents`
+ * akan menolak permintaan admin yang tidak menyebut cabang, jadi select ini
+ * adalah cara melewati penolakan tersebut.
+ *
+ * Hanya dirender untuk admin (petugas memakai cabang penugasannya sendiri).
+ */
+function WorkingBranchPicker({ variant }: { variant: 'sidebar' | 'drawer' }) {
+  const { branches, loading } = useCabang();
+  const { branchId, setBranchId, isAdmin } = useWorkingBranch();
+  const selectId = useId();
+  if (!isAdmin) return null;
+
+  return (
+    <div className={variant === 'drawer' ? 'px-1 pb-3' : ''}>
+      <label
+        htmlFor={selectId}
+        className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-ink-light"
+      >
+        <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        Cabang kerja
+      </label>
+      <select
+        id={selectId}
+        value={branchId ?? ''}
+        onChange={(event) => setBranchId(event.target.value)}
+        className="min-h-11 w-full rounded-md border border-border bg-canvas px-3 text-sm font-medium text-ink"
+      >
+        {loading && !branches.length && <option value="">Memuat…</option>}
+        {branches.map((branch) => (
+          <option key={branch.id} value={branch.id}>
+            {branch.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
   const pathname = usePathname();
@@ -159,6 +204,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                   </p>
                 </div>
               </div>
+              <WorkingBranchPicker variant="sidebar" />
               <button
                 onClick={() => void logout()}
                 disabled={transition !== 'idle'}
@@ -272,6 +318,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 <h2 className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-ink-light">
                   Akun
                 </h2>
+                <WorkingBranchPicker variant="drawer" />
                 <button
                   onClick={() => { setMoreOpen(false); void logout(); }}
                   className="flex min-h-12 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-error transition hover:bg-error-bg"

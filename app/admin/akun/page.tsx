@@ -362,10 +362,6 @@ export default function AkunPage() {
               value: u.branches.length > 0 ? u.branches.map((b) => b.name).join(', ') : '—',
             },
             {
-              label: 'Status PIN',
-              value: u.mustChangePin ? 'Belum ganti PIN' : 'PIN sudah diperbarui',
-            },
-            {
               label: 'Login terakhir',
               value: u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('id-ID') : 'Belum pernah',
             },
@@ -445,11 +441,6 @@ export default function AkunPage() {
               <TableRow key={u.id}>
                 <TableCell className="font-medium">
                   {u.name}
-                  {u.mustChangePin && (
-                    <span className="ml-2 text-2xs font-semibold uppercase text-warning">
-                      belum ganti PIN
-                    </span>
-                  )}
                 </TableCell>
                 <TableCell className="font-mono text-xs">{u.username}</TableCell>
                 <TableCell>

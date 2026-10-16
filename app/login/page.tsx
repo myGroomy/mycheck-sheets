@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { AlertCircle, ArrowLeft, Lock, Timer } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { QuantumLoaderMini } from '@/components/ui/QuantumLoader';
-import { PasswordInput } from '@/components/ui/password-input';
+import { PinInput } from '@/components/ui/pin-input';
 
 // Kurva expo-out yang sama dengan halaman login STOKIS.
 const EASE_EXPO = [0.16, 1, 0.3, 1] as [number, number, number, number];
@@ -26,6 +26,7 @@ function LoginForm() {
 
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'wrong_pin' | 'user_not_found' | 'account_inactive' | 'network' | 'lockout' | null>(null);
   const [loading, setLoading] = useState(false);
@@ -90,8 +91,6 @@ function LoginForm() {
         fail(result.error || 'Login gagal');
         setErrorType(result.code === 'WRONG_PIN' ? 'wrong_pin' : result.code === 'USER_NOT_FOUND' ? 'user_not_found' : result.code === 'ACCOUNT_INACTIVE' ? 'account_inactive' : 'network');
         setPin('');
-
-        // Lockout after 5 failed attempts
         const nextAttempts = attempts + 1;
         setAttempts(nextAttempts);
         if (nextAttempts >= 5) {
@@ -103,13 +102,8 @@ function LoginForm() {
         return;
       }
 
-      // Akun baru/reset harus mengganti PIN sebelum memakai aplikasi.
-      if (result.mustChangePin) {
-        window.location.assign('/ganti-pin');
-      } else {
-        // Muat ulang agar halaman server memverifikasi cookie sesi yang baru diterbitkan.
-        window.location.assign(from);
-      }
+      // Muat ulang agar halaman server memverifikasi cookie sesi yang baru diterbitkan.
+      window.location.assign(from);
       // Jangan set loading=false di sini — biar tombol "Memproses..." tetap muncul sampai redirect
     } catch {
       fail('Terjadi kesalahan. Silakan coba lagi.');
@@ -120,6 +114,7 @@ function LoginForm() {
   return (
     <motion.form
       key={shake ? 'shake' : 'idle'}
+      ref={formRef}
       onSubmit={handleSubmit}
       initial={{ opacity: 0, x: -8 }}
       animate={shake ? { opacity: 1, x: [-8, 8, -6, 6, -3, 3, 0] } : { opacity: 1, x: 0 }}
@@ -166,7 +161,7 @@ function LoginForm() {
           onChange={(e) => setUsername((e.target as HTMLInputElement).value)}
           placeholder="Masukkan username"
           autoComplete="username"
-          className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-sm text-ink focus:border-ink focus:outline-none"
+          className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-sm text-ink text-center focus:border-ink focus:outline-none"
           required
         />
       </div>
@@ -175,17 +170,14 @@ function LoginForm() {
         <label htmlFor="pin" className="block text-xs font-medium text-ink-muted mb-2">
           PIN (6 Digit) <span className="text-red-500">*</span>
         </label>
-        <PasswordInput
+        {/* 6 kotak, digit disamarkan, dan auto-submit saat lengkap. requestSubmit
+            memakai handler onSubmit form yang sama, sehingga validasi dan lockout
+            tetap lewat jalur yang sama persis seperti tombol Masuk. */}
+        <PinInput
           id="pin"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={6}
           value={pin}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          autoComplete="current-password"
-          placeholder="••••••"
-          className="h-12 text-center text-xl font-semibold tracking-[0.5em] placeholder:text-ink-light/30"
-          required
+          onChange={setPin}
+          onComplete={() => formRef.current?.requestSubmit()}
         />
       </div>
 

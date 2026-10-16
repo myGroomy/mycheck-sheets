@@ -13,6 +13,7 @@ import { resolveCabang } from '../../../../lib/google/registry';
 interface OpenShiftBody {
   shiftDefinitionId?: string;
   isTest?: boolean;
+  branchId?: string;
 }
 
 /**
@@ -37,13 +38,29 @@ withAuth(async (_req, ctx, _session) => {
   }
   const isTest = body.isTest === true;
 
-  // Cari definisi di semua cabang yang bisa diakses user
+  // Admin punya akses ke seluruh cabang, sehingga `shiftDefinitionId` saja
+  // tidak menyatakan cabang mana yang dimaksud opening shift. Kalau client
+  // mengirim branchId (cabang kerja aktif), definisi HANYA boleh dicari di
+  // cabang itu — bukan di cabang mana pun yang kebetulan punya id tersebut.
+  const requestedBranchId = body.branchId?.trim() || null;
+  if (requestedBranchId) {
+    const accessError = requireBranchAccess(ctx, requestedBranchId);
+    if (accessError) return accessError;
+  } else if (ctx.user.role === 'admin') {
+    return NextResponse.json(
+      { error: 'Pilih cabang kerja terlebih dahulu.' },
+      { status: 400 }
+    );
+  }
+  const searchBranches = requestedBranchId ? [requestedBranchId] : ctx.branchIds;
+
+  // Cari definisi di cabang yang boleh diakses user
   let definition: Record<string, unknown> | null = null;
   let spreadsheetId = '';
   let branchTimezone = 'Asia/Jakarta';
   let branchId = '';
 
-  for (const cabangId of ctx.branchIds) {
+  for (const cabangId of searchBranches) {
     try {
       const { spreadsheetId: sid, cabang } = await resolveCabang(cabangId);
       const defs = await filterRows(sid, 'ShiftDefinitions', (r) => asStr(r['id']) === shiftDefinitionId);

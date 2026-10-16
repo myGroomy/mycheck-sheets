@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { PwaStatus } from '@/components/pwa-status';
 import { AuthProvider } from '@/lib/AuthContext';
 import { CabangProvider } from '@/lib/CabangContext';
+import { WorkingBranchProvider } from '@/lib/working-branch';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { PageTransition } from '@/components/PageTransition';
@@ -65,6 +66,12 @@ export default async function RootLayout({
   const session = token ? verifySessionToken(token) : null;
   const initialRole = session?.role === 'admin' ? 'admin' : 'petugas';
 
+  // "Cabang kerja" admin juga dibaca di server supaya render pertama sudah
+  // memillih cabang yang benar. Kalau ini hanya dibaca di client, setiap
+  // navigasi akan sempat merender form tanpa cabang lalu menggantinya —
+  // terlihat sebagai flicker dan berisiko hydration mismatch.
+  const initialWorkingBranch = cookieStore.get('mycheck_working_branch')?.value ?? null;
+
   // Cek maintenance mode. Admin tetap bisa akses (untuk menonaktifkan).
   const maintenance = await isMaintenanceMode();
   if (maintenance && session?.role !== 'admin') {
@@ -93,12 +100,18 @@ export default async function RootLayout({
           <PwaStatus />
           <AuthProvider>
             <CabangProvider>
-              <AuthGuard>
-                <AppShell initialRole={initialRole}>
-                  <PageTransition>{children}</PageTransition>
-                </AppShell>
-              </AuthGuard>
-              {/* Overlay login/logout.
+              {/* WorkingBranchProvider harus DI DALAM CabangProvider (butuh
+                  daftar cabang untuk memvalidasi pilihan) dan AuthProvider
+                  (butuh role untuk memutuskan apakah selector ditampilkan).
+                  AuthGuard berada di dalam lagi supaya halaman publik tetap
+                  bisa merender tanpa provider ini. */}
+              <WorkingBranchProvider initialBranchId={initialWorkingBranch}>
+                <AuthGuard>
+                  <AppShell initialRole={initialRole}>
+                    <PageTransition>{children}</PageTransition>
+                  </AppShell>
+                </AuthGuard>
+                {/* Overlay login/logout.
                   WAJIB di dalam <AuthProvider> (memakai useAuth) tapi di luar
                   <AuthGuard>, karena AuthGuard-lah yang mengarahkan ke
                   /login saat logout — kalau overlay ikut di dalam guard,
@@ -106,7 +119,8 @@ export default async function RootLayout({
                   dan loader logout tidak akan pernah terlihat.
                   Jangan dipindah ke luar AuthProvider: useAuth() akan
                   melempar "must be used within AuthProvider". */}
-              <AuthTransitionOverlay />
+                <AuthTransitionOverlay />
+              </WorkingBranchProvider>
             </CabangProvider>
           </AuthProvider>
           <Toaster position="top-center" richColors />

@@ -9,10 +9,14 @@
 import {
   Activity,
   AlertTriangle,
+  ArrowLeftRight,
   BookOpen,
   Building2,
+  CalendarClock,
   ClipboardCheck,
   FileText,
+  History,
+  KeyRound,
   LayoutDashboard,
   ListChecks,
   Settings,
@@ -43,11 +47,23 @@ export const MOBILE_CORE_LIMIT = 4;
 
 const ADMIN_NAV: NavGroup[] = [
   {
-    title: 'Utama',
+    // Parity dengan petugas: 4 item pertama = tombol bawah mobile.
+    title: 'Harian',
+    items: [
+      { name: 'Shift Saya', href: '/daftar-shift', icon: CalendarClock, aliases: ['/shift'] },
+      // Incident dan Checklist menunjuk ke halaman terpadu (riwayat + tab
+      // Builder/Kategori), bukan ke halaman terpisah. Itu inti penyatuan
+      // Phase 3-4: builder jadi tab, bukan entri nav sendiri.
+      { name: 'Incident', href: '/admin/incident', icon: AlertTriangle, aliases: ['/admin/incident/kategori'] },
+      { name: 'Checklist / SOP', href: '/admin/checklist', icon: ListChecks, aliases: ['/admin/checklist/builder'] },
+      { name: 'Handover', href: '/admin/handover', icon: ArrowLeftRight, aliases: ['/admin/handover/builder'] },
+    ],
+  },
+  {
+    title: 'Operasional',
     items: [
       { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
       { name: 'Operasi Shift', href: '/admin/operasi-shift', icon: Activity },
-      { name: 'Incident', href: '/admin/incident', icon: AlertTriangle, aliases: ['/admin/kategori-incident'] },
       { name: 'Laporan', href: '/admin/laporan', icon: FileText },
     ],
   },
@@ -56,9 +72,6 @@ const ADMIN_NAV: NavGroup[] = [
     items: [
       { name: 'Cabang', href: '/admin/cabang', icon: Building2 },
       { name: 'Shift', href: '/admin/shift', icon: ClipboardCheck },
-      { name: 'Checklist / SOP', href: '/admin/checklist-builder', icon: ListChecks },
-      // Handover menyatukan riwayat + builder dalam satu halaman (tab).
-      { name: 'Handover', href: '/admin/handover', icon: FileText, aliases: ['/admin/handover-builder'] },
     ],
   },
   {
@@ -66,14 +79,14 @@ const ADMIN_NAV: NavGroup[] = [
     items: [
       { name: 'Akun', href: '/admin/akun', icon: Users },
       { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings },
-      { name: 'Audit Log', href: '/admin/audit-log', icon: Activity },
+      { name: 'Audit Log', href: '/admin/audit-log', icon: History },
     ],
   },
   {
     title: 'Bantuan',
     items: [
       { name: 'Panduan', href: '/docs', icon: BookOpen },
-      { name: 'Ganti PIN', href: '/ganti-pin', icon: Settings },
+      { name: 'Ganti PIN', href: '/ganti-pin', icon: KeyRound },
     ],
   },
 ];
@@ -83,7 +96,7 @@ const PETUGAS_NAV: NavGroup[] = [
     title: 'Utama',
     items: [
       { name: 'Checklist', href: '/daftar-shift', icon: ClipboardCheck, aliases: ['/shift'] },
-      { name: 'Handover', href: '/handover', icon: FileText },
+      { name: 'Handover', href: '/handover', icon: ArrowLeftRight },
       { name: 'Incident', href: '/incident', icon: AlertTriangle },
       { name: 'Laporan', href: '/report', icon: FileText },
     ],
@@ -92,7 +105,7 @@ const PETUGAS_NAV: NavGroup[] = [
     title: 'Bantuan',
     items: [
       { name: 'Panduan', href: '/docs', icon: BookOpen },
-      { name: 'Ganti PIN', href: '/ganti-pin', icon: Settings },
+      { name: 'Ganti PIN', href: '/ganti-pin', icon: KeyRound },
     ],
   },
 ];

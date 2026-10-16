@@ -74,12 +74,19 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
     if (!loading && !error) void refreshBranchesIfStale();
   }, [loading, error, refreshBranchesIfStale]);
 
-  const performAction = async (action: 'open' | 'join', shiftDefinitionId: string, instanceId?: string) => {
+  const performAction = async (
+    action: 'open' | 'join',
+    shiftDefinitionId: string,
+    instanceId?: string,
+    branchId?: string
+  ) => {
     setBusy(shiftDefinitionId);
     setNotice(null);
     try {
       const endpoint = action === 'open' ? '/api/shifts/open' : `/api/shifts/${instanceId}/join`;
-      const body = action === 'open' ? { shiftDefinitionId } : undefined;
+      // branchId wajib untuk admin: tanpa itu server tidak bisa tahu cabang
+      // kerja yang dimaksud dan menolak dengan 400.
+      const body = action === 'open' ? { shiftDefinitionId, branchId } : undefined;
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -307,7 +314,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
             </Button>
             <Button
               type="button"
-              onClick={() => shiftToOpen && void performAction('open', shiftToOpen.id)}
+              onClick={() => shiftToOpen && void performAction('open', shiftToOpen.id, undefined, shiftToOpen.branchId)}
               disabled={!shiftToOpen || busy === shiftToOpen.id}
             >
               {shiftToOpen && busy === shiftToOpen.id ? 'Membuka shift...' : 'Konfirmasi & buka'}

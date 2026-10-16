@@ -521,15 +521,12 @@ export default function ChecklistBuilderPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 pb-24 sm:px-6 sm:py-7 md:pb-10 lg:px-8 xl:px-10">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5 sm:items-end">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Form Builder SOP</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-ink-muted">
-            Susun section dan pertanyaan SOP per shift. Tambahkan sebanyak mungkin pertanyaan
-            dalam setiap section.
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* Header (h1 + padding) TIDAK dirender di sini — sudah dipegang oleh
+          app/admin/checklist/layout.tsx bersama tab-nya. Dulunya builder ini
+          punya header sendiri, tapi setelah pindah jadi sub-route halaman
+          yang punya layout itu, header ganda akan muncul. */}
+      <div className="flex flex-wrap items-center justify-end gap-4">
         <Button
           variant="outline"
           className="min-h-12 px-5"

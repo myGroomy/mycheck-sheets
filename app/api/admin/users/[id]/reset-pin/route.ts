@@ -57,8 +57,7 @@ withAuth(async (_req, ctx, _session) => {
 
   await updateUserCells(rowNumber, {
     PIN: newPin,
-    Must_Change_Pin: true,
   });
 
-  return NextResponse.json({ message: 'PIN berhasil direset. User wajib mengganti PIN saat login.' });
+  return NextResponse.json({ message: 'PIN berhasil direset' });
 });

@@ -42,7 +42,7 @@ export default async function AdminIndex() {
           {[
             { label: 'Cabang', href: '/admin/cabang', description: 'Periksa cabang dan spreadsheet.' },
             { label: 'Shift', href: '/admin/shift', description: 'Atur definisi dan jadwal shift.' },
-            { label: 'Checklist / SOP', href: '/admin/checklist-builder', description: 'Atur kategori dan item kerja.' },
+            { label: 'Checklist / SOP', href: '/admin/checklist', description: 'Atur kategori dan item kerja.' },
             { label: 'Handover', href: '/admin/handover', description: 'Riwayat & isian serah terima.' },
             { label: 'Akun & akses', href: '/admin/akun', description: 'Beri petugas akses cabang.' },
           ].map((step, index) => (

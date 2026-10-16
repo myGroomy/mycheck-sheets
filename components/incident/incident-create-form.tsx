@@ -7,6 +7,7 @@ import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import { uploadPhotoWithProgress } from '@/lib/upload-photo';
+import { useWorkingBranch } from '@/lib/working-branch';
 
 interface Option {
   id: string;
@@ -29,6 +30,7 @@ interface ShiftResponse {
 }
 
 export function IncidentCreateForm() {
+  const { branchId: workingBranchId, isAdmin } = useWorkingBranch();
   const [options, setOptions] = useState<IncidentOptions>({ categories: [], branches: [] });
   const [shifts, setShifts] = useState<ShiftResponse['shifts']>([]);
   const [categoryId, setCategoryId] = useState('');
@@ -72,6 +74,18 @@ export function IncidentCreateForm() {
   }, []);
 
   const branchShifts = shifts.filter((shift) => shift.branchId === branchId);
+  const selectedBranchName = options.branches.find((b) => b.id === branchId)?.name ?? null;
+
+  // Untuk admin, ikuti "cabang kerja" yang aktif. Efek ini terpisah dari
+  // pemuatan opsi karena daftar cabang dan working branch baru tersedia
+  // setelah render pertama.
+  useEffect(() => {
+    if (!isAdmin || !workingBranchId) return;
+    if (options.branches.some((b) => b.id === workingBranchId)) {
+      setBranchId(workingBranchId);
+      setShiftInstanceId('');
+    }
+  }, [isAdmin, workingBranchId, options.branches]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -96,6 +110,9 @@ export function IncidentCreateForm() {
           severity: severity || undefined,
           shiftInstanceId: shiftInstanceId || undefined,
           outsideShift: !shiftInstanceId,
+          // Wajib untuk admin: tanpa ini server menolak, dan untuk petugas
+          // sudah pasti sama dengan cabangnya sendiri.
+          branchId,
         }),
       });
       const result = (await response.json()) as { error?: string; incident_id?: string };
@@ -155,6 +172,14 @@ export function IncidentCreateForm() {
           <select value={branchId} onChange={(event) => { setBranchId(event.target.value); setShiftInstanceId(''); }} required className="min-h-12 w-full rounded-lg border border-border bg-canvas px-3 text-base">
             {options.branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
           </select>
+          {/* Konfirmasi cabang tepat sebelum submit. Admin punya akses ke semua
+              cabang, jadi tanpa baris ini tidak ada yang menyatakan incident ini
+              masuk ke mana selain select yang barangkali tidak terlihat. */}
+          {selectedBranchName && (
+            <span className="block text-xs font-normal text-ink-muted">
+              Incident akan dicatat pada cabang <strong className="font-semibold text-ink">{selectedBranchName}</strong>.
+            </span>
+          )}
         </label>
 
         <label className="block space-y-1 text-sm font-medium">
