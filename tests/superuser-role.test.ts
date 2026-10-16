@@ -48,7 +48,6 @@ function ctx(role: 'admin' | 'petugas', branchIds: string[]): AuthContext {
       name: role === 'admin' ? 'Admin Uji' : 'Petugas Uji',
       username: `${role}1`,
       role,
-      mustChangePin: false,
       isActive: true,
     },
     branchIds,

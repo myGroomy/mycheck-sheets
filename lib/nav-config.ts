@@ -16,7 +16,6 @@ import {
   ClipboardCheck,
   FileText,
   History,
-  KeyRound,
   LayoutDashboard,
   ListChecks,
   Settings,
@@ -47,13 +46,9 @@ export const MOBILE_CORE_LIMIT = 4;
 
 const ADMIN_NAV: NavGroup[] = [
   {
-    // Parity dengan petugas: 4 item pertama = tombol bawah mobile.
     title: 'Harian',
     items: [
-      { name: 'Shift Saya', href: '/daftar-shift', icon: CalendarClock, aliases: ['/shift'] },
-      // Incident dan Checklist menunjuk ke halaman terpadu (riwayat + tab
-      // Builder/Kategori), bukan ke halaman terpisah. Itu inti penyatuan
-      // Phase 3-4: builder jadi tab, bukan entri nav sendiri.
+      { name: 'Shift Saya', href: '/daftar-shift', icon: ClipboardCheck, aliases: ['/shift'] },
       { name: 'Incident', href: '/admin/incident', icon: AlertTriangle, aliases: ['/admin/incident/kategori'] },
       { name: 'Checklist / SOP', href: '/admin/checklist', icon: ListChecks, aliases: ['/admin/checklist/builder'] },
       { name: 'Handover', href: '/admin/handover', icon: ArrowLeftRight, aliases: ['/admin/handover/builder'] },
@@ -71,7 +66,7 @@ const ADMIN_NAV: NavGroup[] = [
     title: 'Konfigurasi',
     items: [
       { name: 'Cabang', href: '/admin/cabang', icon: Building2 },
-      { name: 'Shift', href: '/admin/shift', icon: ClipboardCheck },
+      { name: 'Shift', href: '/admin/shift', icon: CalendarClock },
     ],
   },
   {
@@ -86,7 +81,6 @@ const ADMIN_NAV: NavGroup[] = [
     title: 'Bantuan',
     items: [
       { name: 'Panduan', href: '/docs', icon: BookOpen },
-      { name: 'Ganti PIN', href: '/ganti-pin', icon: KeyRound },
     ],
   },
 ];
@@ -105,7 +99,6 @@ const PETUGAS_NAV: NavGroup[] = [
     title: 'Bantuan',
     items: [
       { name: 'Panduan', href: '/docs', icon: BookOpen },
-      { name: 'Ganti PIN', href: '/ganti-pin', icon: KeyRound },
     ],
   },
 ];

@@ -14,11 +14,10 @@ interface User {
   nama: string;
   role: UserRole;
   cabangId: string;
-  mustChangePin: boolean;
 }
 
 type LoginResult =
-  | { success: true; role: UserRole; mustChangePin: boolean }
+  | { success: true; role: UserRole }
   | { success: false; error: string; code?: string };
 
 /**
@@ -61,7 +60,6 @@ function extractUser(json: unknown): User | null {
     nama: String(data.nama ?? ''),
     role: data.role === 'admin' ? 'admin' : 'petugas',
     cabangId: String(data.cabangId ?? ''),
-    mustChangePin: data.mustChangePin === true,
   };
 }
 
@@ -98,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // akan me-redirect lewat window.location.assign; overlay dibiarkan
         // tampil sampai halaman baru benar-benar dimuat. Kalau redirect
         // gagal, AuthGuard akan mengembalikan state ke 'idle'.
-        return { success: true, role: u.role, mustChangePin: u.mustChangePin };
+        return { success: true, role: u.role };
       }
       const errMsg =
         (data?.error?.message as string | undefined) ??

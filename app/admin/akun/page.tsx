@@ -66,7 +66,6 @@ interface AdminUser {
   username: string;
   role: Role;
   isActive: boolean;
-  mustChangePin: boolean;
   lockedUntil: string | null;
   lastLoginAt: string | null;
   branches: BranchOption[];

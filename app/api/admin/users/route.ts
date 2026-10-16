@@ -18,9 +18,6 @@ function toApiUser(u: UserRow, cabangNames: Map<string, string>) {
     username: u.Username,
     role: u.Role,
     isActive: u.Aktif,
-    mustChangePin: u.Must_Change_Pin,
-    lastLoginAt: null,
-    pinChangedAt: null,
     createdAt: u.Created_At || null,
     // Bentuk lama yang dibaca frontend
     branchIds: ids,
@@ -95,7 +92,7 @@ withAuth(async (_req, ctx, _session) => {
     Role: role,
     Cabang_ID: effectiveBranchIds.join(','),
     Aktif: true,
-    Must_Change_Pin: true,
+    Must_Change_Pin: false,
     Created_At: new Date().toISOString(),
   });
 

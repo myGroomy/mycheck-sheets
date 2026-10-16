@@ -19,7 +19,6 @@ export interface AuthContext {
     name: string;
     username: string;
     role: 'admin' | 'petugas';
-    mustChangePin: boolean;
     isActive: boolean;
   };
   branchIds: string[];
@@ -71,7 +70,6 @@ export function withAuth(
         name: session.nama,
         username: session.username,
         role: session.role,
-        mustChangePin: false,
         isActive: true,
       },
       branchIds,

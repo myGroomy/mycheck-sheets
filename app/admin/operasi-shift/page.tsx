@@ -39,6 +39,7 @@ import {
   SensitiveActionDialog,
   type SensitiveActionValues,
 } from '@/components/admin/sensitive-action';
+import { WorkingBranchChip } from '@/components/shared/working-branch-chip';
 import { apiFetch } from '@/lib/admin/api';
 
 interface ShiftInstance {
@@ -318,11 +319,14 @@ export default function OperasiShiftPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="space-y-1">
           <h1 className="text-xl font-bold">Operasi Shift</h1>
-          <p className="text-xs text-ink-muted">
-            Shift {STATUS_LABEL[statusFilter].toLowerCase()} lintas cabang
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-ink-muted">
+              Shift {STATUS_LABEL[statusFilter].toLowerCase()} lintas cabang
+            </p>
+            <WorkingBranchChip />
+          </div>
         </div>
         <Button
           onClick={() => handleOnBehalfOpenChange(true)}

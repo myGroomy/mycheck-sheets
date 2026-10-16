@@ -252,11 +252,11 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
               className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-2xs font-medium leading-tight ${
                 moreOpen ? 'text-ink' : 'text-ink-muted'
               }`}
-              aria-label="Menu lainnya"
+              aria-label={role === 'admin' ? 'Menu admin' : 'Menu lainnya'}
               aria-expanded={moreOpen}
             >
               <MoreHorizontal className="h-5 w-5 shrink-0" aria-hidden="true" />
-              <span className="w-full truncate text-center">Lainnya</span>
+              <span className="w-full truncate text-center">{role === 'admin' ? 'Admin' : 'Lainnya'}</span>
             </button>
           )}
         </div>
@@ -274,11 +274,11 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
             ref={moreRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Menu lainnya"
+            aria-label={role === 'admin' ? 'Menu admin' : 'Menu lainnya'}
             className="fixed inset-x-0 bottom-0 z-[70] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-2xl border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
           >
             <div className="sticky top-0 flex items-center justify-between border-b border-border bg-surface px-5 pb-3 pt-4">
-              <span className="text-sm font-bold text-ink">Lainnya</span>
+              <span className="text-sm font-bold text-ink">{role === 'admin' ? 'Menu Admin' : 'Lainnya'}</span>
               <button
                 onClick={() => setMoreOpen(false)}
                 className="-mr-2 p-2 text-ink-muted hover:text-ink"

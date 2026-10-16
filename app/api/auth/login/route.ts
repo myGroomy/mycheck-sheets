@@ -63,8 +63,6 @@ export async function POST(_req: NextRequest) {
     }
 
     const role = String(user['Role'] ?? 'petugas').toLowerCase() === 'admin' ? 'admin' : 'petugas';
-    const mustChangePin =
-      String(user['Must_Change_Pin'] ?? '').toLowerCase() === 'true';
 
     const token = createSessionToken({
       username: String(user['Username']),
@@ -74,7 +72,7 @@ export async function POST(_req: NextRequest) {
     });
 
     const response = NextResponse.json({
-      user: { username: user['Username'], nama: user['Nama'], role, cabangId: user['Cabang_ID'], mustChangePin },
+      user: { username: user['Username'], nama: user['Nama'], role, cabangId: user['Cabang_ID'] },
     });
     response.headers.set('Set-Cookie', setSessionCookieHeader(token));
     return response;
