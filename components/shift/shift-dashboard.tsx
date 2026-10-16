@@ -176,7 +176,11 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
         </div>
         <div className="flex shrink-0 items-center gap-2 rounded-lg border border-border bg-canvas px-3 py-2 text-sm text-ink-muted">
           <Clock3 className="h-4 w-4" />
-          {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+          <span>
+            {new Date().toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+            {' • '}
+            {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
       </header>
 
