@@ -131,6 +131,12 @@ diinginkan:
     di kedua sisinya (helper auth + batas privilege lewat route admin).
   - `tests/nav-config.test.ts` — struktur navigasi pasca-Phase 5: grup, href,
     alias sub-tab, ketiadaan ikon dobel, dan batas tombol mobile.
+  - `tests/template-snapshot.test.ts` — `lib/template-snapshot.ts`: pembaca
+    `template_snapshot` yang menghormati `snapshot_encoding`. Menutup kedua
+    jalur (`json` dan `gzip_b64`), deteksi awalan `H4sI` bila kolom encoding
+    rusak, normalisasi `categories`/`handover_fields`, dan memastikan kondisi
+    gagal mengembalikan `null` (bukan melempar). Penting karena snapshot gzip
+    membuat `close`/`handover` menutup shift tanpa memvalidasi item wajib.
   - Belum ada uji komponen React, uji halaman, dan belum ada uji terhadap
     spreadsheet/izin Drive sungguhan. Jangan menyatakan alur runtime Sheets
     sebagai lulus tanpa menjalankannya.
