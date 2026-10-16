@@ -119,10 +119,33 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
         {data.photos.length ? (
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {data.photos.map((photo) => (
-              <a key={photo.id} href={`/api/photos/${photo.id}`} target="_blank" rel="noreferrer" className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-border bg-canvas p-3 text-center text-xs hover:bg-surface">
-                <ImageIcon className="h-6 w-6 text-ink-muted" />
-                {photo.status === 'purged' ? 'Foto telah diarsip' : `Foto ${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleDateString('id-ID') : 'bukti'}`}
-              </a>
+              photo.status === 'purged' ? (
+                <div key={photo.id} className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-border bg-canvas p-3 text-center text-xs text-ink-muted">
+                  <ImageIcon className="h-6 w-6" />
+                  Foto telah diarsip
+                </div>
+              ) : (
+                <a key={photo.id} href={`/api/photos/${photo.id}`} target="_blank" rel="noreferrer" className="group overflow-hidden rounded-xl border border-border bg-canvas hover:bg-surface">
+                  <img
+                    src={`/api/photos/${photo.id}`}
+                    alt={`Foto bukti ${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleDateString('id-ID') : ''}`}
+                    loading="lazy"
+                    className="aspect-square w-full object-cover"
+                    onError={(e) => {
+                      // Kalau sesi kedaluwarsa, <img> gagal diam-diam — ganti
+                      // dengan pesan supaya tidak terlihat rusak tanpa penjelasan.
+                      const el = e.currentTarget;
+                      el.style.display = 'none';
+                      const fallback = el.nextElementSibling as HTMLElement | null;
+                      if (fallback) fallback.style.display = 'flex';
+                    }}
+                  />
+                  <span style={{ display: 'none' }} className="flex aspect-square flex-col items-center justify-center gap-2 p-3 text-center text-xs text-ink-muted">
+                    <ImageIcon className="h-6 w-6" />
+                    Foto tidak dapat dimuat (sesi berakhir — muat ulang lalu coba lagi)
+                  </span>
+                </a>
+              )
             ))}
           </div>
         ) : <p className="mt-3 text-sm text-ink-muted">Tidak ada foto bukti.</p>}

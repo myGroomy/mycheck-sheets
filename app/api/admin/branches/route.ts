@@ -8,8 +8,13 @@ import {
   updateCabangStructure,
   type CabangRow,
 } from '../../../../lib/google/registry-admin';
-import { isGasConfigured, GasError } from '../../../../lib/google/gas-client';
+import { isGasConfigured, GasError, GasTimeoutError } from '../../../../lib/google/gas-client';
 import { createBranchStructureViaGas } from '../../../../lib/google/branch-gas';
+
+// Pembuatan cabang memanggil GAS createBranchStructure (iterasi folder +
+// copy template spreadsheet) yang berat — izinkan hingga 60 detik di Vercel
+// supaya tidak diputus sebelum GAS selesai.
+export const maxDuration = 60;
 
 export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
 withAuth(async (_req, ctx, _session) => {
@@ -107,8 +112,20 @@ withAuth(async (_req, ctx, _session) => {
   try {
     structure = await createBranchStructureViaGas({ branchCode: code, branchName: name });
   } catch (gasErr) {
-    const status = gasErr instanceof GasError ? gasErr.statusCode : 502;
     const message = gasErr instanceof Error ? gasErr.message : 'Pembuatan struktur cabang via GAS gagal.';
+    if (gasErr instanceof GasTimeoutError) {
+      // Timeout admin saat buat folder + copy template terjadi walau semua
+      // input valid. Cabang sudah terdaftar nonaktif di Registry (langkah 3),
+      // jadi admin cukup menekan "Buat" sekali lagi — prosesnya idempoten dan
+      // memakai ulang struktur yang setengah jadi bila sudah terbentuk.
+      return NextResponse.json(
+        {
+          error: 'Pembuatan struktur cabang melebihi batas waktu. Cabang sudah terdaftar nonaktif — ulangi sekali lagi untuk melanjutkan (tidak akan duplikat).',
+        },
+        { status: 504 }
+      );
+    }
+    const status = gasErr instanceof GasError ? gasErr.statusCode : 502;
     return NextResponse.json(
       {
         error: message,

@@ -37,7 +37,11 @@ export async function callGas<T = unknown>(
   action: string,
   payload: unknown,
   keyKind: 'upload' | 'admin',
-  timeoutMs = 25000
+  // Operasi berat (mis. createBranchStructure = iterasi folder + copy
+  // template spreadsheet) mudah melewati 25 detik. 55 detik dipilih supaya
+  // tetap di bawah batas function Vercel (60s) sehingga client tidak memutus
+  // duluan dan error yang keluar adalah hasil asli GAS, bukan abort lokal.
+  timeoutMs = 55000
 ): Promise<T> {
   const url = process.env.MYCHECK_GAS_URL;
   const key =
