@@ -100,6 +100,7 @@ export default async function PublicReportPage({
         })),
         photos: d.photos.map((photo) => ({
           id: photo.id,
+          fileRef: photo.fileRef,
           ownerType: photo.ownerType,
           ownerId: photo.ownerId,
           mime: photo.mime,

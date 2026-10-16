@@ -64,8 +64,9 @@ withAuth(async (_req, ctx, _session) => {
     },
     handover: detail.handover,
     incidents: detail.incidents,
-    photos: detail.photos.map(({ id, ownerType, ownerId, mime, uploadedAt, status }) => ({
+    photos: detail.photos.map(({ id, fileRef, ownerType, ownerId, mime, uploadedAt, status }) => ({
       id,
+      fileRef,
       ownerType,
       ownerId,
       mime,

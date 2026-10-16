@@ -16,6 +16,7 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { ConfirmCloseDialog } from '@/components/admin/confirm-close-dialog';
 import { ShareReportButton } from '@/components/report/share-report-button';
 import { uploadPhotoWithProgress } from '@/lib/upload-photo';
+import { compressPhoto } from '@/lib/photo-compress';
 
 interface HandoverField {
   id: string;
@@ -157,8 +158,9 @@ export function ShiftCloseDialog({
         setHandoverId(id);
       }
       for (const file of Array.from(files)) {
+        const compressed = await compressPhoto(file);
         const { photoId } = await uploadPhotoWithProgress({
-          file,
+          file: compressed,
           ownerType: 'handover',
           ownerId: id,
           shiftInstanceId: shiftId,

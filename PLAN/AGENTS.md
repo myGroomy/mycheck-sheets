@@ -137,6 +137,18 @@ diinginkan:
     rusak, normalisasi `categories`/`handover_fields`, dan memastikan kondisi
     gagal mengembalikan `null` (bukan melempar). Penting karena snapshot gzip
     membuat `close`/`handover` menutup shift tanpa memvalidasi item wajib.
+  - `tests/photo-filename.test.ts` — `lib/photo-filename.ts`: nama berkas
+    `[KODE]-[tgl]-[slot]-[user]-[urutan]` dan penurunan `[slot]` dari
+    `start_time` shift definition.
+  - `tests/gas-client.test.ts` — `lib/google/gas-client.ts` (pemetaan galat,
+    konfigurasi, timeout) dan `isFullyRevoked` di `drive-permission-gas.ts`.
+  - `tests/registry-evidence.test.ts` — dua kolom Registry baru
+    (`Branch_Folder_ID`, `Evidence_Folder_ID`) ditambahkan di akhir header,
+    dan `Photos.sha256` ada di akhir kolom `Photos`.
+  - `tests/branch-create.test.ts` — alur pembuatan cabang Registry-first
+    (nonaktif → GAS → aktif) dan perilaku idempotent.
+  - `tests/photo-limit.test.ts` — batas 5 foto per pertanyaan dihitung per
+    shift dan hanya untuk status `uploaded`.
   - Belum ada uji komponen React, uji halaman, dan belum ada uji terhadap
     spreadsheet/izin Drive sungguhan. Jangan menyatakan alur runtime Sheets
     sebagai lulus tanpa menjalankannya.

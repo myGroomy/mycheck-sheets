@@ -52,7 +52,7 @@ Pemetaan Chen → token Mermaid yang dipakai di dokumen ini:
 | `N`        | `o{`          |
 | `M`        | `\}o`         |
 
-Keempat diagram di §3 sudah divalidasi dengan parser Mermaid (versi 11) dan
+Keempat diagram diS3 sudah divalidasi dengan parser Mermaid (versi 11) dan
 lolos parse.
 
 ---
@@ -441,7 +441,7 @@ terlibat (garis ganda), *parsial* = boleh tidak terlibat (garis tunggal).
 | R18 | mencatat | SHIFT_INSTANCES | INCIDENTS | 0..1:N | parsial / parsial | `shift_instance_id` boleh kosong bila `outside_shift` |
 | R19 | dikategorikan | INCIDENT_CATEGORIES | INCIDENTS | 1:N | parsial / parsial | `Incidents.category_id` |
 | R20 | didokumentasikan | INCIDENTS | INCIDENT_NOTES | 1:N | total / parsial | `IncidentNotes.incident_id` |
-| R21 | dilampiri | (ENTRIES ∪ HANDOVERS ∪ INCIDENTS) | PHOTOS | M:N | parsial / parsial | **Polimorfik** — lihat §5.3 |
+| R21 | dilampiri | (ENTRIES ∪ HANDOVERS ∪ INCIDENTS) | PHOTOS | M:N | parsial / parsial | **Polimorfik** — lihatS5.3 |
 | R22 | diberi tahu | USERS | NOTIFICATIONS | 1:N | parsial / parsial | `Notifications.user_id` |
 | R23 | diaudit | USERS | AUDIT_LOG | 1:N | parsial / parsial | `AuditLog.actor_id` |
 | R24 | memproses | SHIFT_INSTANCES | ENTRIES | 1:N | parsial / parsial | `Entries.completed_by` |
@@ -513,7 +513,7 @@ bergantian aktif:
 | `incident`   | `Incidents.id`        |
 
 Konsekuensi: **tidak ada foreign key yang bisa dideklarasikan** untuk relasi
-ini. Validasi hanya dilakukan runtime di route upload. Lihat §6.4.
+ini. Validasi hanya dilakukan runtime di route upload. LihatS6.4.
 
 ### 5.4 "Relasi" tanpa kolom: template snapshot
 
@@ -578,7 +578,7 @@ Username = "Nurul Hilma"
 
 Akibatnya `Username` tidak memenuhi syarat identifier yang aman untuk nama berkas
 dan untuk URL. Ini relevan langsung untuk
-[`PHOTO-EVIDENCE-DRIVE.md`](PHOTO-EVIDENCE-DRIVE.md) §7.1, yang karena itu
+[`PHOTO-EVIDENCE-DRIVE.md`](PHOTO-EVIDENCE-DRIVE.md)S7.1, yang karena itu
 wajib menyanitasi username sebelum dipakai di nama berkas.
 
 ### 6.3 Kardinalitas R1 ditentukan role, bukan oleh data
@@ -674,5 +674,5 @@ Yang **tidak** dijamin oleh penyimpanan, meski relasi di atas tampak tegas:
 - [`ERD.md`](ERD.md) — ERD ringkas gaya crow's foot
 - [`PHOTO-EVIDENCE-DRIVE.md`](PHOTO-EVIDENCE-DRIVE.md) — rencana pemindahan
   penyimpanan foto ke Google Apps Script
-- [`AGENTS.md`](AGENTS.md) §3 dan §5 — arsitektur yang berjalan dan batasan
+- [`AGENTS.md`](AGENTS.md)S3 danS5 — arsitektur yang berjalan dan batasan
   konsistensi

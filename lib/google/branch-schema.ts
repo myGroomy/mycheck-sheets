@@ -26,7 +26,7 @@ export const MONTHLY_SHEETS: Record<string, string[]> = {
   HandoverAcks: ['id', 'handover_id', 'reading_shift_instance_id', 'user_id', 'read_at', 'created_at'],
   Incidents: ['id', 'shift_instance_id', 'tab_month', 'category_id', 'description', 'occurred_at', 'reported_by', 'reported_at', 'status', 'outside_shift', 'link_source', 'linked_by', 'linked_at', 'source_entry_id', 'severity', 'status_changed_by', 'status_changed_at', 'is_test', 'created_at', 'updated_at', 'version'],
   IncidentNotes: ['id', 'incident_id', 'author_id', 'author_role', 'note', 'created_at'],
-  Photos: ['id', 'shift_instance_id', 'owner_type', 'owner_id', 'storage', 'file_ref', 'mime', 'size_bytes', 'width', 'height', 'sort_order', 'status', 'uploaded_by', 'uploaded_at', 'purged_at', 'created_at'],
+  Photos: ['id', 'shift_instance_id', 'owner_type', 'owner_id', 'storage', 'file_ref', 'mime', 'size_bytes', 'width', 'height', 'sort_order', 'status', 'uploaded_by', 'uploaded_at', 'purged_at', 'created_at', 'sha256'],
   AuditLog: ['id', 'seq', 'at', 'actor_id', 'action', 'object_type', 'object_id', 'branch_id', 'shift_instance_id', 'before', 'after', 'reason', 'prev_hash', 'hash'],
 };
 

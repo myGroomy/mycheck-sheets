@@ -26,6 +26,8 @@ export interface CabangRow {
   Folder_Drive_ID: string;
   Aktif: boolean;
   Alamat: string;
+  Branch_Folder_ID?: string;
+  Evidence_Folder_ID?: string;
   [key: string]: unknown;
 }
 
@@ -54,6 +56,8 @@ const CABANG_HEADERS = [
   // PRD ADM-BR-01 / PRD S10 menyebut "alamat singkat". Ditambahkan di akhir
   // supaya kolom lama tidak bergeser dan data existing tidak perlu dimigrasi.
   'Alamat',
+  'Branch_Folder_ID',
+  'Evidence_Folder_ID',
 ];
 const USER_HEADERS = [
   'User_ID',
@@ -102,7 +106,44 @@ export async function getCabangList(): Promise<CabangRow[]> {
     Folder_Drive_ID: asStr(r.Folder_Drive_ID),
     Aktif: asBool(r.Aktif),
     Alamat: asStr(r.Alamat),
+    Branch_Folder_ID: asStr(r.Branch_Folder_ID),
+    Evidence_Folder_ID: asStr(r.Evidence_Folder_ID),
   }));
+}
+
+export async function updateCabangStructure(
+  cabangId: string,
+  updates: {
+    spreadsheetId?: string;
+    branchFolderId?: string;
+    evidenceFolderId?: string;
+    aktif?: boolean;
+  }
+): Promise<void> {
+  const registryId = getRegistrySpreadsheetId();
+  const { headers, rows } = await readSheetDataRaw(registryId, CABANG_SHEET);
+  const branchColumn = headers.indexOf('Cabang_ID');
+  if (branchColumn < 0) {
+    throw new Error('Kolom Cabang_ID tidak ditemukan di Registry');
+  }
+  const rowIndex = rows.findIndex((row) => asStr(row[branchColumn]) === cabangId);
+  if (rowIndex < 0) throw new Error('CABANG_TIDAK_DITEMUKAN: ' + cabangId);
+
+  const cells: { row: number; col: number; value: unknown }[] = [];
+  const map: Record<string, unknown> = {};
+  if (updates.spreadsheetId !== undefined) map['Spreadsheet_ID'] = updates.spreadsheetId;
+  if (updates.branchFolderId !== undefined) map['Branch_Folder_ID'] = updates.branchFolderId;
+  if (updates.evidenceFolderId !== undefined) map['Evidence_Folder_ID'] = updates.evidenceFolderId;
+  if (updates.aktif !== undefined) map['Aktif'] = updates.aktif;
+
+  for (const [key, value] of Object.entries(map)) {
+    const col = headers.indexOf(key);
+    if (col >= 0) {
+      cells.push({ row: rowIndex + 2, col, value });
+    }
+  }
+  await writeRegistryCells(registryId, CABANG_SHEET, cells);
+  resetRegistryCache();
 }
 
 export async function insertCabang(row: CabangRow): Promise<void> {

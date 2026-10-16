@@ -25,6 +25,8 @@ export const CABANG_HEADERS = [
   'Folder_Drive_ID',
   'Aktif',
   'Alamat',
+  'Branch_Folder_ID',
+  'Evidence_Folder_ID',
   'Created_At',
 ];
 
@@ -35,6 +37,8 @@ export interface FakeBranch {
   timezone?: string;
   active?: boolean;
   spreadsheetId?: string | null;
+  branchFolderId?: string;
+  evidenceFolderId?: string;
 }
 
 /**
@@ -57,6 +61,8 @@ export function seedRegistry(branches: FakeBranch[]): ReturnType<typeof useWorkb
       Folder_Drive_ID: 'folder-uji',
       Aktif: branch.active ?? true,
       Alamat: '',
+      Branch_Folder_ID: branch.branchFolderId ?? '',
+      Evidence_Folder_ID: branch.evidenceFolderId ?? '',
       Created_At: '2026-01-01T00:00:00.000Z',
     })),
     REGISTRY_SPREADSHEET_ID

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Circle, FileText, MinusCircle, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Circle, ExternalLink, FileText, MinusCircle, Users } from 'lucide-react';
 import type { Snapshot } from '@/lib/db/snapshot';
 import { PublicReportActions } from '@/components/report/public-report-actions';
 import { containsPhotoId, formatReportValue } from '@/lib/shared/report-values';
@@ -41,12 +41,13 @@ export interface PublicReportViewData {
   addenda: Array<{ id: string; note: string; authorName: string; createdAt: Date }>;
   photos: Array<{
     id: string;
+    fileRef?: string;
     ownerType: string;
     ownerId: string;
     mime: string;
     uploadedAt: string;
     status: string;
-    src: string;
+    src?: string;
   }>;
 }
 
@@ -237,25 +238,41 @@ export function PublicReportView({
         <section className="break-inside-auto rounded-2xl border border-border bg-surface p-5 print:rounded-none print:border print:p-3">
           <h2 className="text-lg font-bold">Lampiran foto</h2>
           <p className="mt-1 text-sm text-ink-muted">Lampiran foto checklist, handover, dan incident.</p>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
-            {attachedPhotos.map((photo) => (
-              <figure key={photo.id} className="break-inside-avoid overflow-hidden rounded-xl border border-border bg-canvas print:rounded-none">
-                <a href={photo.src} target="_blank" rel="noreferrer" aria-label={`Buka lampiran foto: ${pointTitleByRef.get(photo.ownerId) ?? (photo.ownerType === 'handover' ? 'Handover' : 'Incident')}`}>
-                  <img
-                    src={photo.src}
-                    alt={`Lampiran foto — ${pointTitleByRef.get(photo.ownerId) ?? (photo.ownerType === 'handover' ? 'Handover' : 'Incident')}`}
-                    loading="eager"
-                    className="aspect-[4/3] w-full object-contain print:max-h-64 print:object-contain"
-                  />
-                </a>
-                <figcaption className="border-t border-border p-3">
-                  <p className="text-sm font-medium">{pointTitleByRef.get(photo.ownerId) ?? (photo.ownerType === 'handover' ? 'Handover' : 'Incident')}</p>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    Diunggah {new Date(photo.uploadedAt).toLocaleString('id-ID')}
-                  </p>
-                </figcaption>
-              </figure>
-            ))}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-2">
+            {attachedPhotos.map((photo) => {
+              const driveUrl = photo.fileRef
+                ? `https://drive.google.com/file/d/${photo.fileRef}/view`
+                : photo.src || '#';
+              const labelContext =
+                pointTitleByRef.get(photo.ownerId) ??
+                (photo.ownerType === 'handover' ? 'Handover' : 'Incident');
+
+              return (
+                <div
+                  key={photo.id}
+                  className="flex flex-col justify-between rounded-xl border border-border bg-canvas p-4 print:rounded-none"
+                >
+                  <div>
+                    <p className="text-sm font-semibold">{labelContext}</p>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Diunggah {new Date(photo.uploadedAt).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                  <div className="mt-4">
+                    <a
+                      href={driveUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink hover:bg-canvas-subtle transition-colors shadow-xs"
+                      aria-label={`Cek bukti foto untuk ${labelContext}`}
+                    >
+                      <span>Cek bukti foto</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-ink-muted" />
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

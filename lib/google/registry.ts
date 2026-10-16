@@ -14,9 +14,14 @@ import { readSheetData, sheetToObjects, getCellValue } from './sheets';
 export interface CabangRecord {
   Cabang_ID: string;
   Nama_Cabang?: string;
+  Kode?: string;
+  Timezone?: string;
   Spreadsheet_ID?: string;
   Folder_Drive_ID?: string;
   Aktif?: boolean | string;
+  Alamat?: string;
+  Branch_Folder_ID?: string;
+  Evidence_Folder_ID?: string;
   [key: string]: unknown;
 }
 

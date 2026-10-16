@@ -24,6 +24,10 @@ export async function uploadPhotoWithProgress({
   shiftInstanceId,
   onProgress,
 }: UploadPhotoOptions): Promise<UploadResult> {
+  if (file.type !== 'image/webp') {
+    throw new Error('Hanya format foto WebP yang didukung untuk diunggah.');
+  }
+
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const form = new FormData();

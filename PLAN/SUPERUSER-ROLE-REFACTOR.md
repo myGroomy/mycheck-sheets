@@ -183,7 +183,7 @@ filter, buat/cabut share link, export CSV, share WhatsApp, paginasi — itu
 
 ## 3. Phase 1 — Konteks Cabang Kerja (Fondasi)
 
-> **STATUS: SELESAI (2026-10-15).** Lihat §3.6 untuk hasil aktual dan
+> **STATUS: SELESAI (2026-10-15).** LihatS3.6 untuk hasil aktual dan
 > penyimpangan dari rencana awal.
 
 > **Harus selesai lebih dulu.** Phase 2–4 bergantung padanya. Kalau urutan
@@ -273,7 +273,7 @@ Penyimpangan dari rancana awal, dan alasannya:
 | `requiresSelection`       | Didefinisikan sebagai "admin belum memilih"                               | Dipertahankan, tapi perannya menjadi **guard defensif**    | Dengan auto-default, kondisi ini praktis tidak terjadi. Yang benar-benar mencegah data salah cabang adalah penolakan 400 di API untuk pemanggilan langsung. |
 | `openShiftOnBehalf`       | "Ganti `ctx.branchIds[0]`"                                                | **Tidak diubah**                                           | Implementasi yang jalan (`lib/admin/shift-operations.ts`) sudah benar; yang bermasalah adalah dead code (§1.5).                                             |
 | Penempatan selector       | "Pilihan A: footer sidebar desktop"                                       | **Desktop sidebar + drawer "Lainnya" mobile**              | Kalau hanya desktop, admin di ponsel tidak akan bisa mengganti cabang sama sekali.                                                                          |
-| Konfirmasi cabang di form | Disyarankan di §3.4                                                       | Ditambahkan di form incident                               | Guard terkuat: nama cabang tampil tepat sebelum submit.                                                                                                     |
+| Konfirmasi cabang di form | Disyarankan diS3.4                                                       | Ditambahkan di form incident                               | Guard terkuat: nama cabang tampil tepat sebelum submit.                                                                                                     |
 | `POST /api/shifts/open`   | "validasi cocok dengan cabang dari shiftDefinitionId"                     | Pencarian definisi **dibatasi** ke `branchId` yang dikirim | Lebih ketat dan lebih murah: definisi tidak lagi dicari di cabang lain lalu ditemukan di sana.                                                              |
 
 
@@ -281,7 +281,7 @@ Penyimpangan dari rancana awal, dan alasannya:
 
 ## 4. Phase 2 — Penyatuan Peran
 
-> **STATUS: SELESAI (2026-10-15).** Lihat §4.3 untuk hasil audit aktual.
+> **STATUS: SELESAI (2026-10-15).** LihatS4.3 untuk hasil audit aktual.
 
 ### 4.1 Hapus blokir — \[RENCANA\]
 
@@ -306,12 +306,12 @@ Audit seluruh titik `role === 'admin'` / `requireRole` setelah Phase 2:
 | `app/page.tsx:11`                                      | **Dipertahankan**             | Admin diarahkan ke `/admin` karena itu berandanya. Yang dihapus sifat eksklusifnya, bukan arahannya.                                      |
 | `components/AuthGuard.tsx:36`                          | **Dipertahankan**             | Konsisten dengan `app/page.tsx`.                                                                                                          |
 | `app/admin/layout.tsx`                                 | **Dipertahankan**             | Area `/admin/*` memang khusus admin.                                                                                                      |
-| `app/layout.tsx:77` (maintenance)                      | **Dipertahankan**             | Admin tetap boleh masuk saat maintenance supaya bisa menonaktifkannya. Ini juga rekomendasi di §13, jadi pertanyaan itu terjawab: **ya**. |
+| `app/layout.tsx:77` (maintenance)                      | **Dipertahankan**             | Admin tetap boleh masuk saat maintenance supaya bisa menonaktifkannya. Ini juga rekomendasi diS13, jadi pertanyaan itu terjawab: **ya**. |
 | `PATCH /api/incidents/[id]`                            | **Dipertahankan** admin-only  | Mengubah status / mengaitkan incident ke shift adalah triage, bukan pekerjaan petugas. Ini privilege yang wajar.                          |
 | Seluruh `/api/admin/*`                                 | **Dipertahankan**             | `requireRole(ctx,'admin')` sudah benar.                                                                                                   |
 | `app/admin/akun/page.tsx` (badge role)                 | **Dipertahankan**             | Tampilan saja.                                                                                                                            |
-| `app/admin/operasi-shift/page.tsx:305,310`             | **TIDAK diubah** — lihat §4.3 | Melonggarkan filter ini hanya akan memindahkan kegagalan ke server.                                                                       |
-| `app/api/admin/users/route.ts:87` + `[id]/route.ts:99` | **Dipertahankan**             | Lihat §4.3.                                                                                                                               |
+| `app/admin/operasi-shift/page.tsx:305,310`             | **TIDAK diubah** — lihatS4.3 | Melonggarkan filter ini hanya akan memindahkan kegagalan ke server.                                                                       |
+| `app/api/admin/users/route.ts:87` + `[id]/route.ts:99` | **Dipertahankan**             | LihatS4.3.                                                                                                                               |
 | `NavbarClient.tsx`, `lib/nav-config.ts`                | Menunggu Phase 5              | Navigasi.                                                                                                                                 |
 
 
@@ -561,7 +561,7 @@ Termasuk `handover-prev.test.ts` yang memuat
 
 Phase 1 (§3.5) adalah yang paling penting karena menutup dua bug laten.
 
-> **Catatan cakupan:** `PLAN/AGENTS.md` §7 menyatakan belum ada uji komponen
+> **Catatan cakupan:** `PLAN/AGENTS.md`S7 menyatakan belum ada uji komponen
 > React maupun uji halaman. Verifikasi UI (dropdown cabang, tab, submit form)
 > **tetap dilakukan manual di perangkat** dan belum bisa dibuktikan oleh test suite.
 
@@ -614,7 +614,7 @@ npm run build        # next build --webpack
 | Admin tanpa cabang kerja menulis ke cabang yang salah      | API `400`, tidak ada fallback. Working branch wajib dipilih sebelum form bisa disubmit.                         |
 | `branchIds[0]` tersisa di jalur tulis lain                 | Grep ulang `branchIds[0]` setelah Phase 1; hanya boleh tersisa di jalur baca atau fallback petugas satu-cabang. |
 | Test lama mengira admin = akses penuh tanpa cabang         | Yang ditambahkan hanya gate **tulis**. Gate baca tidak berubah.                                                 |
-| Select "Cabang" di form incident yang selama ini dekoratif | Diperbaiki di §3.4 — kirim `branchId` di body.                                                                  |
+| Select "Cabang" di form incident yang selama ini dekoratif | Diperbaiki diS3.4 — kirim `branchId` di body.                                                                  |
 | Nav 12 item padat di mobile                                | Bottom bar capped 4; sisanya drawer "Lainnya".                                                                  |
 | Diff Phase 4 terlalu besar (870 baris dipindah + diubah)   | Pindahkan dulu tanpa modifikasi lain; refactor menyusul.                                                        |
 | Admin tersesat di `/admin/handover`                        | Halaman itu adalah riwayat + builder, jadi                                                                      |
@@ -629,9 +629,9 @@ npm run build        # next build --webpack
 
 | Lokasi             | Klaim lama                                                                   | Setelah perubahan                                                                      |
 | ------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `AGENTS.md` §2     | "Dua peran akun: Petugas dan Admin."                                         | Tetap dua role; hubungan berubah menjadi superuser.                                    |
-| `AGENTS.md` §6     | "`/` ... mengarahkan admin ke `/admin`, dan petugas ke `/daftar-shift`"      | Tetap sama untuk arah; tapi admin kini juga bisa memakai `/daftar-shift`.              |
-| `AGENTS.md` §4     | "Proteksi role/cabang diterapkan oleh handler yang memanggil helper terkait" | Tetap; tambahkan catatan bahwa admin kini wajib memilih cabang kerja untuk aksi tulis. |
+| `AGENTS.md`S2     | "Dua peran akun: Petugas dan Admin."                                         | Tetap dua role; hubungan berubah menjadi superuser.                                    |
+| `AGENTS.md`S6     | "`/` ... mengarahkan admin ke `/admin`, dan petugas ke `/daftar-shift`"      | Tetap sama untuk arah; tapi admin kini juga bisa memakai `/daftar-shift`.              |
+| `AGENTS.md`S4     | "Proteksi role/cabang diterapkan oleh handler yang memanggil helper terkait" | Tetap; tambahkan catatan bahwa admin kini wajib memilih cabang kerja untuk aksi tulis. |
 | `PLAN/APP_FLOW.md` | Daftar route `/admin/kategori-incident`, `/admin/checklist-builder`          | menjadi sub-halaman tab.                                                               |
 
 
@@ -655,7 +655,7 @@ shift, bukan peran akun" tetap berlaku.
 **Satu pertanyaan terbuka** sebelum Phase 4 dikerjakan (Phase 1–3 bisa jalan dulu):
 
 > **Batas antara `/admin/checklist` tab Riwayat dan `/admin/laporan`**
-> (opsi A/B/C di §6.2). Rekomendasi: **Opsi A**.
+> (opsi A/B/C diS6.2). Rekomendasi: **Opsi A**.
 
 Ditambah satu konfirmasi kecil:
 

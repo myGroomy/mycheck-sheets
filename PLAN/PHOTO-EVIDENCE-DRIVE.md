@@ -205,7 +205,7 @@ Sebelum implementasi, hal-hal berikut sudah diperiksa dan hasilnya mendukung:
 | Template punya 22 sheet, semua cocok `branch-schema.ts`      | ✅ tidak ada sheet yang hilang                                                            |
 | Service account **boleh membuat folder**                     | ✅ (folder `MyCheck - CBGBDG01` dibuat olehnya)                                          |
 | Service account **tidak boleh menyalin berkas**              | ❌ butuh GAS                                                                              |
-| Izin `anyoneWithLink: writer` pada ROOT dan CABANG           | ⚠️ perlu dibersihkan — lihat §12                                                          |
+| Izin `anyoneWithLink: writer` pada ROOT dan CABANG           | ⚠️ perlu dibersihkan — lihatS12                                                          |
 
 > Catatan: izin `Anyone with the link` pada **folder** tidak otomatis berlaku
 > ke berkas di dalamnya. Setiap foto tetap perlu di-share eksplisit, dan GAS
@@ -297,7 +297,7 @@ Rincian:
 - **Nama berkas**: `^[A-Z0-9][A-Z0-9._-]{0,120}\.(webp|png|jpg|jpeg)$`. Ditolak
   bila tidak cocok. Tidak pernah dipakai sebagai path.
 - **Sharing**: setiap foto di-set `DriveApp.Access.ANYONE_WITH_LINK` +
-  `DriveApp.Permission.VIEW`, sesuai keputusan §0 no. 3.
+  `DriveApp.Permission.VIEW`, sesuai keputusanS0 no. 3.
 - **Anti-tabrakan**: bila nama berkas sudah ada di folder, GAS menambah
   `-2`, `-3`, dst. sebelum menyimpan. Ini jaring pengaman; penomoran utama
   dibuat di sisi Next.js (§7.1).
@@ -359,7 +359,7 @@ Cabang_ID | Nama_Cabang | Kode | Timezone | Spreadsheet_ID | Folder_Drive_ID | A
 3. → GAS createBranchStructure({branchCode, branchName})
 4. Tulis Registry:
      Spreadsheet_ID     = spreadsheetId
-     Folder_Drive_ID    = folderId          ← fix bug laten §1.6
+     Folder_Drive_ID    = folderId          ← fix bug latenS1.6
      Evidence_Folder_ID = evidenceFolderId
      Aktif              = true              ← spreadsheet sudah di-share ke SA oleh GAS
 5. Response ke UI menampilkan ketiga ID
@@ -415,13 +415,13 @@ Aturan:
 | ------------- | --------------------------------------------- | ------------------------------------------------------------ |
 | `[KODE_CABANG]` | REGISTRY `Kode`                              | Huruf besar; buang karakter di luar `[A-Z0-9-]`; fallback `umum` |
 | `[tgl]`       | `ShiftInstances.shift_date`                   | `DDMMYYYY`; fallback ke tanggal hari ini **timezone cabang** |
-| `[slot]`      | `ShiftDefinitions.start_time`                 | Lihat tabel §7.2                                            |
+| `[slot]`      | `ShiftDefinitions.start_time`                 | Lihat tabelS7.2                                            |
 | `[user]`      | session user `username`                       | Huruf kecil; buang karakter di luar `[a-z0-9._-]`; fallback `unknown` |
 | `[urutan]`    | jumlah foto pada grup yang sama + 1           | Mulai 1                                                      |
 
 ### 7.2 Penurunan `[slot]` dari jam
 
-Decision §0 no. 8. Bucket dari `start_time` shift definition, lima rentang
+DecisionS0 no. 8. Bucket dari `start_time` shift definition, lima rentang
 tanpa tumpang tindih dan menutup penuh 00:00–23:59:
 
 | `start_time` | `slot`  |
@@ -534,7 +534,7 @@ tombol:
 ```
 
 - Berlaku untuk `ownerType` `entry`, `handover`, **dan** `incident`
-  (sesuai keputusan §0 no. 5).
+  (sesuai keputusanS0 no. 5).
 - `photos[].src` (proxy `/api/photos/[id]`) tidak lagi dipakai di laporan.
 - Endpoint `/api/photos/[id]` **dipertahankan** — masih berguna untuk
   pratinjau terautentikasi di halaman lain. Perlu audit saat implementasi
@@ -547,7 +547,7 @@ tombol:
 
 Karena foto sekarang `Anyone with the link: viewer`, pembaca laporan publik
 (`/r/[token]`) bisa membuka tautan tanpa login. Ini konsekuensi yang disetujui;
-dicatat di §12.
+dicatat diS12.
 
 ---
 
@@ -601,7 +601,7 @@ Test (Fase H) ditulis berdampingan dengan tiap fase, bukan di akhir.
 
 ## 12. Risiko & Batasan \[RENCANA\]
 
-1. **Foto menjadi publik.** Sesuai keputusan §0 no. 3, setiap foto diberi
+1. **Foto menjadi publik.** Sesuai keputusanS0 no. 3, setiap foto diberi
    `Anyone with the link: viewer`. ID berkas Drive acak dan tidak dapat ditebak,
    jadi risikonya "orang yang punya tautan", bukan "publik searchable".
    Walaupun begitu, laporan `/r/[token]` bisa dibagikan ke pihak ketiga, jadi
@@ -611,7 +611,7 @@ Test (Fase H) ditulis berdampingan dengan tiap fase, bukan di akhir.
    Tidak ada redundansi.
 3. **GAS adalah titik kegagalan tunggal.** Tidak ada retry otomatis; sheet
    `Photos` bisa punya baris menunjuk `file_ref` yang gagal diunggah. Perlu
-  QoS/reconciliation berkala (di luar lingkup, §13).
+  QoS/reconciliation berkala (di luar lingkup,S13).
 4. **`anyoneWithLink: writer` pada ROOT dan CABANG** — izin ini memberi hak
    menulis ke siapa pun yang punya link folder, dan **tidak** diperlukan lagi
    setelah folder dibuat ulang. Perlu dibersihkan (§6 langkah 6).
@@ -657,7 +657,7 @@ lulus tanpa menjalankannya.
 
 **B. Pembuatan cabang (lingkup baru)**
 - [ ] Cabang uji dibuat; ketiga ID masuk Registry
-- [ ] `Folder_Drive_ID` bukan lagi ID root (bug §1.6)
+- [ ] `Folder_Drive_ID` bukan lagi ID root (bugS1.6)
 - [ ] Spreadsheet cabang bisa dibuka dan dibaca service account
 
 **C. Upload**

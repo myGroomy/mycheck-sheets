@@ -14,7 +14,8 @@
     "test": "tsx --test \"tests/**/*.test.ts\"",
     "setup:registry": "tsx --env-file=.env scripts/setup-registry.ts",
     "setup:branch": "tsx --env-file=.env scripts/setup-branch.ts",
-    "seed:admin": "tsx --env-file=.env scripts/seed-admin.ts"
+    "seed:admin": "tsx --env-file=.env scripts/seed-admin.ts",
+    "revoke:public-write": "tsx --env-file=.env scripts/revoke-public-write.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",

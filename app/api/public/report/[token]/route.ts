@@ -59,8 +59,9 @@ export async function GET(
     handover: result.detail.handover,
     incidents: result.detail.incidents,
     entries: result.detail.entries,
-    photos: result.detail.photos.map(({ id, ownerType, ownerId, mime, uploadedAt, status }) => ({
+    photos: result.detail.photos.map(({ id, fileRef, ownerType, ownerId, mime, uploadedAt, status }) => ({
       id,
+      fileRef,
       ownerType,
       ownerId,
       mime,

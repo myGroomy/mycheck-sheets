@@ -7,6 +7,7 @@ import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import { uploadPhotoWithProgress } from '@/lib/upload-photo';
+import { compressPhoto } from '@/lib/photo-compress';
 import { useWorkingBranch } from '@/lib/working-branch';
 
 interface Option {
@@ -122,8 +123,9 @@ export function IncidentCreateForm() {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
+          const compressed = await compressPhoto(file);
           await uploadPhotoWithProgress({
-            file,
+            file: compressed,
             ownerType: 'incident',
             ownerId: result.incident_id,
             shiftInstanceId,

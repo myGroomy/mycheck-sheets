@@ -1,4 +1,4 @@
-import { PassThrough } from 'stream';
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { withAuth } from '../../../../lib/api-auth';
@@ -13,11 +13,13 @@ import {
   listMonthlyRows,
 } from '../../../../lib/store';
 import { asStr } from '../../../../lib/store';
-import { getDriveClient } from '../../../../lib/google/client';
 import {
   DrivePhotoFolderError,
   ensureBranchPhotoFolder,
 } from '../../../../lib/google/drive-storage';
+import { buildPhotoBaseName } from '../../../../lib/photo-filename';
+import { uploadPhotoViaGas, type UploadPhotoGasOutput } from '../../../../lib/google/photo-upload-gas';
+import { GasError } from '../../../../lib/google/gas-client';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_INCIDENT_PHOTOS = 5;
@@ -31,7 +33,6 @@ function extensionFor(mime: string): string | null {
 }
 
 export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 withAuth(async (_req, ctx, _session) => {
   const formData = await _req.formData();
   const file = formData.get('file');
@@ -65,6 +66,7 @@ withAuth(async (_req, ctx, _session) => {
   let spreadsheetId = '';
   let branchId = '';
   let tabMonth = new Date().toISOString().slice(0, 7);
+  let resolvedInstance: Record<string, unknown> | null = null;
 
   if (ownerType === 'incident') {
     let found = false;
@@ -116,7 +118,10 @@ withAuth(async (_req, ctx, _session) => {
     await ensureMonthlySheet(spreadsheetId, 'Photos', tabMonth);
     const existing = await listMonthlyRows(spreadsheetId, 'Photos', tabMonth);
     const count = existing.filter(
-      (p) => asStr(p['owner_type']) === 'incident' && asStr(p['owner_id']) === ownerId
+      (p) =>
+        asStr(p['owner_type']) === 'incident' &&
+        asStr(p['owner_id']) === ownerId &&
+        asStr(p['status']) === 'uploaded'
     ).length;
     if (count >= MAX_INCIDENT_PHOTOS) {
       return NextResponse.json(
@@ -140,6 +145,7 @@ withAuth(async (_req, ctx, _session) => {
     branchId = resolved.branchId;
     tabMonth = resolved.tabMonth;
     resolvedShiftId = shiftInstanceId;
+    resolvedInstance = resolved.instance;
 
     if (asStr(resolved.instance['status']) !== 'berjalan') {
       return NextResponse.json(
@@ -172,57 +178,101 @@ withAuth(async (_req, ctx, _session) => {
     if (ownerType === 'entry' || ownerType === 'handover') {
       await ensureMonthlySheet(spreadsheetId, 'Photos', tabMonth);
       const existing = await listMonthlyRows(spreadsheetId, 'Photos', tabMonth);
+      // Batas foto per shift: hitung hanya untuk shiftInstanceId ini dan status uploaded
       const count = existing.filter(
-        (photo) => asStr(photo['owner_type']) === ownerType && asStr(photo['owner_id']) === ownerId
+        (photo) =>
+          asStr(photo['owner_type']) === ownerType &&
+          asStr(photo['owner_id']) === ownerId &&
+          asStr(photo['shift_instance_id']) === shiftInstanceId &&
+          asStr(photo['status']) === 'uploaded'
       ).length;
       if (count >= MAX_ATTACHED_PHOTOS) {
-        return NextResponse.json({ error: `Maksimal ${MAX_ATTACHED_PHOTOS} foto untuk satu ${ownerType === 'entry' ? 'pertanyaan' : 'handover'}.` }, { status: 400 });
+        return NextResponse.json(
+          {
+            error: `Maksimal ${MAX_ATTACHED_PHOTOS} foto untuk satu ${
+              ownerType === 'entry' ? 'pertanyaan' : 'handover'
+            }.`,
+          },
+          { status: 400 }
+        );
       }
     }
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const photoId = ulid();
-  let folderId: string;
+
+  const resolvedCabang = await resolveCabang(branchId);
+  const folderId =
+    resolvedCabang.cabang.Evidence_Folder_ID ||
+    (await ensureBranchPhotoFolder(branchId).catch((error) => {
+      if (error instanceof DrivePhotoFolderError) {
+        throw error;
+      }
+      throw error;
+    }));
+
+  if (!folderId) {
+    return NextResponse.json(
+      { error: 'Folder penyimpanan tidak dikenali.' },
+      { status: 502 }
+    );
+  }
+
+  const branchCode = resolvedCabang.cabang.Kode || branchId;
+  let shiftDate: string | null = null;
+  let startTime: string | null = null;
+
+  if (resolvedInstance) {
+    shiftDate = asStr(resolvedInstance['shift_date']) || null;
+    const snap = readTemplateSnapshot(resolvedInstance);
+    startTime = snap?.shift?.start_time || null;
+  }
+
+  const baseName = buildPhotoBaseName({
+    branchCode,
+    shiftDate,
+    startTime,
+    username: ctx.user.username || ctx.user.name,
+  });
+
+  let uploaded: UploadPhotoGasOutput;
   try {
-    folderId = await ensureBranchPhotoFolder(branchId);
-  } catch (error) {
-    if (error instanceof DrivePhotoFolderError) {
+    uploaded = await uploadPhotoViaGas({
+      folderId,
+      baseName,
+      mimeType: file.type,
+      buffer,
+    });
+  } catch (gasErr) {
+    if (gasErr instanceof GasError) {
+      if (gasErr.statusCode === 401 || gasErr.statusCode === 403) {
+        return NextResponse.json({ error: 'Konfigurasi server tidak valid.' }, { status: 502 });
+      }
+      if (gasErr.statusCode === 429 || gasErr.statusCode === 503) {
+        return NextResponse.json({ error: 'Server sedang sibuk. Coba lagi sebentar.' }, { status: 503 });
+      }
+      if (gasErr.statusCode === 507) {
+        return NextResponse.json({ error: 'Penyimpanan foto sedang penuh.' }, { status: 507 });
+      }
       return NextResponse.json(
-        { error: `${error.message}. Hubungi admin untuk memeriksa konfigurasi Drive.` },
-        { status: 503 }
+        { error: gasErr.message || 'Foto gagal disimpan. Coba lagi.' },
+        { status: gasErr.statusCode >= 400 && gasErr.statusCode < 600 ? gasErr.statusCode : 502 }
       );
     }
-    throw error;
-  }
-  const filename = `mycheck-${branchId}-${resolvedShiftId ?? 'general'}-${photoId}.${ext}`;
-
-  const drive = getDriveClient();
-  // Drive API mewajibkan media.body berupa stream Buffer mentah membuat
-  // googleapis gagal saat menyusun multipart ("part.body.pipe is not a
-  // function"). Pola ini sama dengan uploadXlsxToDrive di stokis.
-  const bodyStream = new PassThrough();
-  bodyStream.end(buffer);
-  const res = await drive.files.create({
-    requestBody: { name: filename, parents: [folderId] },
-    media: { mimeType: file.type, body: bodyStream },
-    supportsAllDrives: true,
-    fields: 'id',
-  });
-  const uploadedId = String(res.data.id ?? '');
-  if (!uploadedId) {
-    return NextResponse.json({ error: 'Foto gagal disimpan di Google Drive.' }, { status: 502 });
+    return NextResponse.json({ error: 'Foto gagal disimpan. Coba lagi.' }, { status: 502 });
   }
 
+  const sha256Hex = crypto.createHash('sha256').update(buffer).digest('hex');
   const photosTab = await ensureMonthlySheet(spreadsheetId, 'Photos', tabMonth);
   const photoRowId = ulid();
+
   await insertRow(spreadsheetId, photosTab, {
     id: photoRowId,
     shift_instance_id: resolvedShiftId,
     owner_type: ownerType,
     owner_id: ownerId,
     storage: 'drive',
-    file_ref: uploadedId,
+    file_ref: uploaded.fileId,
     mime: file.type,
     size_bytes: buffer.length,
     sort_order: 0,
@@ -230,6 +280,7 @@ withAuth(async (_req, ctx, _session) => {
     uploaded_by: ctx.user.id,
     uploaded_at: new Date().toISOString(),
     created_at: new Date().toISOString(),
+    sha256: sha256Hex,
   });
 
   return NextResponse.json({
