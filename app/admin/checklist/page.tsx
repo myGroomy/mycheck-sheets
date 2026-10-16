@@ -96,7 +96,10 @@ export default function AdminChecklistHistoryPage() {
         <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
           <FileText className="mx-auto h-8 w-8 text-ink-muted" />
           <h2 className="mt-3 font-semibold">Belum ada eksekusi checklist</h2>
-          <p className="mt-1 text-sm text-ink-muted">Laporan akan tersedia setelah Penanggung Jawab menutup shift.</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Laporan akan muncul setelah shift ditutup. Coba buka shift yang sedang
+            berjalan terlebih dahulu, atau perbarui halaman.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

@@ -40,7 +40,15 @@ export async function POST(_req: NextRequest) {
       );
     }
 
-    if (String(user['PIN'] ?? '') !== pin) {
+    // Normalisasi kedua sisi sebelum membandingkan (trim + String) supaya
+    // selisih tipenya (number/string) di Google Sheets tidak menyebabkan
+    // PIN ditolak. PERHATIAN keamanan: PIN masih disimpan plaintext di sheet
+    // registry untuk kompatibilitas dengan STOKIS. Bukan rekomendasi jangka
+    // panjang — lindungi dengan force-change setelah login pertama / atau
+    // hash sesudah infrastruktur autentikasi lama dipindahkan.
+    const storedPin = String(user['PIN'] ?? '').trim();
+    const inputPin = pin.trim();
+    if (storedPin !== inputPin) {
       return NextResponse.json(
         { error: 'PIN yang Anda masukkan salah', code: 'WRONG_PIN' },
         { status: 401 }

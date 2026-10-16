@@ -113,6 +113,19 @@ export async function listMonthlyRows(spreadsheetId: string, base: string, tabMo
   }
 }
 
+/** Versi fresh (bukan cache 15s) untuk data yang baru ditulis, mis. handshake/ack. */
+export async function listMonthlyRowsFresh(
+  spreadsheetId: string,
+  base: string,
+  tabMonth: string,
+): Promise<Record<string, unknown>[]> {
+  try {
+    return await listRowsFresh(spreadsheetId, monthlySheet(base, tabMonth));
+  } catch {
+    return [];
+  }
+}
+
 /** Pastikan sheet bulanan ada (dibuat otomatis jika bulan baru) */
 export async function ensureMonthlySheet(spreadsheetId: string, base: string, tabMonth: string): Promise<string> {
   const name = monthlySheet(base, tabMonth);

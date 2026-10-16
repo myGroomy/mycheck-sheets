@@ -14,7 +14,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '../../../lib/api-auth';
 import { getCabangList, resolveCabang } from '../../../lib/google/registry';
-import { asStr, listMonthlyRows, listRows } from '../../../lib/store';
+import { asStr, listMonthlyRows, listMonthlyRowsFresh, listRows } from '../../../lib/store';
 import { userNameMap } from '../../../lib/incidents';
 import {
   countFilledFields,
@@ -93,12 +93,14 @@ withAuth(async (req, ctx, _session) => {
     if (selected.length === 0) continue;
 
     // 2. Kelompokkan per bulan supaya tiap sheet bulanan dibaca satu kali.
+    //    Pakai fresh read (bukan cache 15s) supaya data yang baru ditulis
+    //    (handover submit / ack) langsung terlihat.
     const months = [...new Set(selected.map((r) => handoverTabMonth(r)))];
     const handoversByMonth = new Map<string, Record<string, unknown>[]>();
     const acksByMonth = new Map<string, Record<string, unknown>[]>();
     for (const month of months) {
-      handoversByMonth.set(month, await listMonthlyRows(spreadsheetId, 'Handovers', month));
-      acksByMonth.set(month, await listMonthlyRows(spreadsheetId, 'HandoverAcks', month));
+      handoversByMonth.set(month, await listMonthlyRowsFresh(spreadsheetId, 'Handovers', month));
+      acksByMonth.set(month, await listMonthlyRowsFresh(spreadsheetId, 'HandoverAcks', month));
     }
 
     // 3. Rakit entri per shift.

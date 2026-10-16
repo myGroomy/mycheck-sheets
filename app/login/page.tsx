@@ -160,7 +160,10 @@ function LoginForm() {
           value={username}
           onChange={(e) => setUsername((e.target as HTMLInputElement).value)}
           placeholder="Masukkan username"
-          autoComplete="username"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck="false"
           className="w-full h-12 rounded-lg border border-border bg-canvas px-3 text-sm text-ink text-center focus:border-ink focus:outline-none"
           required
         />

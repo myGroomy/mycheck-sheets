@@ -3,7 +3,7 @@ import type { Snapshot } from '../../../../../lib/db/snapshot';
 import { getServerTime } from '../../../../../lib/db/server-time';
 import { getZonedParts, isPointActiveOn } from '../../../../../lib/shift/time';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
-import { filterRows, listMonthlyRows } from '../../../../../lib/store';
+import { filterRows, listMonthlyRows, listMonthlyRowsFresh } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
 import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
@@ -64,7 +64,8 @@ withAuth(async (_req, ctx, _session) => {
   const now = getServerTime();
   const dayKey = getZonedParts(now, branchTimezone).dayKey;
 
-  const entryRows = (await listMonthlyRows(spreadsheetId, 'Entries', tabMonth)).filter(
+  // Pakai fresh read supaya entry yang baru dikirim shift muncul langsung.
+  const entryRows = (await listMonthlyRowsFresh(spreadsheetId, 'Entries', tabMonth)).filter(
     (r) => String(r['shift_instance_id']) === shiftInstanceId
   );
   const entryByRef = new Map<string, Record<string, unknown>>(
