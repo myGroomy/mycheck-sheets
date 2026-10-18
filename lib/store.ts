@@ -11,6 +11,7 @@ import {
   writeCells,
   writeRow,
   columnIndexToLetter,
+  listSheetTitles,
 } from './google/sheets';
 import { getHeaders, rowFromObject, periodSheetName, MONTHLY_SHEETS, YEARLY_SHEETS, type PeriodMode } from './google/branch-schema';
 import { listBranchSheetTitles, readBranchSchemaVersion } from './schema/version';
@@ -195,14 +196,23 @@ export async function ensurePeriodSheet(
   const name = periodSheetName(base, tabMonth, periodMode);
   const headers = (periodMode === 'yearly' ? YEARLY_SHEETS : MONTHLY_SHEETS)[base];
   if (!headers) throw new Error('Unknown period sheet: ' + base);
+
+  // Flat templates provision every operational sheet up front. Checking the
+  // spreadsheet metadata on every checklist action costs one read request per
+  // sheet and is the main source of quota pressure during an active shift.
+  // Missing flat sheets are a provisioning/migration problem, not a per-action
+  // condition; callers should repair them through the migration path.
+  if (periodMode === 'flat') return name;
+
   const sheets = getSheetsClient();
-  const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' });
-  const exists = (meta.data.sheets || []).some((sheet) => sheet.properties?.title === name);
+  const exists = (await listSheetTitles(spreadsheetId)).includes(name);
   if (!exists) {
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: { requests: [{ addSheet: { properties: { title: name } } }] },
     });
+    const { invalidateSheetMetadata } = await import('./google/sheets');
+    invalidateSheetMetadata(spreadsheetId);
     await writeRow(spreadsheetId, `${name}!A1`, headers);
   }
   return name;

@@ -31,6 +31,8 @@ interface CacheSlot {
 }
 
 const readCache = new Map<string, CacheSlot>();
+const SHEET_METADATA_TTL_MS = 300_000;
+const sheetTitlesCache = new Map<string, { promise: Promise<string[]>; expiresAt: number }>();
 
 function cacheKey(spreadsheetId: string, range: string): string {
   return `${spreadsheetId}!${range}`;
@@ -45,6 +47,31 @@ export function invalidateSheetCache(spreadsheetId?: string): void {
   const prefix = `${spreadsheetId}!`;
   for (const key of readCache.keys()) {
     if (key.startsWith(prefix)) readCache.delete(key);
+  }
+}
+
+export function invalidateSheetMetadata(spreadsheetId?: string): void {
+  if (!spreadsheetId) {
+    sheetTitlesCache.clear();
+    return;
+  }
+  sheetTitlesCache.delete(spreadsheetId);
+}
+
+export async function listSheetTitles(spreadsheetId: string, fresh = false): Promise<string[]> {
+  const cached = sheetTitlesCache.get(spreadsheetId);
+  if (!fresh && cached && Date.now() < cached.expiresAt) return cached.promise;
+  const promise = getSheetsClient()
+    .spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' })
+    .then((response) => (response.data.sheets ?? [])
+      .map((sheet) => String(sheet.properties?.title ?? ''))
+      .filter(Boolean));
+  if (!fresh) sheetTitlesCache.set(spreadsheetId, { promise, expiresAt: Date.now() + SHEET_METADATA_TTL_MS });
+  try {
+    return await promise;
+  } catch (error) {
+    if (sheetTitlesCache.get(spreadsheetId)?.promise === promise) sheetTitlesCache.delete(spreadsheetId);
+    throw error;
   }
 }
 
@@ -348,13 +375,7 @@ export async function ensureSheet(
 ): Promise<void> {
   invalidateSheetCache(spreadsheetId);
   const sheets = getSheetsClient();
-  const meta = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: 'sheets.properties.title',
-  });
-  const exists = (meta.data.sheets || []).some(
-    (s) => s.properties?.title === sheetTitle
-  );
+  const exists = (await listSheetTitles(spreadsheetId)).includes(sheetTitle);
 
   if (!exists) {
     await sheets.spreadsheets.batchUpdate({
@@ -363,6 +384,7 @@ export async function ensureSheet(
         requests: [{ addSheet: { properties: { title: sheetTitle } } }],
       },
     });
+    invalidateSheetMetadata(spreadsheetId);
     await writeRow(spreadsheetId, `${sheetTitle}!A1`, headers);
     return;
   }
@@ -391,4 +413,3 @@ export function columnIndexToLetter(index: number): string {
   }
   return letters;
 }
-

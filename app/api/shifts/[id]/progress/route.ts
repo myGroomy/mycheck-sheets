@@ -3,10 +3,10 @@ import type { Snapshot } from '../../../../../lib/db/snapshot';
 import { getServerTime } from '../../../../../lib/db/server-time';
 import { getZonedParts, isPointActiveOn } from '../../../../../lib/shift/time';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
-import { filterRows, listMonthlyRows, listMonthlyRowsFresh } from '../../../../../lib/store';
+import { filterRows, listMonthlyRows } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
 import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
-import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
+import { listAllUsers } from '../../../../../lib/google/registry-admin';
 
 interface ProgressEntry {
   point_ref: string;
@@ -64,23 +64,20 @@ withAuth(async (_req, ctx, _session) => {
   const now = getServerTime();
   const dayKey = getZonedParts(now, branchTimezone).dayKey;
 
-  // Pakai fresh read supaya entry yang baru dikirim shift muncul langsung.
-  const entryRows = (await listMonthlyRowsFresh(spreadsheetId, 'Entries', tabMonth)).filter(
+  // Writes invalidate the shared sheet cache, so the normal cached read is
+  // fresh immediately after this app writes. Short-lived caching prevents the
+  // 20-second polling loop on every device from exhausting Sheets read quota.
+  const entryRows = (await listMonthlyRows(spreadsheetId, 'Entries', tabMonth)).filter(
     (r) => String(r['shift_instance_id']) === shiftInstanceId
   );
   const entryByRef = new Map<string, Record<string, unknown>>(
     entryRows.map((e) => [String(e['point_ref']), e])
   );
 
-  // Nama user dari Users sheet (Registry)
+  // Nama user dari Users sheet (Registry), shared through the registry cache.
   const nameById = new Map<string, string>();
-  const registryId = process.env.REGISTRY_SPREADSHEET_ID;
-  if (registryId) {
-    const { headers, rows } = await readSheetData(registryId, 'Users');
-    const users = sheetToObjects(headers, rows) as Record<string, string>[];
-    for (const u of users) {
-      nameById.set(String(u['Username'] ?? ''), String(u['Nama'] ?? ''));
-    }
+  for (const user of await listAllUsers()) {
+    nameById.set(user.Username, user.Nama);
   }
 
   const categories: ProgressCategory[] = (snapshot.categories ?? []).map((cat) => ({

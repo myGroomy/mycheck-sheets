@@ -18,6 +18,6 @@
 5. Daftarkan spreadsheet hasil copy di `Daftar_Cabang` melalui alur setup
    cabang.
 
-Template cabang memakai sheet transaksi generik tanpa suffix tahun/bulan.
-Tahun hanya menjadi nilai pada kolom tanggal dan dipakai saat user menjalankan
-proses arsip manual.
+Template cabang memakai sheet transaksi generik tanpa suffix tahun/bulan.  
+Tahun hanya menjadi nilai pada kolom tanggal dan dipakai saat user menjalankan  
+proses arsip manual.o

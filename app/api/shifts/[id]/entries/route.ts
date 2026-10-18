@@ -16,7 +16,7 @@ import { resolveInstance } from '../../../../../lib/instance-resolver';
 import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import { entryId as deterministicEntryId } from '../../../../../lib/ids';
 import { isCanonicalEntry, resetDuplicateEntryRows } from '../../../../../lib/concurrency';
-import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
+import { listAllUsers } from '../../../../../lib/google/registry-admin';
 
 type EntryAction = 'selesai' | 'batal' | 'skip' | 'ubah_nilai';
 
@@ -124,12 +124,10 @@ function validateValue(
 }
 
 async function getUserName(username: string): Promise<string | null> {
-  const registryId = process.env.REGISTRY_SPREADSHEET_ID;
-  if (!registryId) return null;
-  const { headers, rows } = await readSheetData(registryId, 'Users');
-  const users = sheetToObjects(headers, rows) as Record<string, string>[];
-  const u = users.find((x) => String(x['Username'] ?? '').toLowerCase() === username.toLowerCase());
-  return u ? String(u['Nama'] ?? '') : null;
+  const user = (await listAllUsers()).find(
+    (candidate) => candidate.Username.toLowerCase() === username.toLowerCase()
+  );
+  return user?.Nama ?? null;
 }
 
 /**

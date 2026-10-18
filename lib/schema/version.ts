@@ -1,5 +1,4 @@
-import { getSheetsClient } from '../google/client';
-import { readSheetData } from '../google/sheets';
+import { readSheetData, listSheetTitles } from '../google/sheets';
 import type { PeriodMode } from './registry';
 
 export interface BranchSchemaVersion { schemaVersion: number; periodMode: PeriodMode; }
@@ -32,7 +31,5 @@ export function invalidateBranchSchemaVersion(spreadsheetId?: string): void {
 }
 
 export async function listBranchSheetTitles(spreadsheetId: string): Promise<string[]> {
-  const client = getSheetsClient();
-  const response = await client.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' });
-  return (response.data.sheets ?? []).map((sheet) => String(sheet.properties?.title ?? '')).filter(Boolean);
+  return listSheetTitles(spreadsheetId);
 }

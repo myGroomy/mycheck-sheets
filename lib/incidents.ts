@@ -5,7 +5,7 @@
 
 import { ulid } from 'ulid';
 import type { AuthContext } from './api-auth';
-import { getSheetsClient } from './google/client';
+import { listSheetTitles } from './google/sheets';
 import { getCabangList, parseArchiveSpreadsheetIds, resolveCabang } from './google/registry';
 import { listAllUsers } from './google/registry-admin';
 import {
@@ -227,14 +227,7 @@ async function listIncidentCategoryIdsInSpreadsheet(
   fresh = false
 ): Promise<Set<string>> {
   const used = new Set<string>();
-  const sheets = getSheetsClient();
-  const metadata = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: 'sheets.properties.title',
-  });
-  const titles = (metadata.data.sheets ?? [])
-    .map((sheet) => sheet.properties?.title ?? '')
-    .filter(Boolean);
+  const titles = await listSheetTitles(spreadsheetId, fresh);
   const incidentSheets = [
     ...(titles.includes('IncidentIndex') ? ['IncidentIndex'] : []),
     ...titles.filter((title) => /^Incidents_\d{4}-\d{2}$/.test(title)),
