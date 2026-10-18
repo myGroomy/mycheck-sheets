@@ -15,6 +15,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { uploadPhotoWithProgress } from '@/lib/upload-photo';
 import { compressPhoto } from '@/lib/photo-compress';
+import type { ShiftDraftPoint } from '@/lib/draft-types';
 
 type InputType =
   | 'centang'
@@ -50,6 +51,8 @@ export function ChecklistPointControls({
   onComplete,
   onCancel,
   onSkip,
+  draft,
+  onDraftChange,
 }: {
   point: Point;
   shiftId: string;
@@ -58,9 +61,12 @@ export function ChecklistPointControls({
   onComplete: (value: string) => Promise<void>;
   onCancel: () => Promise<void>;
   onSkip: (reason: string) => Promise<void>;
+  draft?: ShiftDraftPoint;
+  onDraftChange: (draft: ShiftDraftPoint | null) => void;
 }) {
-  const [value, setValue] = useState(point.value ?? '');
+  const [value, setValue] = useState(draft?.value ?? point.value ?? '');
   const [selectedOptions, setSelectedOptions] = useState<string[]>(() => {
+    if (draft?.selectedOptions) return draft.selectedOptions;
     try {
       const parsed: unknown = JSON.parse(point.value ?? '[]');
       return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
@@ -71,7 +77,9 @@ export function ChecklistPointControls({
   const inputTypes = point.input_types?.length ? point.input_types : [point.input_type];
   const combined = inputTypes.length > 1;
   const [combinedValues, setCombinedValues] = useState<Record<string, unknown>>(() => {
-    if (!combined || !point.value) return {};
+    if (!combined) return draft?.combinedValues ?? {};
+    if (draft?.combinedValues) return draft.combinedValues;
+    if (!point.value) return {};
     try {
       const parsed: unknown = JSON.parse(point.value);
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
@@ -89,6 +97,21 @@ export function ChecklistPointControls({
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const updateValue = (next: string) => {
+    setValue(next);
+    onDraftChange({ ...draft, value: next });
+  };
+
+  const updateSelectedOptions = (next: string[]) => {
+    setSelectedOptions(next);
+    onDraftChange({ ...draft, selectedOptions: next, value: JSON.stringify(next) });
+  };
+
+  const updateCombinedValues = (next: Record<string, unknown>) => {
+    setCombinedValues(next);
+    onDraftChange({ ...draft, combinedValues: next, photoIds: Array.isArray(next.foto) ? next.foto.filter((id): id is string => typeof id === 'string') : draft?.photoIds });
+  };
 
   const finishSkip = async () => {
     if (skipReason.trim().length < 3) return;
@@ -110,6 +133,7 @@ export function ChecklistPointControls({
         shiftInstanceId: shiftId,
         onProgress: (percent) => setPhotoProgress(percent),
       }).then(async ({ photoId }) => {
+        onDraftChange({ ...draft, photoIds: [photoId] });
         await onComplete(photoId);
       });
     } catch (error) {
@@ -141,13 +165,17 @@ export function ChecklistPointControls({
           shiftInstanceId: shiftId,
           onProgress: (percent) => setPhotoProgress(percent),
         });
-        setCombinedValues((current) => ({
+        setCombinedValues((current) => {
+          const next = {
           ...current,
           foto: [
             ...(Array.isArray(current['foto']) ? current['foto'].filter((id): id is string => typeof id === 'string') : []),
             photoId,
           ],
-        }));
+          };
+          onDraftChange({ ...draft, combinedValues: next, photoIds: next.foto as string[] });
+          return next;
+        });
       }
     } catch (error) {
       setCombinedUploadError(error instanceof Error ? error.message : 'Foto gagal diunggah.');
@@ -199,8 +227,10 @@ export function ChecklistPointControls({
 
   let input;
   if (combined) {
-    const updateComponent = (type: string, value: unknown) =>
-      setCombinedValues((current) => ({ ...current, [type]: value }));
+    const updateComponent = (type: string, value: unknown) => {
+      const next = { ...combinedValues, [type]: value };
+      updateCombinedValues(next);
+    };
     input = (
       <fieldset className="space-y-3">
         <legend className="sr-only">Isi semua komponen pertanyaan</legend>
@@ -367,7 +397,7 @@ export function ChecklistPointControls({
           <textarea
             aria-label="Jawaban"
             value={value}
-            onChange={(event) => setValue(event.target.value)}
+            onChange={(event) => updateValue(event.target.value)}
             rows={4}
             maxLength={2000}
             className="min-h-24 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-base"
@@ -379,7 +409,7 @@ export function ChecklistPointControls({
             aria-label={point.input_type === 'angka' ? 'Nilai angka' : point.input_type === 'tanggal_waktu' ? 'Tanggal dan waktu' : 'Catatan checklist'}
             type={point.input_type === 'angka' ? 'number' : point.input_type === 'tanggal_waktu' ? 'datetime-local' : 'text'}
             value={value}
-            onChange={(event) => setValue(event.target.value)}
+            onChange={(event) => updateValue(event.target.value)}
             min={point.input_type === 'angka' ? point.number_min ?? undefined : undefined}
             max={point.input_type === 'angka' ? point.number_max ?? undefined : undefined}
             className="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-base"
@@ -412,10 +442,9 @@ export function ChecklistPointControls({
                     const next = checked
                       ? selectedOptions.filter((item) => item !== option)
                       : [...selectedOptions, option];
-                    setSelectedOptions(next);
-                    setValue(JSON.stringify(next));
+                    updateSelectedOptions(next);
                   } else {
-                    setValue(option);
+                    updateValue(option);
                   }
                 }}
                 className="h-5 w-5"
@@ -439,7 +468,7 @@ export function ChecklistPointControls({
         <select
           aria-label="Pilih jawaban"
           value={value}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => updateValue(event.target.value)}
           disabled={disabled || busy}
           className="min-h-12 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-base"
         >

@@ -30,7 +30,8 @@ import {
   isStandalonePath,
 } from '@/lib/nav-config';
 import type { NavItem, UserRole } from '@/lib/nav-config';
-import { LogOut, X, MoreHorizontal, Building2 } from 'lucide-react';
+import { LogOut, X, MoreHorizontal, Building2, ChevronDown, HelpCircle } from 'lucide-react';
+import { useTour } from '@/lib/TourContext';
 
 /**
  * Selector "cabang kerja" untuk admin.
@@ -78,12 +79,17 @@ function WorkingBranchPicker({ variant }: { variant: 'sidebar' | 'drawer' }) {
 export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
   const pathname = usePathname();
   const { user, logout, loading, transition } = useAuth();
+  const { branches } = useCabang();
+  const { branchId, setBranchId, isAdmin } = useWorkingBranch();
+  const { openTour } = useTour();
   // Saat SSR, `user` belum ada → pakai initialRole. Setelah hydration, pakai
   // data asli dari AuthContext.
   const role: UserRole = user?.role ?? initialRole;
 
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
+  const [branchOpen, setBranchOpen] = useState(false);
+  const branchRef = useRef<HTMLDivElement>(null);
 
   const navGroups = getNavGroups(role);
   const mobileCoreItems = getMobileCoreItems(role);
@@ -98,17 +104,19 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
 
   // Tutup drawer saat klik di luar.
   useEffect(() => {
-    if (!moreOpen) return;
+    if (!moreOpen && !branchOpen) return;
     const handler = (e: MouseEvent) => {
       if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+      if (branchRef.current && !branchRef.current.contains(e.target as Node)) setBranchOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [moreOpen]);
+  }, [moreOpen, branchOpen]);
 
   // Tutup drawer "Lainnya" setiap kali pindah halaman.
   useEffect(() => {
     setMoreOpen(false);
+    setBranchOpen(false);
   }, [pathname]);
 
   // Sembunyikan nav di halaman publik ketika belum login
@@ -147,11 +155,58 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
             <Link
               href={role === 'admin' ? '/admin' : '/daftar-shift'}
               prefetch={false}
-              className="shrink-0 text-sm font-bold tracking-tight text-ink"
+              className="flex shrink-0 items-center gap-2 text-sm font-bold tracking-tight text-ink"
             >
-              MyCheck
+              <img src="/icon.svg" alt="" className="h-8 w-8 rounded-lg border border-border bg-surface p-1 shadow-sm" />
+              <span className="hidden sm:inline">MyCheck</span>
             </Link>
-            <div className={showSidebar ? 'md:hidden' : ''}>{userBlock}</div>
+            <div className="flex items-center gap-1.5">
+              {isAdmin && branches.length > 0 && (
+                <div ref={branchRef} className="relative" data-onboard="cabang">
+                  <button
+                    type="button"
+                    onClick={() => setBranchOpen((open) => !open)}
+                    aria-expanded={branchOpen}
+                    aria-haspopup="listbox"
+                    className="flex min-h-10 max-w-[11rem] items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 text-xs font-semibold text-ink shadow-sm transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    title="Ganti cabang kerja"
+                  >
+                    <Building2 className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden="true" />
+                    <span className="truncate">{branches.find((branch) => branch.id === branchId)?.name ?? 'Pilih cabang'}</span>
+                    <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-ink-muted transition-transform ${branchOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </button>
+                  {branchOpen && (
+                    <div role="listbox" aria-label="Pilih cabang kerja" className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-border bg-surface p-1.5 shadow-lg">
+                      <p className="px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-ink-muted">Ganti cabang kerja</p>
+                      {branches.map((branch) => (
+                        <button
+                          key={branch.id}
+                          type="button"
+                          role="option"
+                          aria-selected={branch.id === branchId}
+                          onClick={() => { setBranchId(branch.id); setBranchOpen(false); }}
+                          className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-2.5 text-left text-sm transition-colors ${branch.id === branchId ? 'bg-canvas font-semibold text-ink' : 'text-ink-muted hover:bg-canvas hover:text-ink'}`}
+                        >
+                          <Building2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span className="truncate">{branch.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={openTour}
+                className="flex min-h-10 items-center gap-1.5 rounded-md px-2.5 text-ink-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Buka tutorial"
+                title="Buka tutorial"
+              >
+                <HelpCircle className="h-4 w-4" aria-hidden="true" />
+                <span className="hidden text-xs font-semibold sm:inline">Tutorial</span>
+              </button>
+              <div className="md:hidden">{userBlock}</div>
+            </div>
           </div>
         </div>
       </header>
@@ -159,7 +214,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
       {/* Side panel desktop (semua halaman yang login) */}
       {showSidebar && (
         <aside className="fixed bottom-0 left-0 top-14 z-40 hidden w-64 flex-col border-r border-border bg-surface md:flex">
-          <nav aria-label="Navigasi utama" className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+          <nav data-onboard="nav" aria-label="Navigasi utama" className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
             {navGroups.map((group) => (
               <section key={group.title} aria-label={group.title}>
                 <h2 className="px-3 pb-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-ink-light">
@@ -220,6 +275,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
 
       {/* Bar bawah mobile — maksimal 5 tombol */}
       <nav
+        data-onboard="nav"
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
         aria-label="Navigasi bawah"
       >

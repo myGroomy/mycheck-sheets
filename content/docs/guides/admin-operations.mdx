@@ -1,0 +1,62 @@
+---
+title: Mengelola Operasional
+description: Panduan admin untuk akun, cabang, template shift, arsip, dan audit.
+---
+
+# Mengelola Operasional
+
+Halaman admin mengatur konfigurasi yang dipakai petugas sehari-hari. Lakukan
+perubahan secara bertahap karena template baru akan memengaruhi shift yang
+dibuka setelah perubahan tersebut.
+
+## Urutan setup yang disarankan
+
+1. Pastikan akun admin bootstrap sudah diubah username dan PIN-nya.
+2. Buat atau verifikasi cabang pada menu **Cabang**.
+3. Pastikan spreadsheet cabang dan folder Drive cabang/evidence tersedia.
+4. Buat definisi shift pada menu **Shift**.
+5. Tambahkan kategori SOP dan checklist point pada builder.
+6. Tambahkan field handover yang wajib diisi.
+7. Uji dengan membuka satu shift percobaan sebelum dipakai operasional.
+
+## Akun dan akses
+
+Role `admin` mengelola konfigurasi dan dapat bekerja lintas cabang sesuai
+kebijakan aplikasi. Role `petugas` bekerja pada cabang yang ditugaskan.
+Perubahan role dan cabang akses dilakukan melalui menu **Akun**, bukan dengan
+mengubah cookie atau local storage.
+
+Gunakan reset PIN atau force logout bila akun dicurigai bermasalah. Jangan
+menulis PIN, secret, atau token sesi ke audit log maupun tiket support.
+
+## Template shift
+
+- **Shift** adalah induk template.
+- **Kategori SOP** mengelompokkan pekerjaan.
+- **Checklist point** mendefinisikan input seperti checkbox, angka, teks,
+  pilihan, tanggal, atau foto.
+- **Handover field** menentukan informasi yang harus diteruskan.
+
+Arsipkan konfigurasi yang tidak dipakai lagi. Jangan menghapus konfigurasi
+yang sudah memiliki histori karena aplikasi akan menolak penghapusan untuk
+menjaga referensi laporan.
+
+## Arsip data tahunan
+
+Arsip dilakukan dari **Pengaturan** dan hanya oleh admin:
+
+1. Pilih cabang dan tahun.
+2. Jalankan **Preview**.
+3. Tinjau jumlah sheet dan baris.
+4. Jalankan **Arsipkan Sekarang** setelah data benar.
+
+Arsip membuat spreadsheet salinan bertahun dan mencatat ID-nya di Registry.
+Data aktif tidak dihapus. Proses tetap harus dilakukan dengan backup dan
+preview, terutama untuk spreadsheet lama yang masih memakai mode monthly atau
+yearly.
+
+## Audit setelah perubahan
+
+Setelah membuat perubahan, buka satu shift uji dan periksa checklist,
+handover, foto, penutupan, laporan, serta audit log. Jika ada ketidaksesuaian,
+hentikan perubahan berikutnya dan gunakan [Pemecahan Masalah](../support/troubleshooting).

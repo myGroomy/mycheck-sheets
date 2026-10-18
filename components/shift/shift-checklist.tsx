@@ -9,7 +9,10 @@ import { Button } from '@/components/ui/button';
 import { ChecklistPointControls } from '@/components/shift/checklist-point-controls';
 import { ShiftCloseDialog } from '@/components/shift/shift-close-dialog';
 import { PreviousHandoverCard } from '@/components/shift/previous-handover-card';
+import { DraftRestoreDialog } from '@/components/shift/draft-restore-dialog';
 import { useCabang } from '@/lib/CabangContext';
+import type { ShiftDraftPayload, ShiftDraftPoint } from '@/lib/draft-types';
+import { clearLocalShiftDraft, readLocalShiftDraft, writeLocalShiftDraft } from '@/lib/draft-client';
 
 type EntryState = 'belum' | 'selesai' | 'skip';
 type SyncState = 'idle' | 'saving' | 'saved' | 'error';
@@ -122,6 +125,12 @@ export function ShiftChecklistClient({
   const [notice, setNotice] = useState<string | null>(null);
   const [busyPoint, setBusyPoint] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<SyncState>('idle');
+  const [draftPoints, setDraftPoints] = useState<Record<string, ShiftDraftPoint>>({});
+  const [draftUpdatedAt, setDraftUpdatedAt] = useState<number>(Date.now());
+  const [draftPromptOpen, setDraftPromptOpen] = useState(false);
+  const draftHydratedRef = useRef(false);
+  const draftDirtyRef = useRef(false);
+  const draftSaveTimerRef = useRef<number | null>(null);
   const [retryAction, setRetryAction] = useState<{
     point: ProgressPoint;
     action: 'selesai' | 'batal' | 'skip';
@@ -130,6 +139,41 @@ export function ShiftChecklistClient({
   const progressRequestRef = useRef<Promise<void> | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
   const { refreshBranches } = useCabang();
+
+  const buildDraft = useCallback((points: Record<string, ShiftDraftPoint>): ShiftDraftPayload | null => {
+    if (!data || Object.keys(points).length === 0) return null;
+    return { shiftInstanceId: shiftId, userId, shiftDate: data.shift.date, updatedAt: Date.now(), points };
+  }, [data, shiftId, userId]);
+
+  const saveDraftToCloud = useCallback(async (draft: ShiftDraftPayload) => {
+    try {
+      const response = await fetch(`/api/shifts/${shiftId}/draft`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
+        body: JSON.stringify({ draft }),
+      });
+      if (!response.ok) throw new Error('Draft cloud gagal disimpan');
+    } catch { /* localStorage tetap menjadi fallback */ }
+  }, [shiftId]);
+
+  const discardDraft = useCallback(async () => {
+    clearLocalShiftDraft(userId, shiftId);
+    setDraftPoints({});
+    draftDirtyRef.current = false;
+    setDraftPromptOpen(false);
+    await fetch(`/api/shifts/${shiftId}/draft`, { method: 'DELETE', headers: { 'X-Requested-With': 'fetch' } }).catch(() => {});
+  }, [shiftId, userId]);
+
+  const handleDraftChange = useCallback((pointRef: string, pointDraft: ShiftDraftPoint | null) => {
+    draftDirtyRef.current = true;
+    setDraftPoints((current) => {
+      if (!pointDraft) {
+        const next = { ...current };
+        delete next[pointRef];
+        return next;
+      }
+      return { ...current, [pointRef]: pointDraft };
+    });
+  }, []);
 
   const loadProgress = useCallback(async () => {
     if (progressRequestRef.current) return progressRequestRef.current;
@@ -145,6 +189,30 @@ export function ShiftChecklistClient({
         }
         const next = (await res.json()) as ShiftProgressResponse;
         setData(next);
+        if (!draftHydratedRef.current) {
+          const localDraft = readLocalShiftDraft(userId, shiftId);
+          let cloudDraft: ShiftDraftPayload | null = null;
+          try {
+            const draftResponse = await fetch(`/api/shifts/${shiftId}/draft`, { headers: { 'X-Requested-With': 'fetch' } });
+            if (draftResponse.ok) cloudDraft = ((await draftResponse.json()) as { draft?: ShiftDraftPayload | null }).draft ?? null;
+          } catch { /* local draft tetap dapat dipakai */ }
+          const selected = [localDraft, cloudDraft]
+            .filter((draft): draft is ShiftDraftPayload => Boolean(draft))
+            .sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? null;
+          const completed = new Set(next.categories.flatMap((category) => category.points).filter((point) => point.state !== 'belum').map((point) => point.point_ref));
+          const restoredPoints = selected
+            ? Object.fromEntries(Object.entries(selected.points).filter(([pointRef]) => !completed.has(pointRef)))
+            : {};
+          setDraftPoints(restoredPoints);
+          if (selected) setDraftUpdatedAt(selected.updatedAt);
+          if (selected && Object.keys(restoredPoints).length > 0 && next.shift.status === 'berjalan') {
+            const restored = { ...selected, points: restoredPoints };
+            writeLocalShiftDraft(restored);
+            if (!cloudDraft || selected.updatedAt > cloudDraft.updatedAt) void saveDraftToCloud(restored);
+            setDraftPromptOpen(true);
+          }
+          draftHydratedRef.current = true;
+        }
       } catch {
         setNotice('Gagal memuat progress shift. Coba refresh halaman.');
       } finally {
@@ -157,7 +225,35 @@ export function ShiftChecklistClient({
     } finally {
       if (progressRequestRef.current === request) progressRequestRef.current = null;
     }
-  }, [shiftId]);
+  }, [saveDraftToCloud, shiftId, userId]);
+
+  useEffect(() => {
+    if (!draftHydratedRef.current || !draftDirtyRef.current || !data || data.shift.status !== 'berjalan') return;
+    if (draftSaveTimerRef.current !== null) window.clearTimeout(draftSaveTimerRef.current);
+    draftSaveTimerRef.current = window.setTimeout(() => {
+      const draft = buildDraft(draftPoints);
+      if (!draft) {
+        clearLocalShiftDraft(userId, shiftId);
+        void fetch(`/api/shifts/${shiftId}/draft`, { method: 'DELETE', headers: { 'X-Requested-With': 'fetch' } }).catch(() => {});
+        return;
+      }
+      writeLocalShiftDraft(draft);
+      void saveDraftToCloud(draft);
+    }, 700);
+    return () => {
+      if (draftSaveTimerRef.current !== null) window.clearTimeout(draftSaveTimerRef.current);
+    };
+  }, [buildDraft, data, draftPoints, saveDraftToCloud, shiftId, userId]);
+
+  useEffect(() => {
+    if (!draftHydratedRef.current || !draftDirtyRef.current || !data || data.shift.status !== 'berjalan') return;
+    const persistBeforeUnload = () => {
+      const draft = buildDraft(draftPoints);
+      if (draft) writeLocalShiftDraft(draft);
+    };
+    window.addEventListener('beforeunload', persistBeforeUnload);
+    return () => window.removeEventListener('beforeunload', persistBeforeUnload);
+  }, [buildDraft, data, draftPoints]);
 
   useEffect(() => {
     void loadProgress();
@@ -336,6 +432,7 @@ export function ShiftChecklistClient({
       }
       if (json.status === 'diterima' && json.entry) {
         applyAcceptedEntry(point.point_ref, json.entry, json.participant ?? null);
+        handleDraftChange(point.point_ref, null);
         setSyncState('saved');
         setRetryAction(null);
       } else {
@@ -394,6 +491,7 @@ export function ShiftChecklistClient({
   }
 
   return (
+    <>
     <main className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <div className="flex items-center justify-end gap-3">
@@ -500,6 +598,8 @@ export function ShiftChecklistClient({
                       <ChecklistPointControls
                         point={point}
                         shiftId={shiftId}
+                        draft={draftPoints[point.point_ref]}
+                        onDraftChange={(draft) => handleDraftChange(point.point_ref, draft)}
                         disabled={data.shift.status !== 'berjalan'}
                         busy={busyPoint === point.point_ref}
                         onComplete={(value) => submitEntry(point, 'selesai', value)}
@@ -590,5 +690,14 @@ export function ShiftChecklistClient({
         </aside>
       </div>
     </main>
+    {draftPromptOpen && data.shift.status === 'berjalan' && Object.keys(draftPoints).length > 0 && (
+      <DraftRestoreDialog
+        pointCount={Object.keys(draftPoints).length}
+        updatedAt={draftUpdatedAt}
+        onContinue={() => setDraftPromptOpen(false)}
+        onDiscard={() => void discardDraft()}
+      />
+    )}
+    </>
   );
 }

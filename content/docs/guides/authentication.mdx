@@ -21,7 +21,7 @@ Endpoint terkait:
 | --- | --- |
 | `POST /api/auth/login` | Memeriksa username dan PIN, lalu membuat sesi. |
 | `GET /api/auth/me` | Mengembalikan informasi sesi saat ini. |
-| `POST /api/auth/change-pin` | Memproses perubahan PIN. |
+| `POST /api/auth/bootstrap-setup` | Menyelesaikan setup pertama akun admin default. |
 | `POST /api/auth/logout` | Mengakhiri sesi browser saat ini. |
 | `POST /api/auth/logout-all` | Menghapus cookie browser pemanggil; tidak mencabut token sesi di perangkat lain. |
 
@@ -40,11 +40,16 @@ Token sesi bersifat stateless dan berlaku tujuh hari. Logout menghapus cookie
 browser saat ini; aplikasi tidak memiliki pencabutan individual untuk token
 yang telah terbit di perangkat lain.
 
-## Perubahan PIN
+## Setup akun admin pertama
 
-Endpoint perubahan PIN memerlukan sesi aktif dan PIN lama, lalu menerima PIN
-baru enam digit. Flag `Must_Change_Pin` dapat dikembalikan saat login, tetapi
-guard aplikasi tidak memaksa redirect global ke halaman ganti PIN.
+Registry dapat berisi satu akun admin default dengan flag `Must_Change_Pin`.
+Saat pertama kali login, aplikasi mengarahkan admin ke setup akun untuk
+menulis ulang username, nama, dan PIN pada row yang sama. Ini bukan membuat
+akun admin kedua. Setelah setup selesai, flag tersebut dimatikan.
+
+PIN yang dipakai aplikasi harus terdiri dari enam digit. Pengelolaan akun lain,
+perubahan role, cabang akses, reset PIN, dan force logout dilakukan dari menu
+admin **Akun**.
 
 ## Jika tidak dapat masuk
 

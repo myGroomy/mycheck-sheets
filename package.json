@@ -15,6 +15,7 @@
     "setup:registry": "tsx --env-file=.env scripts/setup-registry.ts",
     "setup:branch": "tsx --env-file=.env scripts/setup-branch.ts",
     "migrate:data-yearly": "tsx --env-file=.env scripts/migrate-data-yearly.ts",
+    "migrate:draft-sheet": "tsx --env-file=.env scripts/migrate-draft-sheet.ts",
     "check:data": "tsx --env-file=.env scripts/check-data-integrity.ts",
     "archive:data": "tsx --env-file=.env scripts/archive-yearly.ts",
     "cleanup:phase7": "tsx --env-file=.env scripts/cleanup-phase7.ts",

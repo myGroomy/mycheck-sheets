@@ -1,0 +1,54 @@
+---
+title: Draft dan Pemulihan
+description: Memahami penyimpanan draft shift di perangkat dan spreadsheet.
+---
+
+# Draft dan Pemulihan
+
+MyCheck menyimpan input yang belum dikirim sebagai draft. Tujuannya agar
+petugas tidak kehilangan pekerjaan ketika halaman direfresh, browser ditutup,
+atau koneksi sedang tidak stabil.
+
+## Apa yang disimpan
+
+Draft dibuat untuk kombinasi **satu pengguna dan satu instance shift**. Draft
+berisi nilai checklist, pilihan, nilai gabungan, dan ID foto yang belum menjadi
+entry final. Draft tidak menggantikan `Entries` dan tidak mengubah progress
+final sampai petugas menekan tombol simpan.
+
+## Dua lapisan penyimpanan
+
+1. **Perangkat**: browser menyimpan salinan lokal agar pemulihan tetap cepat
+   setelah refresh atau aplikasi ditutup.
+2. **Spreadsheet**: aplikasi melakukan backup ke sheet flat `Drafts` pada
+   spreadsheet cabang. Backup ini membantu ketika pengguna pindah perangkat
+   atau local storage terhapus.
+
+Tidak perlu memperbarui sheet satu per satu secara manual. Sheet `Drafts`
+dibuat otomatis dari template baru atau oleh migrasi yang disediakan aplikasi.
+
+## Saat membuka kembali shift
+
+1. Progress shift dimuat terlebih dahulu.
+2. MyCheck membaca draft lokal dan backup spreadsheet.
+3. Salinan dengan `updatedAt` paling baru dipilih.
+4. Point yang sudah menjadi entry final tidak ditawarkan kembali.
+5. Modal menampilkan jumlah item dan waktu penyimpanan terakhir.
+
+Pilih **Lanjutkan draft** untuk mengembalikan input. Pilih **Mulai baru** jika
+ingin menghapus draft pengguna pada shift tersebut.
+
+## Kapan draft dibersihkan
+
+- Saat memilih **Mulai baru**, draft lokal dan backup spreadsheet dihapus.
+- Saat shift berikutnya dibuka, draft dari shift yang sudah `ditutup`,
+  `ditutup_paksa`, atau `void` dibersihkan otomatis.
+- Data yang sudah masuk `Entries` tidak dihapus oleh proses cleanup draft.
+- Foto yang hanya dipakai draft ditandai `purged` dan file Drive dibersihkan
+  secara best-effort.
+
+## Jika draft tidak muncul
+
+Pastikan menggunakan akun yang sama dan membuka instance shift yang sama.
+Periksa koneksi, refresh sekali, lalu tunggu proses pemulihan selesai. Jangan
+menekan **Mulai baru** jika masih ingin mempertahankan data lokal.

@@ -9,6 +9,7 @@ import { shiftInstanceId as deterministicShiftInstanceId } from '../../../../lib
 import { voidDuplicateShiftInstances } from '../../../../lib/concurrency';
 import { filterRows, insertRow, asStr } from '../../../../lib/store';
 import { resolveCabang } from '../../../../lib/google/registry';
+import { cleanupClosedShiftDrafts } from '../../../../lib/draft-shift';
 
 interface OpenShiftBody {
   shiftDefinitionId?: string;
@@ -112,9 +113,16 @@ withAuth(async (_req, ctx, _session) => {
     asStr(r['id']) === shiftInstanceId && asStr(r['status']) !== 'void'
   );
   if (existing[0]) {
+    let cleanedDraftShiftIds: string[] = [];
+    try {
+      cleanedDraftShiftIds = await cleanupClosedShiftDrafts(spreadsheetId, String(existing[0].id), shiftDate);
+    } catch {
+      // Cleanup draft bukan alasan untuk menggagalkan join shift yang valid.
+    }
     return NextResponse.json({
       status: 'bergabung',
       shift_instance_id: shiftInstanceId,
+      cleaned_draft_shift_ids: cleanedDraftShiftIds,
     });
   }
 
@@ -153,6 +161,13 @@ withAuth(async (_req, ctx, _session) => {
   // kanonik. Baris TIDAK dihapus (BR-40), hanya di-void.
   await voidDuplicateShiftInstances(spreadsheetId, instanceId);
 
+  let cleanedDraftShiftIds: string[] = [];
+  try {
+    cleanedDraftShiftIds = await cleanupClosedShiftDrafts(spreadsheetId, instanceId, shiftDate);
+  } catch {
+    // Cleanup draft bersifat best effort dan idempotent.
+  }
+
   await insertRow(spreadsheetId, 'Participants', {
     id: ulid(),
     shift_instance_id: instanceId,
@@ -184,5 +199,6 @@ withAuth(async (_req, ctx, _session) => {
     opened_outside_hours: openedOutsideHours,
     shift_date: shiftDate,
     total_items: snapshot.categories.reduce((sum, c) => sum + c.points.length, 0),
+    cleaned_draft_shift_ids: cleanedDraftShiftIds,
   });
 });

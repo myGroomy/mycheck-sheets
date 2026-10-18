@@ -12,6 +12,7 @@ import { AppShell } from '@/components/AppShell';
 import { PageTransition } from '@/components/PageTransition';
 import { AuthTransitionOverlay } from '@/components/AuthTransitionOverlay';
 import { GlobalBackButton } from '@/components/GlobalBackButton';
+import { TourProvider } from '@/lib/TourContext';
 import { verifySessionToken } from '@/lib/session';
 import { isMaintenanceMode } from '@/lib/maintenance';
 import './globals.css';
@@ -79,7 +80,7 @@ export default async function RootLayout({
     return (
       <html lang="id" suppressHydrationWarning>
         <body className={`${plusJakartaSans.variable} bg-canvas text-ink antialiased`}>
-          <RootProvider>
+          <RootProvider theme={{ forcedTheme: 'light', enableSystem: false }}>
             <GlobalBackButton />
             <div className="flex min-h-dvh items-center justify-center bg-canvas p-6">
               <div className="max-w-md text-center">
@@ -98,7 +99,7 @@ export default async function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <body className={`${plusJakartaSans.variable} bg-canvas text-ink antialiased`}>
-        <RootProvider>
+        <RootProvider theme={{ forcedTheme: 'light', enableSystem: false }}>
           <PwaStatus />
           <AuthProvider>
             <CabangProvider>
@@ -109,12 +110,14 @@ export default async function RootLayout({
                   bisa merender tanpa provider ini. */}
               <WorkingBranchProvider initialBranchId={initialWorkingBranch}>
                 <AuthGuard>
-                  <AppShell initialRole={initialRole}>
-                    <PageTransition>
-                      <GlobalBackButton />
-                      {children}
-                    </PageTransition>
-                  </AppShell>
+                  <TourProvider>
+                    <AppShell initialRole={initialRole}>
+                      <PageTransition>
+                        <GlobalBackButton />
+                        {children}
+                      </PageTransition>
+                    </AppShell>
+                  </TourProvider>
                 </AuthGuard>
                 {/* Overlay login/logout.
                   WAJIB di dalam <AuthProvider> (memakai useAuth) tapi di luar

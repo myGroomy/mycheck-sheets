@@ -28,6 +28,8 @@ export function GlobalBackButton() {
   const pathname = usePathname();
   const standalone = isStandalonePath(pathname);
 
+  if (pathname === '/' || pathname.startsWith('/docs')) return null;
+
   const goBack = () => {
     const historyIndex = window.history.state?.idx;
     const canGoBack = typeof historyIndex === 'number'

@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCabang, type ShiftSummary } from '@/lib/CabangContext';
+import { clearLocalShiftDrafts } from '@/lib/draft-client';
 
 function formatHHmm(value: string | null | undefined) {
   if (!value) return '-';
@@ -99,12 +100,14 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
         error?: string;
         status?: string;
         shift_instance_id?: string;
+        cleaned_draft_shift_ids?: string[];
       };
       if (!res.ok) {
         throw new Error(data.error || 'Operasi shift gagal');
       }
       const nextId = data.shift_instance_id ?? instanceId;
       if (nextId) {
+        clearLocalShiftDrafts(userId, data.cleaned_draft_shift_ids ?? []);
         setShiftToOpen(null);
         void refreshBranches();
         router.push(`/shift/${nextId}`);
@@ -167,7 +170,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
   };
 
   return (
-    <main className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
+    <main data-onboard="shift-dashboard" className="mx-auto max-w-6xl space-y-6 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <header className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">

@@ -1,86 +1,55 @@
 ---
-title: Dokumentasi mycheck
-description: Panduan penggunaan dan pengembangan mycheck.
+title: Dokumentasi MyCheck
+description: Panduan praktis untuk menjalankan checklist, shift, handover, incident, dan laporan.
 ---
 
-# Dokumentasi mycheck
+# Dokumentasi MyCheck
 
-Selamat datang di dokumentasi mycheck, PWA untuk membantu tim F&B menjalankan
-SOP shift, mencatat checklist, dan meneruskan informasi antarshift.
-
-Pilih jalur sesuai kebutuhan:
-
-| Bagian | Mulai di sini |
-| --- | --- |
-| Belajar dasar | [Instalasi](./tutorials/installation) · [Mulai cepat](./tutorials/quick-start) |
-| Menyelesaikan tugas | [Autentikasi](./guides/authentication) · [Deployment](./guides/deployment) |
-| Referensi teknis | [Endpoint API](./reference/api-endpoints) · [Konfigurasi](./reference/configuration) |
-| Memahami konsep | [Arsitektur](./explanation/architecture) |
-| Operasional | [Pemecahan masalah](./support/troubleshooting) · [Changelog](./support/changelog) |
-
-Dokumentasi ini menjelaskan perilaku dan implementasi yang tersedia saat ini.
-Untuk keputusan produk dan teknis, lihat dokumen acuan di root repository:
-`AGENTS.md`, `PRD.md`, `DATABASE_SCHEMA.md`, `TRD.md`, `APP_FLOW.md`,
-`PLAN/IMPLEMENTATION_PLAN.md`, `TESTING.md`, dan `UI-UX.md`.
+Panduan praktis untuk tim outlet dan admin yang menjalankan operasional shift
+berbasis checklist. Mulai dari login, buka shift, simpan draft, sampai laporan
+siap ditinjau.
 
 <Callout type="info">
-  Spesifikasi dapat menjelaskan target yang belum tersedia. Verifikasi route,
-  handler, dan skema aktual sebelum menganggap suatu fitur sudah diterapkan.
+  Gunakan dokumentasi ini sebagai panduan penggunaan. Detail implementasi API
+  dan skema spreadsheet berada di bagian Referensi.
 </Callout>
 
-## Simulator Checklist Interaktif
+## Pilih jalur Anda
 
-Komponen ini mendemonstrasikan cara kerja aksi checklist di mycheck centang item, skip dengan alasan, atau isi nilai bebas.
+| Anda adalah | Mulai dari | Tujuan |
+| --- | --- | --- |
+| Petugas outlet | [Mulai cepat](./tutorials/quick-start) | Menyelesaikan satu shift dari awal sampai selesai. |
+| Petugas baru | [Instalasi & akses](./tutorials/installation) | Memahami akun, cabang, dan akses yang dibutuhkan. |
+| Admin operasional | [Mengelola operasional](./guides/admin-operations) | Menyiapkan SOP, akun, cabang, dan arsip. |
+| Developer | [Arsitektur](./explanation/architecture) | Memahami Next.js, Google Sheets, dan alur data. |
+| Integrator | [Endpoint API](./reference/api-endpoints) | Menelusuri route, metode, dan batas akses. |
 
-```jsx
-function ChecklistSimulator() {
-  const [items, setItems] = React.useState([
-    { id: 1, title: "Cek suhu freezer", type: "checkbox", state: "pending", value: "" },
-    { id: 2, title: "Jumlah porsi siap saji", type: "number", state: "pending", value: "" },
-    { id: 3, title: "Bersihkan area dapur", type: "checkbox", state: "pending", value: "" },
-  ]);
+## Peta kerja MyCheck
 
-  function updateItem(id, updates) {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
-  }
+1. **Akun dan cabang**: admin memastikan pengguna aktif dan akses cabangnya benar.
+2. **Template shift**: admin menyusun SOP, kategori, checklist point, dan field handover.
+3. **Pelaksanaan**: PJ membuka shift, petugas bergabung, lalu mengerjakan checklist.
+4. **Perlindungan progress**: draft tersimpan di perangkat dan sheet `Drafts`.
+5. **Penutupan**: PJ mengisi handover, menyelesaikan validasi, dan menutup shift.
+6. **Pelaporan**: tim meninjau laporan, membagikan tautan bila diperlukan, dan memakai addendum untuk koreksi setelah penutupan.
 
-  return (
-    <div className="border rounded-lg p-4 space-y-3 bg-gray-50">
-      <p className="text-sm font-semibold text-gray-700">Simulasi Item Checklist</p>
-      {items.map((item) => (
-        <div key={item.id} className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={item.state === "done"}
-            onChange={(e) => updateItem(item.id, { state: e.target.checked ? "done" : "pending" })}
-            className="w-4 h-4"
-          />
-          <span className={item.state === "done" ? "line-through text-gray-400" : ""}>
-            {item.title}
-          </span>
-          {item.type === "number" && (
-            <input
-              type="number"
-              placeholder="isi angka"
-              value={item.value}
-              onChange={(e) => updateItem(item.id, { value: e.target.value, state: e.target.value ? "done" : "pending" })}
-              className="border rounded px-2 py-1 text-xs w-24"
-            />
-          )}
-          {item.state === "done" && (
-            <span className="text-green-600 text-xs">Selesai</span>
-          )}
-        </div>
-      ))}
-      <button
-        onClick={() => setItems((prev) => prev.map((i) => ({ ...i, state: "pending", value: "" })))}
-        className="text-xs text-blue-600 underline"
-      >
-        Reset semua
-      </button>
-    </div>
-  );
-}
+## Istilah penting
 
-<ChecklistSimulator />
-```
+- **Definisi shift**: template operasional yang berisi kategori SOP dan field handover.
+- **Instance shift**: pelaksanaan definisi shift pada tanggal dan cabang tertentu.
+- **PJ**: pengguna yang membuka shift dan berwenang menutupnya.
+- **Draft**: input yang belum dikirim menjadi entry final.
+- **Handover**: informasi yang diteruskan ke shift berikutnya.
+- **Arsip**: salinan data tahunan yang dibuat admin tanpa menghapus data kerja aktif.
+
+## Jika baru pertama kali
+
+1. Baca [Mulai Cepat](./tutorials/quick-start).
+2. Jika input terputus atau halaman direfresh, baca [Draft dan pemulihan](./tutorials/draft-and-recovery).
+3. Jika menemukan masalah akses, buka [Autentikasi](./guides/authentication).
+4. Jika terjadi error, ikuti [Pemecahan Masalah](./support/troubleshooting).
+
+<Callout type="warn">
+  Jangan mengedit atau menghapus baris spreadsheet secara manual untuk memperbaiki
+  data operasional sebelum memeriksa alur aplikasi dan audit log.
+</Callout>

@@ -117,7 +117,7 @@ function LoginForm() {
   return (
     <motion.form
       onSubmit={handleSubmit}
-      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      initial={false}
       animate={shake && !reduceMotion ? { opacity: 1, x: [-10, 10, -8, 8, -4, 4, 0] } : { opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: EASE_EXPO }}
       className="relative rounded-xl border border-border bg-surface p-5 shadow-sm sm:p-7"
@@ -260,7 +260,7 @@ function LoginForm() {
 export default function LoginPage() {
   const reduceMotion = useReducedMotion();
   return (
-    <main className="flex min-h-dvh w-full items-center justify-center bg-canvas px-4 py-12 text-ink antialiased">
+    <main className="flex min-h-svh w-full flex-col items-center justify-center overflow-y-auto bg-canvas px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-20 text-ink antialiased sm:py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <motion.div

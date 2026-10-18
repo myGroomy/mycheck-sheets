@@ -14,6 +14,7 @@ export const STATIC_SHEETS: Record<string, string[]> = {
   IncidentIndex: ['incident_id', 'tab_month', 'status', 'category_id', 'shift_instance_id', 'outside_shift', 'reported_at', 'is_test', 'updated_at'],
   IncidentCategories: ['id', 'name', 'sort_order', 'is_active', 'created_at', 'updated_at', 'points'],
   Notifications: ['id', 'user_id', 'type', 'title', 'body', 'link', 'is_read', 'created_at'],
+  Drafts: ['id', 'shift_instance_id', 'user_id', 'shift_date', 'payload', 'client_updated_at', 'created_at', 'updated_at', 'version'],
   _meta: ['key', 'value'],
 };
 

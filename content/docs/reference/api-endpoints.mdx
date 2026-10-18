@@ -16,7 +16,7 @@ terpisah. Rincian payload dapat berubah; handler route adalah sumber kebenaran.
 | --- | --- | --- |
 | `/auth/login` | `POST` | Masuk dengan username dan PIN. |
 | `/auth/me` | `GET` | Informasi sesi aktif. |
-| `/auth/change-pin` | `POST` | Mengganti PIN akun. |
+| `/auth/bootstrap-setup` | `POST` | Menyelesaikan setup akun admin default. |
 | `/auth/logout` | `POST` | Keluar dari sesi saat ini. |
 | `/auth/logout-all` | `POST` | Menghapus cookie browser pemanggil; tidak mencabut token stateless di perangkat lain. |
 | `/beranda` | `GET` | Data beranda sesuai sesi dan akses cabang. |
@@ -25,6 +25,7 @@ terpisah. Rincian payload dapat berubah; handler route adalah sumber kebenaran.
 | `/shifts/[id]/join` | `POST` | Bergabung ke shift. |
 | `/shifts/[id]/entries` | `POST` | Mengirim aksi checklist. |
 | `/shifts/[id]/progress` | `GET` | Membaca progress shift. |
+| `/shifts/[id]/draft` | `GET`, `PUT`, `DELETE` | Membaca, menyimpan, dan membuang draft per pengguna. |
 | `/shifts/[id]/close` | `POST` | Menutup shift oleh PJ. |
 | `/shifts/[id]/handover` | `POST` | Mengirim handover. |
 | `/shifts/[id]/handover-prev` | `GET` | Membaca handover sebelumnya. |
@@ -85,6 +86,7 @@ aksi tertentu yang membatasi lebih lanjut.
 | `/admin/reports/[id]/share` | `GET`, `POST` | Melihat dan membuat tautan berbagi. |
 | `/admin/reports/[id]/share/[tokenId]` | `DELETE` | Mencabut tautan berbagi. |
 | `/admin/settings` | `GET`, `PUT` | Membaca dan mengubah pengaturan. |
+| `/admin/archive` | `POST` | Preview atau membuat arsip data tahunan. |
 | `/admin/audit-log` | `GET` | Membaca audit log. |
 
 ### Lifecycle arsip dan penghapusan konfigurasi
