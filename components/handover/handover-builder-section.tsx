@@ -32,12 +32,10 @@ import {
   type HandoverFormValues,
 } from '@/components/admin/handover-field-editor';
 import { TemplateNotice } from '@/components/admin/template-notice';
-import { ConfirmDeleteDialog } from '@/components/admin/confirm-delete-dialog';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { useAutoSaveDraft } from '@/hooks/use-auto-save-draft';
 import {
   createHandoverField,
-  deleteHandoverField,
   listBranches,
   listHandoverFields,
   listShifts,
@@ -77,9 +75,6 @@ export function HandoverBuilderSection() {
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [labelDraft, setLabelDraft] = useState('');
   const [savingInline, setSavingInline] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<HandoverField | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Unsaved changes detection
   const isDirty = labelDraft.trim() !== '';
@@ -167,6 +162,7 @@ export function HandoverBuilderSection() {
   };
 
   const toggleActive = async (field: HandoverField) => {
+    if (field.isActive && !window.confirm(`Hapus bidang "${field.label}" dari daftar aktif? Riwayat handover tetap disimpan.`)) return;
     try {
       if (field.isActive) {
         await updateHandoverField(field.id, { isActive: false });
@@ -181,23 +177,6 @@ export function HandoverBuilderSection() {
     }
   };
 
-  const permanentlyDeleteField = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    setDeleteError(null);
-    try {
-      await deleteHandoverField(deleteTarget.id);
-      toast.success(`Field "${deleteTarget.label}" dihapus permanen`);
-      setDeleteTarget(null);
-      await loadFields(shiftId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Field tidak dapat dihapus';
-      setDeleteError(msg);
-      toast.error(msg);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
 
   const { active: activeFields, archived: archivedFields } = splitByArchive(fields);
   const visibleFields = filterArchiveView(fields, {
@@ -463,27 +442,9 @@ export function HandoverBuilderSection() {
                 </Button>
                 )}
                 <Button variant="outline" size="sm" onClick={() => toggleActive(f)}>
-                  <Power className="h-3.5 w-3.5" />
-                  {f.isActive ? 'Arsipkan' : 'Pulihkan'}
+                  {f.isActive ? <Trash2 className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
+                  {f.isActive ? 'Hapus' : 'Pulihkan'}
                 </Button>
-                {showArchived && f.canDelete && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setDeleteError(null);
-                      setDeleteTarget(f);
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Hapus permanen
-                  </Button>
-                )}
-                {showArchived && !f.canDelete && (
-                  <span className="self-center text-xs text-ink-muted">
-                    Sudah digunakan: hanya dapat dipulihkan
-                  </span>
-                )}
               </div>
             </div>
           ))}
@@ -533,16 +494,6 @@ export function HandoverBuilderSection() {
         onSubmit={submitField}
       />
 
-      <ConfirmDeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Hapus Bidang Handover"
-        itemName={deleteTarget?.label ?? ''}
-        impact="Hanya bisa dilakukan bila belum pernah dipakai oleh shift."
-        loading={deleteLoading}
-        error={deleteError}
-        onConfirm={() => void permanentlyDeleteField()}
-      />
     </div>
   );
 }

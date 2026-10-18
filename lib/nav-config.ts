@@ -132,6 +132,7 @@ export function isStandalonePath(pathname: string): boolean {
   return (
     pathname === '/' ||
     pathname === '/login' ||
+    pathname === '/setup-akun' ||
     pathname.startsWith('/docs') ||
     pathname.startsWith('/r/')
   );

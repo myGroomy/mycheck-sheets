@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { Check, Plus, Trash2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ArchiveFilter } from '@/components/admin/archive-filter';
-import { ConfirmDeleteDialog } from '@/components/admin/confirm-delete-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SkeletonRows } from '@/components/ui/skeletons';
@@ -30,9 +29,6 @@ export default function KategoriIncidentPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [archiveQuery, setArchiveQuery] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<IncidentCategory | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -98,6 +94,7 @@ export default function KategoriIncidentPage() {
   };
 
   const toggleActive = async (c: IncidentCategory) => {
+    if (c.isActive && !window.confirm(`Hapus kategori "${c.name}" dari daftar aktif? Riwayat incident tetap disimpan.`)) return;
     try {
       await apiFetch(`/api/admin/incident-categories/${c.id}`, {
         method: 'PUT',
@@ -110,22 +107,6 @@ export default function KategoriIncidentPage() {
     }
   };
 
-  const permanentlyDeleteCategory = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    setDeleteError(null);
-    try {
-      await apiFetch(`/api/admin/incident-categories/${deleteTarget.id}`, { method: 'DELETE' });
-      toast.success(`Kategori "${deleteTarget.name}" dihapus permanen`);
-      setDeleteTarget(null);
-      await load();
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Kategori tidak dapat dihapus');
-      toast.error(err instanceof Error ? err.message : 'Kategori tidak dapat dihapus');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
 
   const visibleCategories = categories.filter((category) =>
     category.isActive !== showArchived &&
@@ -212,43 +193,15 @@ export default function KategoriIncidentPage() {
                     </Button>
                   )}
                   <Button variant="outline" size="sm" onClick={() => toggleActive(c)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    {c.isActive ? 'Arsipkan' : 'Pulihkan'}
+                    {c.isActive ? <Trash2 className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
+                    {c.isActive ? 'Hapus' : 'Pulihkan'}
                   </Button>
-                  {showArchived && c.canDelete && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setDeleteError(null);
-                        setDeleteTarget(c);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Hapus permanen
-                    </Button>
-                  )}
-                  {showArchived && !c.canDelete && (
-                    <span className="self-center text-xs text-ink-muted">
-                      Dipakai incident: hanya dapat dipulihkan
-                    </span>
-                  )}
                 </div>
               </div>
             );
           })}
       </div>
 
-      <ConfirmDeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Hapus Kategori"
-        itemName={deleteTarget?.name ?? ''}
-        impact="Kategori yang sudah dipakai incident tidak dapat dihapus."
-        loading={deleteLoading}
-        error={deleteError}
-        onConfirm={() => void permanentlyDeleteCategory()}
-      />
     </div>
   );
 }

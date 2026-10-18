@@ -14,7 +14,7 @@
 //   2. `LoadingCrossfade`  — untuk state loading di komponen client:
 //      skeleton <-> konten melakukan crossfade, bukan hard swap.
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { fadeVariants } from '@/components/PageTransition';
@@ -32,11 +32,13 @@ export function SkeletonTransition({
   children: React.ReactNode;
   className?: string;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <motion.div
       className={className}
-      initial="initial"
+      initial={reduceMotion ? false : 'initial'}
       animate="enter"
+      transition={reduceMotion ? { duration: 0 } : undefined}
       variants={fadeVariants}
     >
       {children}
@@ -74,14 +76,16 @@ export function LoadingCrossfade({
   skeletonKey?: string;
   contentKey?: string;
 }) {
+  const reduceMotion = useReducedMotion();
   return (
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={loading ? skeletonKey : contentKey}
         className={cn(className)}
-        initial="initial"
+        initial={reduceMotion ? false : 'initial'}
         animate="enter"
         exit="exit"
+        transition={reduceMotion ? { duration: 0 } : undefined}
         variants={fadeVariants}
       >
         {loading ? skeleton : children}

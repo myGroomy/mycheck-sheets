@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { toast } from 'sonner';
-import { Save } from 'lucide-react';
+import { Archive, Eye, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,22 @@ interface FieldDef {
   key: string;
   label: string;
   hint?: string;
+}
+
+interface Branch {
+  id: string;
+  name: string;
+  code: string;
+  isActive: boolean | string;
+}
+
+interface ArchivePreview {
+  branchId: string;
+  year: string;
+  periodMode: string;
+  alreadyArchived: boolean;
+  sheets: { sheet: string; rows: number }[];
+  totalRows: number;
 }
 
 const GROUPS: { title: string; fields: FieldDef[] }[] = [
@@ -111,6 +127,12 @@ export default function PengaturanPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [archiveBranchId, setArchiveBranchId] = useState('');
+  const [archiveYear, setArchiveYear] = useState(String(new Date().getFullYear()));
+  const [archivePreview, setArchivePreview] = useState<ArchivePreview | null>(null);
+  const [previewingArchive, setPreviewingArchive] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const { canInstall, isStandalone, isSupported, install } = usePwaInstall();
   const originalSettings = useRef<Record<string, Setting>>({});
 
@@ -136,8 +158,53 @@ export default function PengaturanPage() {
 
   useEffect(() => {
     load();
+    apiFetch<{ branches: Branch[] }>('/api/admin/branches')
+      .then((data) => {
+        setBranches(data.branches);
+        if (data.branches[0]) setArchiveBranchId(data.branches[0].id);
+      })
+      .catch((err) => toast.error(err instanceof Error ? err.message : 'Gagal memuat daftar cabang'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const previewArchive = async () => {
+    if (!archiveBranchId || !/^\d{4}$/.test(archiveYear)) {
+      toast.error('Pilih cabang dan masukkan tahun dengan format YYYY');
+      return;
+    }
+    setPreviewingArchive(true);
+    try {
+      const data = await apiFetch<{ preview: ArchivePreview }>('/api/admin/archive', {
+        method: 'POST',
+        json: { action: 'preview', branchId: archiveBranchId, year: archiveYear },
+      });
+      setArchivePreview(data.preview);
+    } catch (err) {
+      setArchivePreview(null);
+      toast.error(err instanceof Error ? err.message : 'Gagal memuat pratinjau arsip');
+    } finally {
+      setPreviewingArchive(false);
+    }
+  };
+
+  const applyArchive = async () => {
+    if (!archivePreview || archivePreview.alreadyArchived) return;
+    const branch = branches.find((item) => item.id === archiveBranchId);
+    if (!window.confirm(`Arsipkan data ${branch?.name ?? archiveBranchId} tahun ${archiveYear}? Data aktif tidak akan dihapus.`)) return;
+    setArchiving(true);
+    try {
+      const data = await apiFetch<{ archiveId: string }>('/api/admin/archive', {
+        method: 'POST',
+        json: { action: 'apply', branchId: archiveBranchId, year: archiveYear },
+      });
+      toast.success(`Arsip ${archiveYear} berhasil dibuat (${data.archiveId})`);
+      await previewArchive();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal membuat arsip');
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   const setValue = (key: string, value: string) => {
     setSettings((prev) => ({
@@ -304,8 +371,58 @@ export default function PengaturanPage() {
             </p>
           </CardContent>
         </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <Archive className="h-4 w-4" />
+              Arsip Data Tahunan
+            </CardTitle>
+            <p className="text-xs text-ink-muted">
+              Khusus admin. Membuat salinan spreadsheet per tahun tanpa menghapus data aktif.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto] md:items-end">
+              <div className="space-y-1">
+                <Label htmlFor="archive-branch">Cabang</Label>
+                <Select value={archiveBranchId} onValueChange={(value) => { setArchiveBranchId(value); setArchivePreview(null); }}>
+                  <SelectTrigger id="archive-branch"><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
+                  <SelectContent>
+                    {branches.map((branch) => <SelectItem key={branch.id} value={branch.id}>{branch.name} ({branch.code})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="archive-year">Tahun</Label>
+                <Input id="archive-year" value={archiveYear} inputMode="numeric" maxLength={4} onChange={(event) => { setArchiveYear(event.target.value.replace(/\D/g, '').slice(0, 4)); setArchivePreview(null); }} />
+              </div>
+              <Button type="button" variant="outline" onClick={previewArchive} disabled={previewingArchive || archiving || !archiveBranchId}>
+                <Eye className="h-4 w-4" />
+                {previewingArchive ? 'Memuat...' : 'Pratinjau'}
+              </Button>
+            </div>
+            {archivePreview && (
+              <div className="rounded-lg border border-border bg-canvas p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">{archivePreview.year} · mode {archivePreview.periodMode}</p>
+                    <p className="text-xs text-ink-muted">{archivePreview.totalRows} baris akan disalin dari {archivePreview.sheets.length} sheet.</p>
+                  </div>
+                  <Button type="button" onClick={applyArchive} disabled={archiving || archivePreview.alreadyArchived || archivePreview.totalRows === 0}>
+                    <Archive className="h-4 w-4" />
+                    {archivePreview.alreadyArchived ? 'Sudah Diarsipkan' : archiving ? 'Membuat Arsip...' : 'Arsipkan Sekarang'}
+                  </Button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
+                  {archivePreview.sheets.map((sheet) => <span key={sheet.sheet}>{sheet.sheet}: {sheet.rows}</span>)}
+                </div>
+                {archivePreview.totalRows === 0 && <p className="mt-2 text-xs text-amber-700">Tidak ada data pada tahun tersebut.</p>}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
-

@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
       nama: session.nama,
       role: session.role,
       cabangId: session.cabangId,
+      requiresSetup: Boolean(session.requiresSetup),
     },
+    requiresSetup: Boolean(session.requiresSetup),
   });
 }

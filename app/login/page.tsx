@@ -1,10 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { AlertCircle, ArrowLeft, Lock, ShieldCheck, Timer } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { AlertCircle, Lock, ShieldCheck, Timer } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { QuantumLoaderMini } from '@/components/ui/QuantumLoader';
 
@@ -14,6 +13,7 @@ const PIN_LENGTH = 6;
 function LoginForm() {
   const searchParams = useSearchParams();
   const { login } = useAuth();
+  const reduceMotion = useReducedMotion();
   const requestedFrom = searchParams.get('from');
   const from =
     requestedFrom?.startsWith('/') &&
@@ -107,7 +107,7 @@ function LoginForm() {
         return;
       }
 
-      window.location.assign(from);
+      window.location.assign(result.requiresSetup ? '/setup-akun' : from);
     } catch {
       fail('Terjadi kesalahan. Silakan coba lagi.');
       setLoading(false);
@@ -117,22 +117,20 @@ function LoginForm() {
   return (
     <motion.form
       onSubmit={handleSubmit}
-      initial={{ opacity: 0, y: 12 }}
-      animate={shake ? { opacity: 1, x: [-10, 10, -8, 8, -4, 4, 0] } : { opacity: 1, x: 0 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+      animate={shake && !reduceMotion ? { opacity: 1, x: [-10, 10, -8, 8, -4, 4, 0] } : { opacity: 1, x: 0 }}
       transition={{ duration: 0.4, ease: EASE_EXPO }}
-      className="relative rounded-3xl border border-white/10 bg-neutral-900/60 p-8 shadow-2xl backdrop-blur-2xl"
+      className="relative rounded-xl border border-border bg-surface p-5 shadow-sm sm:p-7"
     >
-      <div className="absolute inset-0 rounded-3xl bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           role="alert"
-          className={`mb-6 flex items-start gap-3 rounded-2xl border p-4 text-xs font-medium ${
+          className={`mb-6 flex items-start gap-3 rounded-lg border p-3 text-sm font-medium ${
             errorType === 'lockout' || errorType === 'user_not_found'
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
-              : 'bg-red-500/10 border-red-500/30 text-red-200'
+              ? 'border-warning/30 bg-warning-bg text-amber-900'
+              : 'border-error/30 bg-error-bg text-red-900'
           }`}
         >
           {errorType === 'lockout' ? (
@@ -145,7 +143,7 @@ function LoginForm() {
           <div className="space-y-1">
             <p>{error}</p>
             {errorType === 'lockout' && lockoutRemaining > 0 && (
-              <p className="text-[10px] text-amber-300/80">
+              <p className="text-xs text-amber-300/80">
                 Coba lagi dalam {lockoutRemaining} detik
               </p>
             )}
@@ -155,7 +153,7 @@ function LoginForm() {
 
       <div className="space-y-5">
         <div>
-          <label htmlFor="login-username" className="block text-xs font-medium uppercase tracking-wider text-neutral-400 mb-2">
+            <label htmlFor="login-username" className="mb-2 block text-sm font-medium text-ink">
             Username
           </label>
           <div className="relative">
@@ -169,7 +167,7 @@ function LoginForm() {
               autoCorrect="off"
               autoCapitalize="none"
               spellCheck="false"
-              className="w-full h-13 rounded-xl border border-white/10 bg-black/40 px-4 text-sm text-white placeholder-neutral-500 focus:border-white/30 focus:bg-black/60 focus:outline-none focus:ring-1 focus:ring-white/30 transition-all"
+              className="min-h-11 w-full rounded-md border border-border bg-background px-3 text-sm text-ink placeholder:text-ink-muted focus:border-ink-muted focus:bg-surface focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 transition-colors"
               required
             />
           </div>
@@ -177,10 +175,10 @@ function LoginForm() {
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label htmlFor="login-pin-0" className="block text-xs font-medium uppercase tracking-wider text-neutral-400">
+            <label htmlFor="login-pin-0" className="block text-sm font-medium text-ink">
               PIN Keamanan <span className="text-red-400">*</span>
             </label>
-            <span className="text-[11px] font-mono text-neutral-500">{pin.length}/{PIN_LENGTH} digit</span>
+            <span className="text-xs font-mono text-ink-muted">{pin.length}/{PIN_LENGTH} digit</span>
           </div>
 
           <div className="grid grid-cols-6 gap-2 sm:gap-3">
@@ -232,7 +230,7 @@ function LoginForm() {
                   pinRefs.current[i] = el;
                 }}
                 aria-invalid={Boolean(error)}
-                className="w-full h-13 rounded-xl border border-white/10 bg-black/40 text-center text-lg font-mono tabular-nums text-white focus:border-white/40 focus:bg-black/70 focus:outline-none focus:ring-1 focus:ring-white/30 disabled:opacity-50 transition-all shadow-inner"
+                className="min-h-14 w-full rounded-md border border-border bg-background text-center text-lg font-mono tabular-nums text-ink shadow-sm focus:border-ink-muted focus:bg-surface focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 transition-colors"
               />
             ))}
           </div>
@@ -243,12 +241,12 @@ function LoginForm() {
           disabled={loading || !canSubmit}
           whileHover={loading || !canSubmit ? undefined : { scale: 1.015 }}
           whileTap={loading || !canSubmit ? undefined : { scale: 0.985 }}
-          className={`w-full h-13 mt-3 rounded-xl bg-white text-neutral-950 font-semibold text-sm tracking-wide shadow-lg hover:bg-neutral-100 transition-all flex items-center justify-center gap-2.5 disabled:cursor-not-allowed disabled:opacity-40 ${!canSubmit ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`mt-3 flex min-h-11 w-full items-center justify-center gap-2.5 rounded-md bg-primary text-sm font-semibold tracking-wide text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 ${!canSubmit ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           {loading ? (
             <>
-              <QuantumLoaderMini className="text-neutral-950" />
-              <span>Memproses Otorisasi...</span>
+              <QuantumLoaderMini className="text-primary-foreground" />
+              <span>Memproses…</span>
             </>
           ) : (
             <span>Masuk ke Sistem</span>
@@ -260,43 +258,25 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  const reduceMotion = useReducedMotion();
   return (
-    <main className="relative min-h-dvh w-full overflow-x-hidden bg-neutral-950 text-white flex items-center justify-center antialiased">
-      {/* Background with requested transparent/ambient Unsplash image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-35 mix-blend-luminosity filter contrast-125 scale-105 transition-transform duration-1000"
-        style={{ backgroundImage: `url('https://images.unsplash.com/photo-1518976024611-28bf4b48222e?w=1920&auto=format&fit=crop&q=80')` }}
-      />
-      {/* Sophisticated dark radial gradient vignette overlay */}
-      <div className="absolute inset-0 bg-radial from-neutral-950/20 via-neutral-950/80 to-neutral-950 pointer-events-none" />
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] pointer-events-none" />
-
-      {/* Top Left Back Navigation */}
-      <Link
-        href="/"
-        className="absolute left-6 top-6 z-20 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-medium text-neutral-300 backdrop-blur-xl transition-all hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        <span>Beranda</span>
-      </Link>
-
-      {/* Main Center Content Container */}
-      <div className="relative z-10 w-full max-w-md px-4 py-12">
+    <main className="flex min-h-dvh w-full items-center justify-center bg-canvas px-4 py-12 text-ink antialiased">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={reduceMotion ? false : { scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: EASE_EXPO }}
-            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-2xl backdrop-blur-xl"
+            className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl border border-border bg-surface text-ink shadow-sm"
           >
-            <ShieldCheck className="h-8 w-8 text-white/90" />
+            <ShieldCheck className="h-7 w-7 text-ink" />
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.1, ease: EASE_EXPO }}
-            className="text-2xl font-bold tracking-tight text-white sm:text-3xl"
+            className="text-2xl font-bold tracking-tight text-ink sm:text-3xl"
           >
             MyCheck Enterprise
           </motion.h1>
@@ -305,7 +285,7 @@ export default function LoginPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2, ease: EASE_EXPO }}
-            className="mt-2 text-xs text-neutral-400 tracking-wide uppercase"
+            className="mt-2 text-xs uppercase tracking-wide text-ink-muted"
           >
             Otorisasi Shift &amp; Operasional Cabang
           </motion.p>
@@ -314,15 +294,14 @@ export default function LoginPage() {
         <LoginForm />
       </div>
 
-      {/* Bottom Footer Version */}
       <motion.div
-        initial={{ opacity: 0 }}
+        initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="absolute bottom-6 inset-x-0 text-center z-10"
+        className="mt-6 text-center"
       >
-        <p className="text-[11px] font-mono tracking-wider text-neutral-500 uppercase">
-          Secured Architecture &middot; v2.0 Google Sheets Engine
+        <p className="text-xs font-mono uppercase tracking-wider text-ink-muted">
+          MyCheck · Operasional cabang
         </p>
       </motion.div>
     </main>

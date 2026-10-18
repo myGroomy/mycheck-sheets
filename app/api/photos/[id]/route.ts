@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { withAuth } from '../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../lib/google/registry';
-import { listMonthlyRows, asStr } from '../../../../lib/store';
+import { listMonthlyRows, listPeriodKeys, asStr } from '../../../../lib/store';
 import { buildReportDetail } from '../../../../lib/report-detail';
 import { drivePhotoResponse } from '../../../../lib/google/drive-photo-response';
 import { containsPhotoId } from '../../../../lib/shared/report-values';
@@ -56,14 +56,6 @@ withAuth(async (_req, ctx, _session) => {
     mime: string;
   } | null = null;
 
-  // Foto di tab bulan berjalan / bulan sebelumnya
-  const candidateMonths: string[] = [];
-  for (let back = 0; back < 3; back++) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - back);
-    candidateMonths.push(d.toISOString().slice(0, 7));
-  }
-
   for (const cabang of cabangs) {
     if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;
     let spreadsheetId = '';
@@ -72,7 +64,7 @@ withAuth(async (_req, ctx, _session) => {
     } catch {
       continue;
     }
-    for (const month of candidateMonths) {
+    for (const month of await listPeriodKeys(spreadsheetId, 'Photos')) {
       const rows = await listMonthlyRows(spreadsheetId, 'Photos', month);
       const hit = rows.find((p) => asStr(p['id']) === photoId);
       if (hit) {

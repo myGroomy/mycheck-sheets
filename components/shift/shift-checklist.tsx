@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
-import { AlertCircle, ArrowLeft, Clock3, UserRound } from 'lucide-react';
+import { AlertCircle, Clock3, UserRound } from 'lucide-react';
 import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { PreviousHandoverCard } from '@/components/shift/previous-handover-card'
 import { useCabang } from '@/lib/CabangContext';
 
 type EntryState = 'belum' | 'selesai' | 'skip';
+type SyncState = 'idle' | 'saving' | 'saved' | 'error';
 type InputType =
   | 'centang'
   | 'foto'
@@ -121,6 +121,12 @@ export function ShiftChecklistClient({
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyPoint, setBusyPoint] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<SyncState>('idle');
+  const [retryAction, setRetryAction] = useState<{
+    point: ProgressPoint;
+    action: 'selesai' | 'batal' | 'skip';
+    rawValue?: string;
+  } | null>(null);
   const progressRequestRef = useRef<Promise<void> | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
   const { refreshBranches } = useCabang();
@@ -258,6 +264,8 @@ export function ShiftChecklistClient({
 
   const submitEntry = async (point: ProgressPoint, action: 'selesai' | 'batal' | 'skip', rawValue?: string) => {
     setBusyPoint(point.point_ref);
+    setSyncState('saving');
+    setRetryAction(null);
     setNotice(null);
     try {
       const payload: Record<string, string | number | boolean | null> = {
@@ -328,10 +336,16 @@ export function ShiftChecklistClient({
       }
       if (json.status === 'diterima' && json.entry) {
         applyAcceptedEntry(point.point_ref, json.entry, json.participant ?? null);
+        setSyncState('saved');
+        setRetryAction(null);
       } else {
         await loadProgress();
+        setSyncState('saved');
+        setRetryAction(null);
       }
     } catch (error) {
+      setSyncState('error');
+      setRetryAction({ point, action, rawValue });
       setNotice(error instanceof Error ? error.message : 'Gagal menyimpan checklist');
     } finally {
       setBusyPoint(null);
@@ -372,9 +386,9 @@ export function ShiftChecklistClient({
     return (
       <main className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         
-        <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-ink-muted">
-          Shift tidak tersedia.
-        </div>
+            <div className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-ink-muted">
+              Shift tidak tersedia.
+            </div>
       </main>
     );
   }
@@ -382,15 +396,7 @@ export function ShiftChecklistClient({
   return (
     <main className="mx-auto max-w-6xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" size="sm" asChild>
-            <Link href="/">
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Kembali
-            </Link>
-          </Button>
-        </div>
+      <div className="flex items-center justify-end gap-3">
         <div className="rounded-full border border-border bg-surface px-3 py-1 text-xs uppercase tracking-wide text-ink-muted">
           {data.shift.status}
         </div>
@@ -399,11 +405,25 @@ export function ShiftChecklistClient({
       {notice && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{notice}</span>
+          <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+            <span>{notice}</span>
+            {retryAction && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="shrink-0 border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+                onClick={() => void submitEntry(retryAction.point, retryAction.action, retryAction.rawValue)}
+                disabled={busyPoint !== null}
+              >
+                Coba lagi
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
-      <header className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+      <header className="sticky top-16 z-20 rounded-2xl border border-border bg-surface/95 p-4 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-surface/90">
         <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-ink-muted">{data.shift.date}</p>
@@ -416,6 +436,10 @@ export function ShiftChecklistClient({
           <div className="rounded-xl border border-border bg-canvas px-3 py-2 text-sm text-ink-muted">
             <span className="font-semibold text-ink">{totalDone}</span> / {data.progress.total} selesai
           </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted" aria-live="polite">
+          <span className={`h-2 w-2 rounded-full ${syncState === 'error' ? 'bg-error' : syncState === 'saving' ? 'bg-warning' : syncState === 'saved' ? 'bg-success' : 'bg-border-strong'}`} aria-hidden="true" />
+          {syncState === 'saving' ? 'Menyimpan perubahan…' : syncState === 'saved' ? 'Tersimpan' : syncState === 'error' ? 'Belum tersimpan' : 'Sinkronisasi siap'}
         </div>
       </header>
 
@@ -561,9 +585,6 @@ export function ShiftChecklistClient({
                   Shift sudah ditutup. Checklist tampil hanya untuk dibaca.
                 </p>
               )}
-              <Button type="button" variant="outline" asChild>
-                <Link href="/">Kembali ke beranda</Link>
-              </Button>
             </div>
           </div>
         </aside>

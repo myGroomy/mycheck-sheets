@@ -20,9 +20,11 @@ export interface AuthContext {
     username: string;
     role: 'admin' | 'petugas';
     isActive: boolean;
+    requiresSetup: boolean;
   };
   branchIds: string[];
   cabangId: string;
+  requiresSetup: boolean;
 }
 
 /** Daftar cabang yang boleh diakses user. Admin → seluruh cabang aktif. */
@@ -59,9 +61,11 @@ async function buildContext(): Promise<AuthContext | null> {
       username: session.username,
       role: session.role,
       isActive: true,
+      requiresSetup: Boolean(session.requiresSetup),
     },
     branchIds: await resolveBranchIds(session.role, session.cabangId),
     cabangId: session.cabangId,
+    requiresSetup: Boolean(session.requiresSetup),
   };
 }
 
@@ -69,6 +73,7 @@ async function buildContext(): Promise<AuthContext | null> {
 export async function requireUser(): Promise<AuthContext> {
   const ctx = await buildContext();
   if (!ctx) redirect('/login');
+  if (ctx.requiresSetup) redirect('/setup-akun');
   return ctx;
 }
 

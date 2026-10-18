@@ -20,6 +20,8 @@ import {
 import { buildPhotoBaseName } from '../../../../lib/photo-filename';
 import { uploadPhotoViaGas, type UploadPhotoGasOutput } from '../../../../lib/google/photo-upload-gas';
 import { GasError } from '../../../../lib/google/gas-client';
+import { tabMonthOfDate } from '../../../../lib/schema/periods';
+import { incidentPeriods } from '../../../../lib/incidents';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_INCIDENT_PHOTOS = 5;
@@ -65,7 +67,7 @@ withAuth(async (_req, ctx, _session) => {
   let resolvedShiftId = shiftInstanceId;
   let spreadsheetId = '';
   let branchId = '';
-  let tabMonth = new Date().toISOString().slice(0, 7);
+  let tabMonth = tabMonthOfDate();
   let resolvedInstance: Record<string, unknown> | null = null;
 
   if (ownerType === 'incident') {
@@ -87,12 +89,10 @@ withAuth(async (_req, ctx, _session) => {
           break;
         }
         // Incident mungkin belum terindeks cari di tab bulanan
-        const tabs = await listMonthlyRows(
-          resolved.spreadsheetId,
-          'Incidents',
-          new Date().toISOString().slice(0, 7)
-        );
-        const inc = tabs.find((i) => asStr(i['id']) === ownerId);
+        const incidentRows = (await Promise.all((await incidentPeriods(resolved.spreadsheetId)).map((month) =>
+          listMonthlyRows(resolved.spreadsheetId, 'Incidents', month)
+        ))).flat();
+        const inc = incidentRows.find((i) => asStr(i['id']) === ownerId);
         if (inc) {
           spreadsheetId = resolved.spreadsheetId;
           branchId = candidate;

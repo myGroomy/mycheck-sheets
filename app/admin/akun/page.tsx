@@ -167,7 +167,7 @@ export default function AkunPage() {
 
     const errors: Record<string, string> = {};
     if (form.name.trim().length < 2) errors.name = 'Nama minimal 2 karakter';
-    if (form.branchIds.length === 0) errors.branchIds = 'Pilih minimal satu cabang akses';
+    if (form.role === 'petugas' && form.branchIds.length === 0) errors.branchIds = 'Pilih minimal satu cabang akses untuk petugas';
 
     if (!editUser) {
       if (form.username.trim().length < 3 || !/^[a-zA-Z0-9._-]+$/.test(form.username.trim()))
@@ -401,7 +401,7 @@ export default function AkunPage() {
                   }}
                   className="text-error focus:text-error"
                 >
-                  <UserX className="mr-2 h-4 w-4" />{u.isActive ? 'Arsipkan akun' : 'Pulihkan akun'}
+                  <UserX className="mr-2 h-4 w-4" />{u.isActive ? 'Hapus akun' : 'Pulihkan akun'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -520,7 +520,7 @@ export default function AkunPage() {
                         className="text-error focus:text-error"
                       >
                         <UserX className="mr-2 h-4 w-4" />
-                        {u.isActive ? 'Arsipkan akun' : 'Pulihkan akun'}
+                        {u.isActive ? 'Hapus akun' : 'Pulihkan akun'}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -626,7 +626,7 @@ export default function AkunPage() {
             </div>
             <div className="space-y-1">
               <Label>
-                Akses Cabang <span className="text-error">*</span>
+                Akses Cabang {form.role === 'petugas' && <span className="text-error">*</span>}
               </Label>
               <div className="max-h-48 overflow-y-auto rounded-lg border border-border">
                 {branches.map((b) => (
@@ -651,6 +651,9 @@ export default function AkunPage() {
                     {b.name}
                   </label>
                 ))}
+                {form.role === 'admin' && (
+                  <p className="border-b border-border bg-canvas p-3 text-xs text-ink-muted">Admin otomatis memiliki akses ke semua cabang aktif.</p>
+                )}
                 {branches.length === 0 && (
                   <p className="p-3 text-xs text-ink-muted">Belum ada cabang</p>
                 )}

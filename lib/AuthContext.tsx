@@ -14,10 +14,11 @@ interface User {
   nama: string;
   role: UserRole;
   cabangId: string;
+  requiresSetup: boolean;
 }
 
 type LoginResult =
-  | { success: true; role: UserRole }
+  | { success: true; role: UserRole; requiresSetup: boolean }
   | { success: false; error: string; code?: string };
 
 /**
@@ -60,6 +61,7 @@ function extractUser(json: unknown): User | null {
     nama: String(data.nama ?? ''),
     role: data.role === 'admin' ? 'admin' : 'petugas',
     cabangId: String(data.cabangId ?? ''),
+    requiresSetup: Boolean(data.requiresSetup ?? obj.requiresSetup),
   };
 }
 
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // akan me-redirect lewat window.location.assign; overlay dibiarkan
         // tampil sampai halaman baru benar-benar dimuat. Kalau redirect
         // gagal, AuthGuard akan mengembalikan state ke 'idle'.
-        return { success: true, role: u.role };
+        return { success: true, role: u.role, requiresSetup: Boolean(data.requiresSetup) };
       }
       const errMsg =
         (data?.error?.message as string | undefined) ??

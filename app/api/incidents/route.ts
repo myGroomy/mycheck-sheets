@@ -6,9 +6,9 @@ import { requireBranchAccess, withAuth } from '../../../lib/api-auth';
 import { resolveCabang, getCabangList, getSettingsGlobal } from '../../../lib/google/registry';
 import { appendAuditLogFor } from '../../../lib/db/audit';
 import { getServerTime } from '../../../lib/db/server-time';
-import { asBool, asStr, filterRows, insertRow, listMonthlyRows } from '../../../lib/store';
+import { asBool, asStr, filterRows, insertRow, listMonthlyRows, getPeriodSheet } from '../../../lib/store';
 import { resolveInstance, tabMonthOf } from '../../../lib/instance-resolver';
-import { candidateMonths, ensureIncidentTabs, incidentTabMonth, listActiveCategoriesAcrossBranches, pushNotification, upsertIncidentIndex, userNameMap, categoryNameMap } from '../../../lib/incidents';
+import { ensureIncidentTabs, incidentPeriods, incidentTabMonth, listActiveCategoriesAcrossBranches, pushNotification, upsertIncidentIndex, userNameMap, categoryNameMap } from '../../../lib/incidents';
 
 interface IncidentBody {
   shiftInstanceId?: string;
@@ -73,7 +73,7 @@ withAuth(async (_req, ctx, _session) => {
         }
       }
     } else {
-      for (const month of candidateMonths()) {
+      for (const month of await incidentPeriods(spreadsheetId)) {
         const rows = await listMonthlyRows(spreadsheetId, 'Incidents', month);
         for (const row of rows) {
           if (asBool(row['is_test'])) continue;
@@ -95,7 +95,7 @@ withAuth(async (_req, ctx, _session) => {
   }
   incidents.sort((a, b) => String(b['reportedAt'] ?? '').localeCompare(String(a['reportedAt'] ?? '')));
   const response = NextResponse.json({
-    categories: categories.map((c) => ({ id: c.id, name: c.name, sortOrder: c.sortOrder })),
+    categories: categories.map((c) => ({ id: c.id, name: c.name, sortOrder: c.sortOrder, points: c.points })),
     branches: branchRows, incidents: incidents.slice(0, 100),
   });
   response.headers.set('Cache-Control', 'no-store');
@@ -123,7 +123,7 @@ withAuth(async (_req, ctx, _session) => {
   if (!categories.some((c) => c.id === categoryId)) return NextResponse.json({ error: 'Kategori incident tidak valid' }, { status: 404 });
   let branchId: string | null = null;
   let spreadsheetId = '';
-  let tabMonth = occurredAt.toISOString().slice(0, 7);
+  let tabMonth = '';
   const shiftInstanceId: string | null = body.shiftInstanceId ?? null;
   if (shiftInstanceId) {
     const resolved = await resolveInstance(ctx, shiftInstanceId);
@@ -168,8 +168,13 @@ withAuth(async (_req, ctx, _session) => {
   }
   if (!branchId) return NextResponse.json({ error: 'Cabang incident tidak ditentukan' }, { status: 400 });
   try {
-    const { spreadsheetId: sid } = await resolveCabang(branchId);
+    const { spreadsheetId: sid, cabang } = await resolveCabang(branchId);
     spreadsheetId = spreadsheetId || sid;
+    if (!tabMonth) {
+      const timezone = String(cabang['Timezone'] || 'Asia/Jakarta');
+      const { tabMonthOfDate } = await import('../../../lib/schema/periods');
+      tabMonth = tabMonthOfDate(occurredAt, timezone);
+    }
   } catch { return NextResponse.json({ error: 'Cabang incident tidak ditemukan' }, { status: 404 }); }
   const incidentId = ulid();
   const reportedAt = now.toISOString();
@@ -177,13 +182,14 @@ withAuth(async (_req, ctx, _session) => {
   try {
     tabMonth = incidentTabMonth({ tab_month: tabMonth, occurred_at: occurredAt.toISOString() });
     await ensureIncidentTabs(spreadsheetId, tabMonth);
-    const { monthlySheet } = await import('../../../lib/google/branch-schema');
-    await insertRow(spreadsheetId, monthlySheet('Incidents', tabMonth), {
+    const categoryPoints = categories.find((category) => category.id === categoryId)?.points ?? 0;
+    await insertRow(spreadsheetId, await getPeriodSheet(spreadsheetId, 'Incidents', tabMonth), {
       id: incidentId, shift_instance_id: shiftInstanceId ?? '', tab_month: tabMonth,
       category_id: categoryId, description, occurred_at: occurredAt.toISOString(),
       reported_by: ctx.user.id, reported_at: reportedAt, status: 'open',
       outside_shift: outsideShift, link_source: shiftInstanceId ? 'otomatis' : 'none',
       linked_by: '', linked_at: '', source_entry_id: '', severity: body.severity ?? '',
+      points_snapshot: categoryPoints,
       status_changed_by: '', status_changed_at: '', is_test: false,
       created_at: reportedAt, updated_at: reportedAt, version: 1,
     });

@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, ArrowLeft, Image as ImageIcon, Loader2, Send } from 'lucide-react';
+import { AlertCircle, Image as ImageIcon, Loader2, Send } from 'lucide-react';
 import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
@@ -84,7 +83,6 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
     return (
       <main className="mx-auto max-w-3xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
         
-        <Button asChild variant="outline"><Link href="/incident"><ArrowLeft className="mr-2 h-4 w-4" />Kembali</Link></Button>
         <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error ?? 'Incident tidak ditemukan.'}</div>
       </main>
     );
@@ -93,7 +91,6 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
   return (
     <main className="mx-auto max-w-3xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
-      <Button asChild variant="outline"><Link href="/incident"><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke incident</Link></Button>
       {error && <div role="alert" className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div>}
       <article className="rounded-2xl border border-border bg-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">

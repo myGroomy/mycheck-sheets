@@ -12,7 +12,8 @@ import {
   writeRow,
   columnIndexToLetter,
 } from './google/sheets';
-import { getHeaders, rowFromObject, monthlySheet, MONTHLY_SHEETS } from './google/branch-schema';
+import { getHeaders, rowFromObject, periodSheetName, MONTHLY_SHEETS, YEARLY_SHEETS, type PeriodMode } from './google/branch-schema';
+import { listBranchSheetTitles, readBranchSchemaVersion } from './schema/version';
 
 export interface Row<T = Record<string, unknown>> {
   rowNumber: number; // 1-based, baris fisik di sheet (baris 1 = header)
@@ -106,11 +107,7 @@ export async function filterRowsMulti(
 
 /** Baca baris sheet bulanan secara aman: [] bila sheet belum ada */
 export async function listMonthlyRows(spreadsheetId: string, base: string, tabMonth: string): Promise<Record<string, unknown>[]> {
-  try {
-    return await listRows(spreadsheetId, monthlySheet(base, tabMonth));
-  } catch {
-    return [];
-  }
+  return listPeriodRows(spreadsheetId, base, tabMonth, false);
 }
 
 /** Versi fresh (bukan cache 15s) untuk data yang baru ditulis, mis. handshake/ack. */
@@ -119,21 +116,88 @@ export async function listMonthlyRowsFresh(
   base: string,
   tabMonth: string,
 ): Promise<Record<string, unknown>[]> {
-  try {
-    return await listRowsFresh(spreadsheetId, monthlySheet(base, tabMonth));
-  } catch {
-    return [];
-  }
+  return listPeriodRows(spreadsheetId, base, tabMonth, true);
 }
 
-/** Pastikan sheet bulanan ada (dibuat otomatis jika bulan baru) */
-export async function ensureMonthlySheet(spreadsheetId: string, base: string, tabMonth: string): Promise<string> {
-  const name = monthlySheet(base, tabMonth);
-  const headers = MONTHLY_SHEETS[base];
-  if (!headers) throw new Error('Unknown monthly sheet: ' + base);
+/**
+ * Baca periode aktif. Mode flat membaca satu sheet generik; mode yearly
+ * membaca sheet tahunan lalu sheet bulanan legacy secara dual-read.
+ * Baris dengan id sama hanya dikembalikan sekali.
+ */
+export async function listPeriodRows(
+  spreadsheetId: string,
+  base: string,
+  tabMonth: string,
+  fresh = false,
+): Promise<Record<string, unknown>[]> {
+  const { periodMode } = await readBranchSchemaVersion(spreadsheetId);
+  const primary = periodSheetName(base, tabMonth, periodMode);
+  const read = fresh ? listRowsFresh : listRows;
+  const names = [primary];
+  if (periodMode === 'yearly') {
+    try {
+      const titles = await listBranchSheetTitles(spreadsheetId);
+      names.push(...titles.filter((title) => title.startsWith(`${base}_`) && /^\d{4}-\d{2}$/.test(title.slice(base.length + 1))));
+    } catch {
+      // Jika metadata gagal, sheet tahunan tetap dapat dibaca.
+    }
+  }
+  const result: Record<string, unknown>[] = [];
+  const seen = new Set<string>();
+  for (const name of names) {
+    try {
+      for (const row of await read(spreadsheetId, name)) {
+        const id = String(row.id ?? '');
+        if (id && seen.has(id)) continue;
+        if (id) seen.add(id);
+        result.push(row);
+      }
+    } catch {
+      // Periode belum dibuat adalah kondisi normal.
+    }
+  }
+  return result;
+}
+
+/** Nama sheet periode aktif untuk operasi update/append satu baris. */
+export async function getPeriodSheet(
+  spreadsheetId: string,
+  base: string,
+  tabMonth: string,
+): Promise<string> {
+  const { periodMode } = await readBranchSchemaVersion(spreadsheetId);
+  return periodSheetName(base, tabMonth, periodMode);
+}
+
+/** Kunci periode yang benar-benar tersedia di spreadsheet. */
+export async function listPeriodKeys(spreadsheetId: string, base: string): Promise<string[]> {
+  const titles = await listBranchSheetTitles(spreadsheetId);
+  const { periodMode } = await readBranchSchemaVersion(spreadsheetId);
+  if (periodMode === 'flat') return titles.includes(base) ? ['flat'] : [];
+  const keys = new Set<string>();
+  for (const title of titles) {
+    if (!title.startsWith(`${base}_`)) continue;
+    const suffix = title.slice(base.length + 1);
+    if (/^\d{4}-\d{2}$/.test(suffix)) keys.add(suffix);
+    else if (/^\d{4}$/.test(suffix)) keys.add(`${suffix}-01`);
+  }
+  return [...keys].sort();
+}
+
+/** Pastikan sheet periode aktif ada, termasuk sheet tahunan. */
+export async function ensurePeriodSheet(
+  spreadsheetId: string,
+  base: string,
+  tabMonth: string,
+  mode?: PeriodMode,
+): Promise<string> {
+  const periodMode = mode ?? (await readBranchSchemaVersion(spreadsheetId)).periodMode;
+  const name = periodSheetName(base, tabMonth, periodMode);
+  const headers = (periodMode === 'yearly' ? YEARLY_SHEETS : MONTHLY_SHEETS)[base];
+  if (!headers) throw new Error('Unknown period sheet: ' + base);
   const sheets = getSheetsClient();
   const meta = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties.title' });
-  const exists = (meta.data.sheets || []).some((s) => s.properties?.title === name);
+  const exists = (meta.data.sheets || []).some((sheet) => sheet.properties?.title === name);
   if (!exists) {
     await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
@@ -142,6 +206,11 @@ export async function ensureMonthlySheet(spreadsheetId: string, base: string, ta
     await writeRow(spreadsheetId, `${name}!A1`, headers);
   }
   return name;
+}
+
+/** Kompatibilitas nama lama; sekarang mengikuti period_mode cabang. */
+export async function ensureMonthlySheet(spreadsheetId: string, base: string, tabMonth: string): Promise<string> {
+  return ensurePeriodSheet(spreadsheetId, base, tabMonth);
 }
 
 export async function insertRow(spreadsheetId: string, sheet: string, obj: Record<string, unknown>): Promise<void> {
@@ -166,7 +235,7 @@ export async function replaceRow(spreadsheetId: string, sheet: string, rowNumber
 }
 
 export function asBool(v: unknown): boolean {
-  return v === true || v === 'true' || v === 'TRUE' || v === 'True' || v === '1' || v === 1;
+  return v === true || v === 'true' || v === 'TRUE' || v === 'True' || v === 'yes' || v === 'YES' || v === 'Yes' || v === '1' || v === 1;
 }
 export function asNum(v: unknown): number | null {
   if (v === '' || v === null || v === undefined) return null;

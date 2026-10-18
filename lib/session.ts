@@ -16,6 +16,10 @@ export interface SessionData {
   role: 'admin' | 'petugas';
   cabangId: string;
   exp: number;
+  /** ID row Users yang menjadi sumber session; kompatibilitas token lama tetap dijaga. */
+  userId?: string;
+  /** Bootstrap account wajib menyelesaikan setup sebelum memakai aplikasi. */
+  requiresSetup?: boolean;
 }
 
 /**

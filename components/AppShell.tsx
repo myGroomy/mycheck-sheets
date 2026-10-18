@@ -32,7 +32,7 @@ export function AppShell({
   return (
     <>
       <NavbarClient initialRole={initialRole} />
-      <div className={needsOffset ? 'md:pl-64' : undefined}>{children}</div>
+      <div className={needsOffset ? 'app-content min-h-screen md:pl-64' : 'app-content min-h-screen'}>{children}</div>
     </>
   );
 }

@@ -11,6 +11,7 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { PageTransition } from '@/components/PageTransition';
 import { AuthTransitionOverlay } from '@/components/AuthTransitionOverlay';
+import { GlobalBackButton } from '@/components/GlobalBackButton';
 import { verifySessionToken } from '@/lib/session';
 import { isMaintenanceMode } from '@/lib/maintenance';
 import './globals.css';
@@ -79,6 +80,7 @@ export default async function RootLayout({
       <html lang="id" suppressHydrationWarning>
         <body className={`${plusJakartaSans.variable} bg-canvas text-ink antialiased`}>
           <RootProvider>
+            <GlobalBackButton />
             <div className="flex min-h-dvh items-center justify-center bg-canvas p-6">
               <div className="max-w-md text-center">
                 <p className="text-2xl font-bold text-ink">Sedang maintenance</p>
@@ -108,7 +110,10 @@ export default async function RootLayout({
               <WorkingBranchProvider initialBranchId={initialWorkingBranch}>
                 <AuthGuard>
                   <AppShell initialRole={initialRole}>
-                    <PageTransition>{children}</PageTransition>
+                    <PageTransition>
+                      <GlobalBackButton />
+                      {children}
+                    </PageTransition>
                   </AppShell>
                 </AuthGuard>
                 {/* Overlay login/logout.

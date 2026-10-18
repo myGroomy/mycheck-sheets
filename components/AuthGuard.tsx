@@ -31,6 +31,23 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
+    if (user?.requiresSetup && pathname !== '/setup-akun') {
+      if (lastAction.current !== 'to:/setup-akun') {
+        lastAction.current = 'to:/setup-akun';
+        router.replace('/setup-akun');
+      }
+      return;
+    }
+
+    if (pathname === '/setup-akun' && user && !user.requiresSetup) {
+      const target = user.role === 'admin' ? '/admin' : '/daftar-shift';
+      if (lastAction.current !== `to:${target}`) {
+        lastAction.current = `to:${target}`;
+        router.replace(target);
+      }
+      return;
+    }
+
     // Sudah login tapi masih di /login → tujuan sesuai role
     if (pathname === '/login' && user) {
       const target = user.role === 'admin' ? '/admin' : '/';

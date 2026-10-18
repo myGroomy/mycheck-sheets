@@ -237,7 +237,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                 prefetch={false}
                 aria-current={active ? 'page' : undefined}
                 onClick={() => setMoreOpen(false)}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-2xs font-medium leading-tight ${
+                className={`touch-manipulation flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-2xs font-medium leading-tight ${
                   active ? 'text-ink' : 'text-ink-muted'
                 }`}
               >
@@ -249,7 +249,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
           {hasMoreItems && (
             <button
               onClick={() => setMoreOpen((v) => !v)}
-              className={`flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-2xs font-medium leading-tight ${
+              className={`touch-manipulation flex min-h-[56px] flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-2xs font-medium leading-tight ${
                 moreOpen ? 'text-ink' : 'text-ink-muted'
               }`}
               aria-label={role === 'admin' ? 'Menu admin' : 'Menu lainnya'}

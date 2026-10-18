@@ -7,7 +7,7 @@
 //
 // Usage: npx tsx --env-file=.env scripts/setup-branch.ts <Cabang_ID> <Nama_Cabang> <Spreadsheet_ID> [Timezone] [Kode]
 import { google } from 'googleapis';
-import { STATIC_SHEETS, MONTHLY_SHEETS } from '../lib/google/branch-schema';
+import { STATIC_SHEETS, MONTHLY_SHEETS, YEARLY_SHEETS } from '../lib/google/branch-schema';
 
 const [cabangId, namaCabang, spreadsheetId, timezone = 'Asia/Jakarta', kode = ''] = process.argv.slice(2);
 if (!cabangId || !namaCabang || !spreadsheetId) {
@@ -31,6 +31,7 @@ function getAuth() {
 }
 
 const CURRENT_TAB = new Date().toISOString().slice(0, 7); // YYYY-MM
+const CURRENT_YEAR = new Date().toISOString().slice(0, 4); // YYYY
 
 async function main() {
   const auth = getAuth();
@@ -48,31 +49,36 @@ async function main() {
     console.warn('WARN: sheet statis belum ada:', missingStatic.join(', '));
   }
 
-  // 2. Pastikan tab bulanan bulan ini ada (dipakai otomatis saat shift dibuka)
+  // 2. Pastikan sheet transaksi sesuai period_mode template ada.
+  const metaRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: '_meta!A:B' });
+  const metaVals = metaRes.data.values || [];
+  const metaMap = new Map(metaVals.slice(1).map((row) => [String(row[0] ?? ''), String(row[1] ?? '')]));
+  const periodMode = metaMap.get('period_mode') === 'yearly' ? 'yearly' : metaMap.get('period_mode') === 'flat' ? 'flat' : 'monthly';
+  const periodBases = Object.keys(MONTHLY_SHEETS);
+  const periodTitle = (base: string) => periodMode === 'flat' ? base : `${base}_${periodMode === 'yearly' ? CURRENT_YEAR : CURRENT_TAB}`;
+  const periodHeaders = (base: string) => periodMode === 'yearly' ? YEARLY_SHEETS[base] : MONTHLY_SHEETS[base];
   const requests: object[] = [];
-  for (const base of Object.keys(MONTHLY_SHEETS)) {
-    const title = `${base}_${CURRENT_TAB}`;
+  for (const base of periodBases) {
+    const title = periodTitle(base);
     if (!existing.has(title)) {
       requests.push({ addSheet: { properties: { title } } });
     }
   }
   if (requests.length > 0) {
     await sheets.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } });
-    for (const base of Object.keys(MONTHLY_SHEETS)) {
-      const title = `${base}_${CURRENT_TAB}`;
+    for (const base of periodBases) {
+      const title = periodTitle(base);
       await sheets.spreadsheets.values.update({
         spreadsheetId,
         range: `${title}!A1`,
         valueInputOption: 'RAW',
-        requestBody: { values: [MONTHLY_SHEETS[base]] },
+        requestBody: { values: [periodHeaders(base)] },
       });
     }
-    console.log(`Tab bulanan ${CURRENT_TAB} dibuat:`, Object.keys(MONTHLY_SHEETS).length);
+    console.log(`Sheet transaksi mode=${periodMode} dibuat:`, periodBases.length);
   }
 
   // 3. Pastikan _meta punya default
-  const metaRes = await sheets.spreadsheets.values.get({ spreadsheetId, range: '_meta!A:B' });
-  const metaVals = metaRes.data.values || [];
   const have = new Set(metaVals.slice(1).map((r) => String(r[0] ?? '')));
   const toAdd: string[][] = [];
   if (!have.has('tolerance_default_minutes')) toAdd.push(['tolerance_default_minutes', '15']);

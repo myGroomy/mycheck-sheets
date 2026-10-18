@@ -22,7 +22,21 @@ export interface CabangRecord {
   Alamat?: string;
   Branch_Folder_ID?: string;
   Evidence_Folder_ID?: string;
+  Arsip_Spreadsheet_IDs?: string;
   [key: string]: unknown;
+}
+
+export interface ArchiveSpreadsheet { year: string; spreadsheetId: string; }
+
+export function parseArchiveSpreadsheetIds(value: unknown): ArchiveSpreadsheet[] {
+  return String(value ?? '').split(',').map((part) => part.trim()).filter(Boolean).map((part) => {
+    const match = part.match(/^(\d{4}):(.+)$/);
+    return match ? { year: match[1], spreadsheetId: match[2] } : { year: '', spreadsheetId: part };
+  });
+}
+
+export function serializeArchiveSpreadsheetIds(entries: ArchiveSpreadsheet[]): string {
+  return [...entries].sort((a, b) => a.year.localeCompare(b.year)).map((entry) => `${entry.year}:${entry.spreadsheetId}`).join(',');
 }
 
 let _registryId: string | null = null;
@@ -103,7 +117,7 @@ export async function getCabangList(): Promise<CabangRecord[]> {
   const list = sheetToObjects(headers, rows) as CabangRecord[];
   _cabangListCache = list.filter((r) => {
     const v = r['Aktif'];
-    return v === true || v === 'true' || v === 'TRUE' || v === 'True';
+    return v === true || v === 'true' || v === 'TRUE' || v === 'True' || v === 'yes' || v === 'YES' || v === 'Yes' || v === '1';
   });
   _cabangListCacheAt = Date.now();
   return _cabangListCache;
@@ -126,7 +140,7 @@ export async function resolveCabang(cabangId: string): Promise<{
   const list = sheetToObjects(headers, rows) as CabangRecord[];
   const cabang = list.find((r) => r['Cabang_ID'] === cabangId);
   if (!cabang) throw new Error('CABANG_TIDAK_DITEMUKAN: ' + cabangId);
-  const isAktif = (v: unknown) => v === true || v === 'true' || v === 'TRUE' || v === 'True';
+  const isAktif = (v: unknown) => v === true || v === 'true' || v === 'TRUE' || v === 'True' || v === 'yes' || v === 'YES' || v === 'Yes' || v === '1';
   if (!isAktif(cabang['Aktif'])) {
     throw new Error('CABANG_TIDAK_AKTIF: ' + cabangId);
   }
@@ -139,6 +153,21 @@ export async function resolveCabang(cabangId: string): Promise<{
   _cabangCache[cabangId] = resolved;
   _cabangCacheAt = Date.now();
   return resolved;
+}
+
+/** Resolve spreadsheet arsip tahun tertentu tanpa menjadikannya spreadsheet aktif. */
+export async function resolveCabangArchive(cabangId: string, year: string): Promise<{
+  spreadsheetId: string;
+  cabang: CabangRecord;
+}> {
+  const registryId = getRegistrySpreadsheetId();
+  const { headers, rows } = await readSheetData(registryId, 'Daftar_Cabang');
+  const list = sheetToObjects(headers, rows) as CabangRecord[];
+  const cabang = list.find((row) => row.Cabang_ID === cabangId);
+  if (!cabang) throw new Error('CABANG_TIDAK_DITEMUKAN: ' + cabangId);
+  const archive = parseArchiveSpreadsheetIds(cabang.Arsip_Spreadsheet_IDs).find((entry) => entry.year === year);
+  if (!archive) throw new Error(`ARSIP_TIDAK_DITEMUKAN: ${cabangId}/${year}`);
+  return { spreadsheetId: archive.spreadsheetId, cabang };
 }
 
 export async function cabangExists(cabangId: string): Promise<boolean> {

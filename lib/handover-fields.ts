@@ -13,6 +13,7 @@ import { asStr } from './store';
 import { decodeTemplateSnapshot } from './template-snapshot';
 import { formatReportValue } from './shared/report-values';
 import type { Snapshot } from './db/snapshot';
+import { tabMonthOfDate } from './schema/periods';
 
 export interface HandoverFieldView {
   id: string;
@@ -128,7 +129,7 @@ export function handoverTabMonth(row: Record<string, unknown>): string {
   if (/^\d{4}-\d{2}$/.test(explicit)) return explicit;
   const fromDate = asStr(row['shift_date']).trim().slice(0, 7);
   if (/^\d{4}-\d{2}$/.test(fromDate)) return fromDate;
-  return new Date().toISOString().slice(0, 7);
+  return tabMonthOfDate();
 }
 
 /** Status instance yang handover-nya sudah final. */

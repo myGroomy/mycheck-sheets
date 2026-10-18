@@ -1,12 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
-import { Button } from '@/components/ui/button';
 import type { Snapshot } from '@/lib/db/snapshot';
 import { PublicReportView, type PublicReportViewData } from '@/components/report/public-report-view';
 
@@ -66,7 +63,6 @@ interface ReportResponse {
 }
 
 export function ReportDetail({ reportId }: { reportId: string }) {
-  const router = useRouter();
   const [data, setData] = useState<PublicReportViewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +134,6 @@ export function ReportDetail({ reportId }: { reportId: string }) {
       <>
         
         <main className="mx-auto max-w-5xl space-y-4 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
-          <Button type="button" variant="outline" onClick={() => router.push('/report')}><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke laporan</Button>
           <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />{error ?? 'Laporan tidak ditemukan.'}
           </div>
@@ -151,9 +146,6 @@ export function ReportDetail({ reportId }: { reportId: string }) {
     <>
       
       <div className="mx-auto max-w-5xl px-4 pt-4 md:px-8 print:hidden">
-        <Button asChild type="button" variant="outline">
-          <Link href="/report"><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke laporan</Link>
-        </Button>
       </div>
       <PublicReportView data={data} showCopyLink={false} />
     </>

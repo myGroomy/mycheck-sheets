@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, Copy, ExternalLink, Pencil, Plus } from 'lucide-react';
+import { ExternalLink, Pencil, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -35,6 +35,8 @@ interface Branch {
   timezone: string;
   spreadsheetId: string;
   folderDriveId: string;
+  branchFolderId: string | null;
+  evidenceFolderId: string | null;
   isActive: boolean;
   createdAt: string;
 }
@@ -58,8 +60,7 @@ function driveFolderUrl(id: string): string {
 }
 
 /**
- * Sel ID panjang (Spreadsheet/Folder Drive) tombol yang membuka file/folder
- * asli di tab baru, plus tombol salin ID. Bukan sekadar teks ID.
+ * Tautan singkat ke resource Google tanpa menampilkan ID teknis di kartu.
  */
 function LinkableId({
   value,
@@ -72,57 +73,22 @@ function LinkableId({
   href: string;
   actionLabel: string;
 }) {
-  const [copied, setCopied] = useState(false);
-  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-    };
-  }, []);
-
   if (!value) {
     return <span className="text-xs text-ink-light">—</span>;
   }
 
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      toast.success(`${label} disalin`);
-      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
-      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error('Gagal menyalin. Salin manual dari teks.');
-    }
-  };
-
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex max-w-[13rem] items-center gap-1.5 rounded-md border border-border bg-canvas px-2 py-1 font-mono text-xs text-ink transition-colors hover:border-ink-muted hover:bg-surface hover:text-ink"
-        title={`${actionLabel} (${value})`}
-      >
-        <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
-        <span className="truncate">{value}</span>
-      </a>
-      <button
-        type="button"
-        onClick={copy}
-        className="rounded p-1 text-ink-light transition-colors hover:bg-canvas hover:text-ink"
-        aria-label={`Salin ${label}`}
-        title={`Salin ${label}`}
-      >
-        {copied ? (
-          <Check className="h-3.5 w-3.5" aria-hidden="true" />
-        ) : (
-          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-        )}
-      </button>
-    </span>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink-muted hover:bg-surface hover:text-ink"
+      aria-label={actionLabel}
+      title={`${actionLabel} · ${label}`}
+    >
+      <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
+      {actionLabel}
+    </a>
   );
 }
 
@@ -224,6 +190,7 @@ export default function CabangPage() {
   };
 
   const toggleActive = async (b: Branch) => {
+    if (b.isActive && !window.confirm(`Hapus cabang ${b.code} dari daftar aktif? Data dan spreadsheet tetap disimpan di arsip.`)) return;
     try {
       await apiFetch(`/api/admin/branches/${b.id}`, {
         method: 'PUT',
@@ -308,6 +275,28 @@ export default function CabangPage() {
                 />
               ),
             },
+            {
+              label: 'Folder Cabang',
+              value: (
+                <LinkableId
+                  value={b.branchFolderId || ''}
+                  label="Folder Cabang"
+                  href={driveFolderUrl(b.branchFolderId || '')}
+                  actionLabel="Buka Folder Cabang"
+                />
+              ),
+            },
+            {
+              label: 'Folder Evidence',
+              value: (
+                <LinkableId
+                  value={b.evidenceFolderId || ''}
+                  label="Folder Evidence"
+                  href={driveFolderUrl(b.evidenceFolderId || '')}
+                  actionLabel="Buka Folder Evidence"
+                />
+              ),
+            },
           ],
           actions: (
             <>
@@ -325,7 +314,7 @@ export default function CabangPage() {
                     : undefined
                 }
               >
-                {b.isActive ? 'Arsipkan' : 'Pulihkan'}
+                    {b.isActive ? 'Hapus' : 'Pulihkan'}
               </Button>
             </>
           ),
@@ -342,6 +331,8 @@ export default function CabangPage() {
               <TableHead>Zona Waktu</TableHead>
               <TableHead>Spreadsheet</TableHead>
               <TableHead>Folder Drive</TableHead>
+              <TableHead>Folder Cabang</TableHead>
+              <TableHead>Folder Evidence</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
@@ -349,14 +340,14 @@ export default function CabangPage() {
           <TableBody>
             {loading && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-ink-muted">
+                <TableCell colSpan={10} className="text-center text-ink-muted">
                   Memuat...
                 </TableCell>
               </TableRow>
             )}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-ink-muted">
+                <TableCell colSpan={10} className="text-center text-ink-muted">
                   {showArchived ? 'Belum ada cabang di arsip' : 'Belum ada cabang aktif'}
                 </TableCell>
               </TableRow>
@@ -386,6 +377,22 @@ export default function CabangPage() {
                   />
                 </TableCell>
                 <TableCell>
+                  <LinkableId
+                    value={b.branchFolderId || ''}
+                    label="Folder Cabang"
+                    href={driveFolderUrl(b.branchFolderId || '')}
+                    actionLabel="Buka Folder Cabang"
+                  />
+                </TableCell>
+                <TableCell>
+                  <LinkableId
+                    value={b.evidenceFolderId || ''}
+                    label="Folder Evidence"
+                    href={driveFolderUrl(b.evidenceFolderId || '')}
+                    actionLabel="Buka Folder Evidence"
+                  />
+                </TableCell>
+                <TableCell>
                   <Badge variant={b.isActive ? 'default' : 'secondary'}>
                     {b.isActive ? 'Aktif' : 'Nonaktif'}
                   </Badge>
@@ -407,7 +414,7 @@ export default function CabangPage() {
                           : undefined
                       }
                     >
-                      {b.isActive ? 'Arsipkan' : 'Pulihkan'}
+                      {b.isActive ? 'Hapus' : 'Pulihkan'}
                     </Button>
                   </div>
                 </TableCell>

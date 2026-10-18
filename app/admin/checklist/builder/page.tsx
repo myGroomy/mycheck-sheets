@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { Check, ExternalLink, Pencil, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ArchiveFilter } from '@/components/admin/archive-filter';
-import { canDeleteConfig } from '@/lib/admin/lifecycle-policy';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -35,7 +34,6 @@ import {
 } from '@/components/admin/point-editor-dialog';
 import { ShiftPreviewDialog } from '@/components/admin/shift-preview-dialog';
 import { TemplateNotice } from '@/components/admin/template-notice';
-import { ConfirmDeleteDialog } from '@/components/admin/confirm-delete-dialog';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { useAutoSaveDraft } from '@/hooks/use-auto-save-draft';
 import {
@@ -45,8 +43,6 @@ import {
 import {
   createCategory,
   createPoint,
-  deleteCategory,
-  deletePoint,
   duplicateCategory as duplicateCategoryApi,
   duplicatePoint as duplicatePointApi,
   listBranches,
@@ -106,9 +102,6 @@ export default function ChecklistBuilderPage() {
     busyId,
     showArchived,
     archiveQuery,
-    deleteTarget,
-    deleteError,
-    deleteLoading,
     editingTitle,
     editingInstruction,
     titleDraft,
@@ -137,9 +130,6 @@ export default function ChecklistBuilderPage() {
   const setPreviewOpen = (v: boolean) => dispatch({ type: 'TOGGLE_PREVIEW', payload: v });
   const setBusyId = (v: string | null) => dispatch({ type: 'SET_BUSY_ID', payload: v });
   const setArchiveQuery = (v: string) => dispatch({ type: 'SET_ARCHIVE', payload: { showArchived, query: v } });
-  const setDeleteTarget = (v: typeof deleteTarget) => dispatch({ type: 'SET_DELETE_TARGET', payload: v });
-  const setDeleteError = (v: string | null) => dispatch({ type: 'SET_DATA', payload: { deleteError: v } });
-  const setDeleteLoading = (v: boolean) => dispatch({ type: 'SET_DATA', payload: { deleteLoading: v } });
   const setEditingTitle = (v: boolean) => dispatch({ type: 'SET_DATA', payload: { editingTitle: v } });
   const setEditingInstruction = (v: boolean) => dispatch({ type: 'SET_DATA', payload: { editingInstruction: v } });
   const setTitleDraft = (v: string) => dispatch({ type: 'UPDATE_INLINE_DRAFT', payload: { titleDraft: v } });
@@ -269,6 +259,7 @@ export default function ChecklistBuilderPage() {
   };
 
   const toggleCategory = async (cat: SopCategory) => {
+    if (cat.isActive && !window.confirm(`Hapus section "${cat.name}" dari daftar aktif? Riwayat checklist tetap disimpan.`)) return;
     try {
       if (cat.isActive) {
         await updateCategory(cat.id, { isActive: false });
@@ -284,6 +275,7 @@ export default function ChecklistBuilderPage() {
   };
 
   const togglePoint = async (point: ChecklistPoint) => {
+    if (point.isActive && !window.confirm(`Hapus item checklist "${point.title}" dari daftar aktif? Riwayat tetap disimpan.`)) return;
     try {
       if (point.isActive) {
         await updatePoint(point.id, { isActive: false });
@@ -295,48 +287,6 @@ export default function ChecklistBuilderPage() {
       await loadTree(shiftId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal mengubah status item');
-    }
-  };
-
-  const permanentlyDeleteCategory = async () => {
-    if (!deleteTarget || deleteTarget.kind !== 'category') return;
-    setBusyId(deleteTarget.id);
-    setDeleteLoading(true);
-    setDeleteError(null);
-    try {
-      await deleteCategory(deleteTarget.id);
-      if (selectedCategoryId === deleteTarget.id) setSelectedCategoryId(null);
-      toast.success(`Section "${deleteTarget.name}" dihapus permanen`);
-      dispatch({ type: 'SET_DELETE_TARGET', payload: null });
-      await loadTree(shiftId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Section tidak dapat dihapus';
-      setDeleteError(msg);
-      toast.error(msg);
-    } finally {
-      setBusyId(null);
-      setDeleteLoading(false);
-    }
-  };
-
-  const permanentlyDeletePoint = async () => {
-    if (!deleteTarget || deleteTarget.kind !== 'point') return;
-    setBusyId(deleteTarget.id);
-    setDeleteLoading(true);
-    setDeleteError(null);
-    try {
-      await deletePoint(deleteTarget.id);
-      if (selectedPointId === deleteTarget.id) setSelectedPointId(null);
-      toast.success(`Item "${deleteTarget.name}" dihapus permanen`);
-      dispatch({ type: 'SET_DELETE_TARGET', payload: null });
-      await loadTree(shiftId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Item tidak dapat dihapus';
-      setDeleteError(msg);
-      toast.error(msg);
-    } finally {
-      setBusyId(null);
-      setDeleteLoading(false);
     }
   };
 
@@ -494,12 +444,6 @@ export default function ChecklistBuilderPage() {
       );
       return {
         ...category,
-        // Kelayakan hapus kategori mengikuti policy yang sama dengan route DELETE.
-        canDelete: canDeleteConfig('sop_category', {
-          isActive: category.isActive,
-          hasShiftHistory: category.hasShiftHistory === true,
-          hasChildren: category.points.length > 0,
-        }),
         hasChecklistPoints: category.points.length > 0,
         points,
       };
@@ -653,10 +597,6 @@ export default function ChecklistBuilderPage() {
                 dispatch({ type: 'START_EDIT_CATEGORY', payload: cat });
               }}
               onToggleCategory={toggleCategory}
-              onDeleteCategory={(category) => {
-                setDeleteError(null);
-                setDeleteTarget({ kind: 'category', id: category.id, name: category.name });
-              }}
               onAddPoint={(categoryId) => {
                 setPointCategoryId(categoryId);
                 dispatch({ type: 'TOGGLE_POINT_FORM', payload: { open: true, point: null, categoryId } });
@@ -667,10 +607,6 @@ export default function ChecklistBuilderPage() {
                 dispatch({ type: 'START_EDIT_POINT', payload: point });
               }}
               onTogglePoint={togglePoint}
-              onDeletePoint={(point) => {
-                setDeleteError(null);
-                setDeleteTarget({ kind: 'point', id: point.id, name: point.title });
-              }}
               onDuplicateCategory={(cat) => void duplicateCategory(cat)}
               onDuplicatePoint={(point) => void duplicatePoint(point)}
               onReorderCategory={(from, to) => void swapCategoryOrder(from, to)}
@@ -883,26 +819,6 @@ export default function ChecklistBuilderPage() {
         shiftId={shiftId}
       />
 
-      <ConfirmDeleteDialog
-        open={deleteTarget !== null}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title={deleteTarget?.kind === 'point' ? 'Hapus Item Checklist' : 'Hapus Section'}
-        itemName={deleteTarget?.name ?? ''}
-        impact={
-          deleteTarget?.kind === 'point'
-            ? 'Hanya bisa dilakukan bila belum pernah dipakai oleh shift.'
-            : 'Hanya bisa dilakukan bila belum dipakai dan tidak memiliki item checklist.'
-        }
-        loading={deleteLoading}
-        error={deleteError}
-        onConfirm={() => {
-          if (deleteTarget?.kind === 'point') {
-            void permanentlyDeletePoint();
-          } else {
-            void permanentlyDeleteCategory();
-          }
-        }}
-      />
     </div>
   );
 }

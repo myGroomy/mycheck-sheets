@@ -3,6 +3,7 @@
 import { AuthContext } from './api-auth';
 import { listRowsWithNumber } from './store';
 import { resolveCabang } from './google/registry';
+import { tabMonthOfDate } from './schema/periods';
 
 const BRANCH_LOOKUP_CONCURRENCY = 3;
 
@@ -24,7 +25,7 @@ export function tabMonthOf(instance: Record<string, unknown>): string {
   for (const c of candidates) {
     if (/^\d{4}-\d{2}$/.test(c)) return c;
   }
-  return new Date().toISOString().slice(0, 7);
+  return tabMonthOfDate();
 }
 
 export async function resolveInstance(

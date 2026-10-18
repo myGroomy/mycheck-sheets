@@ -45,6 +45,19 @@ export function withAuth(
       );
     }
 
+    const setupPath = new URL(req.url).pathname;
+    if (
+      session.requiresSetup &&
+      setupPath !== '/api/auth/me' &&
+      setupPath !== '/api/auth/logout' &&
+      setupPath !== '/api/auth/logout-all'
+    ) {
+      return NextResponse.json(
+        { success: false, error: { code: 'SETUP_REQUIRED', message: 'Setup akun wajib diselesaikan terlebih dahulu.' } },
+        { status: 428 }
+      );
+    }
+
     if (options?.requiredRole && session.role !== options.requiredRole && session.role !== 'admin') {
       return NextResponse.json(
         { success: false, error: { code: 'FORBIDDEN', message: `Akses ditolak. Peran ${options.requiredRole} diperlukan.` } },

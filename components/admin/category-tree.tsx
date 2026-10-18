@@ -19,11 +19,9 @@ interface CategoryTreeProps {
   onAddCategory: () => void;
   onEditCategory: (category: SopCategory) => void;
   onToggleCategory: (category: SopCategory) => void;
-  onDeleteCategory: (category: SopCategory) => void;
   onAddPoint: (categoryId: string) => void;
   onEditPoint: (point: ChecklistPoint) => void;
   onTogglePoint: (point: ChecklistPoint) => void;
-  onDeletePoint: (point: ChecklistPoint) => void;
   onDuplicateCategory: (category: SopCategory) => void;
   onDuplicatePoint: (point: ChecklistPoint) => void;
   onReorderCategory: (from: number, to: number) => void;
@@ -57,11 +55,9 @@ export function CategoryTree({
   onAddCategory,
   onEditCategory,
   onToggleCategory,
-  onDeleteCategory,
   onAddPoint,
   onEditPoint,
   onTogglePoint,
-  onDeletePoint,
   onDuplicateCategory,
   onDuplicatePoint,
   onReorderCategory,
@@ -162,31 +158,11 @@ export function CategoryTree({
                     size="sm"
                     variant="outline"
                     className="h-12 w-12 shrink-0 p-0"
-                    aria-label={`${cat.isActive ? 'Arsipkan' : 'Pulihkan'} section ${cat.name}`}
+                    aria-label={`${cat.isActive ? 'Hapus' : 'Pulihkan'} section ${cat.name}`}
                     onClick={() => onToggleCategory(cat)}
                   >
-                    <Power className="h-3.5 w-3.5" />
+                    {cat.isActive ? <Trash2 className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
                   </Button>
-                )}
-                {archivedView && !cat.isActive && cat.canDelete && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-12 w-12 shrink-0 p-0"
-                    aria-label={`Hapus permanen section ${cat.name}`}
-                    onClick={() => onDeleteCategory(cat)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-                {archivedView && !cat.isActive && !cat.canDelete && (
-                  <span className="self-center text-xs text-ink-muted">
-                    {cat.hasShiftHistory
-                      ? 'Ada riwayat shift: hanya dapat dipulihkan'
-                      : cat.hasChecklistPoints
-                        ? 'Hapus item checklist terkait terlebih dahulu'
-                        : 'Tidak dapat dihapus'}
-                  </span>
                 )}
               </div>
             </div>
@@ -262,29 +238,11 @@ export function CategoryTree({
                         size="sm"
                         variant="outline"
                         className="h-12 w-12 shrink-0 p-0"
-                        aria-label={`${point.isActive ? 'Nonaktifkan' : 'Aktifkan'} pertanyaan ${point.title}`}
+                        aria-label={`${point.isActive ? 'Hapus' : 'Pulihkan'} pertanyaan ${point.title}`}
                         onClick={() => onTogglePoint(point)}
                       >
-                        <Power className="h-3.5 w-3.5" />
+                        {point.isActive ? <Trash2 className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}
                       </Button>
-                      {archivedView && point.canDelete && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-12 w-12 shrink-0 p-0"
-                          aria-label={`Hapus permanen pertanyaan ${point.title}`}
-                          onClick={() => onDeletePoint(point)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {archivedView && !point.canDelete && (
-                        <span className="self-center text-xs text-ink-muted">
-                          {cat.hasShiftHistory
-                            ? 'Ada riwayat shift: hanya dapat dipulihkan'
-                            : 'Masih direferensikan histori entry'}
-                        </span>
-                      )}
                     </div>
                   </li>
                 ))}

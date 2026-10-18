@@ -28,6 +28,7 @@ export interface CabangRow {
   Alamat: string;
   Branch_Folder_ID?: string;
   Evidence_Folder_ID?: string;
+  Arsip_Spreadsheet_IDs?: string;
   [key: string]: unknown;
 }
 
@@ -56,6 +57,7 @@ const CABANG_HEADERS = [
   // PRD ADM-BR-01 / PRD S10 menyebut "alamat singkat". Ditambahkan di akhir
   // supaya kolom lama tidak bergeser dan data existing tidak perlu dimigrasi.
   'Alamat',
+  'Arsip_Spreadsheet_IDs',
   'Branch_Folder_ID',
   'Evidence_Folder_ID',
 ];
@@ -115,6 +117,7 @@ export async function updateCabangStructure(
   cabangId: string,
   updates: {
     spreadsheetId?: string;
+    folderDriveId?: string;
     branchFolderId?: string;
     evidenceFolderId?: string;
     aktif?: boolean;
@@ -132,6 +135,7 @@ export async function updateCabangStructure(
   const cells: { row: number; col: number; value: unknown }[] = [];
   const map: Record<string, unknown> = {};
   if (updates.spreadsheetId !== undefined) map['Spreadsheet_ID'] = updates.spreadsheetId;
+  if (updates.folderDriveId !== undefined) map['Folder_Drive_ID'] = updates.folderDriveId;
   if (updates.branchFolderId !== undefined) map['Branch_Folder_ID'] = updates.branchFolderId;
   if (updates.evidenceFolderId !== undefined) map['Evidence_Folder_ID'] = updates.evidenceFolderId;
   if (updates.aktif !== undefined) map['Aktif'] = updates.aktif;

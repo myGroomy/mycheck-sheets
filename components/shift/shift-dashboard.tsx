@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, ArrowRight, CheckCircle2, Clock3, FolderKanban, Users } from 'lucide-react';
+import { AlertCircle, ArrowLeftRight, ArrowRight, CheckCircle2, Clock3, FolderKanban, TriangleAlert, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
@@ -208,6 +208,27 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
             <CheckCircle2 className="h-4 w-4" />
             Online
           </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="quick-actions-title" className="rounded-xl border border-border bg-surface p-4">
+        <div>
+          <h2 id="quick-actions-title" className="text-base font-semibold text-ink">Aksi cepat</h2>
+          <p className="mt-1 text-sm text-ink-muted">Buka pekerjaan pendukung tanpa mencari menu.</p>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <Button asChild variant="outline" className="h-auto min-h-11 justify-between whitespace-normal p-3 text-left">
+            <Link href="/handover">
+              <span className="inline-flex items-center gap-2"><ArrowLeftRight className="h-4 w-4" />Handover shift</span>
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="h-auto min-h-11 justify-between whitespace-normal p-3 text-left">
+            <Link href="/incident/baru">
+              <span className="inline-flex items-center gap-2"><TriangleAlert className="h-4 w-4" />Laporkan incident</span>
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
       </section>
 

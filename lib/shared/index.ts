@@ -136,6 +136,17 @@ export const changePinSchema = z
     path: ['newPin'],
   });
 
+export const bootstrapSetupSchema = z
+  .object({
+    username: z.string().min(3, 'Username minimal 3 karakter').regex(/^[a-zA-Z0-9._-]+$/, 'Username hanya huruf, angka, titik, strip, underscore'),
+    newPin: z.string().length(6, 'PIN baru harus 6 digit').regex(/^\d{6}$/, 'PIN baru harus berupa 6 angka'),
+    confirmPin: z.string().length(6, 'Konfirmasi PIN harus 6 digit'),
+  })
+  .refine((data) => data.newPin === data.confirmPin, {
+    message: 'Konfirmasi PIN tidak cocok',
+    path: ['confirmPin'],
+  });
+
 export const sensitiveActionSchema = z.object({
   pin: z.string().length(6, 'PIN konfirmasi harus 6 digit').regex(/^\d{6}$/, 'PIN harus 6 angka'),
   reason: z.string().min(3, 'Alasan minimal 3 karakter'),
@@ -154,7 +165,11 @@ export const createUserSchema = z.object({
   username: z.string().min(3, 'Username minimal 3 karakter').regex(/^[a-zA-Z0-9._-]+$/, 'Username hanya huruf, angka, titik, strip, underscore'),
   initialPin: z.string().length(6, 'PIN awal harus 6 digit').regex(/^\d{6}$/, 'PIN harus 6 angka'),
   role: z.enum(['admin', 'petugas']),
-  branchIds: z.array(z.string()).min(1, 'Pilih minimal satu cabang untuk akses'),
+  branchIds: z.array(z.string()),
+}).superRefine((data, ctx) => {
+  if (data.role === 'petugas' && data.branchIds.length === 0) {
+    ctx.addIssue({ code: 'custom', path: ['branchIds'], message: 'Pilih minimal satu cabang untuk petugas' });
+  }
 });
 
 export const updateUserSchema = z.object({

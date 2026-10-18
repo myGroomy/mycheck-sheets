@@ -21,6 +21,8 @@ let currentSession: {
   nama: string;
   role: 'admin' | 'petugas';
   cabangId: string;
+  userId?: string;
+  requiresSetup?: boolean;
 } | null = null;
 
 /** Pasang stub session SEBELUM route handler di-import. */
@@ -48,6 +50,8 @@ export function setSession(session: {
   nama: string;
   role: 'admin' | 'petugas';
   cabangId: string;
+  userId?: string;
+  requiresSetup?: boolean;
 }): void {
   currentSession = session;
 }

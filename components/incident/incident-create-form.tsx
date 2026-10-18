@@ -1,8 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { AlertCircle, ArrowLeft, Camera, Loader2, Send } from 'lucide-react';
+import { AlertCircle, Camera, Loader2, Send } from 'lucide-react';
 import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
@@ -161,7 +160,6 @@ export function IncidentCreateForm() {
     <main className="mx-auto max-w-2xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10">
       
       <header>
-        <Button asChild variant="outline" size="sm"><Link href="/incident"><ArrowLeft className="mr-2 h-4 w-4" />Kembali ke incident</Link></Button>
         <h1 className="mt-4 text-2xl font-bold">Buat incident</h1>
         <p className="mt-1 text-sm text-ink-muted">Catat kejadian agar dapat ditindaklanjuti dan masuk ke laporan shift.</p>
       </header>

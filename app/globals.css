@@ -16,7 +16,7 @@
   --color-surface: #ffffff;
   --color-ink: #292524;
   --color-ink-muted: #78716c;
-  --color-ink-light: #a8a29e;
+  --color-ink-light: #78716c;
   --color-border: #e7e5e4;
   --color-border-strong: #d6d3d1;
   --color-primary: #292524;
@@ -53,7 +53,8 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-xl: 14px;
+  --radius-2xl: 14px;
   --radius-pill: 9999px;
 
   /* ---- Font ---- */
@@ -78,8 +79,8 @@
      16 -> 20 -> 25 -> 32 -> 41 -> 52      (akar phi per langkah) */
   --text-2xs: 10px;
   --text-2xs--line-height: 1.4;
-  --text-xs: 11px;
-  --text-xs--line-height: 1.45;
+  --text-xs: 12px;
+  --text-xs--line-height: 1.5;
   --text-sm: 13px;
   --text-sm--line-height: 1.5;
   --text-base: 14px;
@@ -169,6 +170,20 @@
   :focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .app-content {
+    width: 100%;
+    max-width: 96rem;
+    margin-inline: auto;
+  }
+
+  @media (max-width: 767px) {
+    .app-content {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
 }
 

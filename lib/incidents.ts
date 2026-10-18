@@ -6,7 +6,7 @@
 import { ulid } from 'ulid';
 import type { AuthContext } from './api-auth';
 import { getSheetsClient } from './google/client';
-import { getCabangList, resolveCabang } from './google/registry';
+import { getCabangList, parseArchiveSpreadsheetIds, resolveCabang } from './google/registry';
 import { listAllUsers } from './google/registry-admin';
 import {
   asBool,
@@ -18,7 +18,10 @@ import {
   listRows,
   listRowsFresh,
   listMonthlyRows,
+  listPeriodKeys,
+  getPeriodSheet,
 } from './store';
+import { tabMonthOfDate } from './schema/periods';
 
 export interface LocatedIncident {
   spreadsheetId: string;
@@ -28,30 +31,28 @@ export interface LocatedIncident {
   rowNumber: number | null;
 }
 
-/** Bulan kandidat untuk pencarian incident: berjalan + 2 bulan sebelumnya. */
-export function candidateMonths(): string[] {
-  const out: string[] = [];
-  for (let back = 0; back < 3; back++) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - back);
-    out.push(d.toISOString().slice(0, 7));
-  }
-  return out;
-}
-
 /** Tab bulan incident: kolom tab_month, lalu occurred_at, lalu bulan berjalan. */
 export function incidentTabMonth(row: Record<string, unknown>): string {
   const direct = asStr(row['tab_month']).trim();
   if (/^\d{4}-\d{2}$/.test(direct)) return direct;
   const occurred = asStr(row['occurred_at']).trim().slice(0, 7);
   if (/^\d{4}-\d{2}$/.test(occurred)) return occurred;
-  return new Date().toISOString().slice(0, 7);
+  return tabMonthOfDate();
+}
+
+/** Semua periode incident yang tersedia; tidak dibatasi tiga bulan. */
+export async function incidentPeriods(spreadsheetId: string): Promise<string[]> {
+  try {
+    return await listPeriodKeys(spreadsheetId, 'Incidents');
+  } catch {
+    return [tabMonthOfDate()];
+  }
 }
 
 /**
  * Cari satu incident berdasarkan ID di semua cabang yang bisa diakses user.
  * Jalur cepat via sheet statis IncidentIndex, fallback ke tab bulanan
- * Incidents_<YYYY-MM> (3 bulan terakhir) untuk baris yang belum terindeks.
+ * Incidents_<YYYY-MM> / Incidents_<YYYY> untuk baris yang belum terindeks.
  */
 export async function findIncidentAcrossBranches(
   ctx: AuthContext,
@@ -60,39 +61,46 @@ export async function findIncidentAcrossBranches(
   const cabangs = await getCabangList();
   for (const cabang of cabangs) {
     if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;
-    let spreadsheetId = '';
+    let activeSpreadsheetId = '';
     try {
-      spreadsheetId = (await resolveCabang(cabang.Cabang_ID)).spreadsheetId;
+      activeSpreadsheetId = (await resolveCabang(cabang.Cabang_ID)).spreadsheetId;
     } catch {
       continue;
     }
 
-    // 1. Via IncidentIndex
-    try {
-      const hits = await filterRows(
-        spreadsheetId,
-        'IncidentIndex',
-        (r) => asStr(r['incident_id']) === incidentId
-      );
-      const idx = hits[0];
-      if (idx) {
-        const tabMonth = asStr(idx['tab_month']) || new Date().toISOString().slice(0, 7);
-        const rows = await listMonthlyRows(spreadsheetId, 'Incidents', tabMonth);
-        const found = rows.find((r) => asStr(r['id']) === incidentId);
-        if (found) {
-          return { spreadsheetId, branchId: cabang.Cabang_ID, tabMonth, incident: found, rowNumber: null };
-        }
-      }
-    } catch {
-      // sheet index belum ada lanjut ke fallback
-    }
+    const spreadsheets = [
+      { spreadsheetId: activeSpreadsheetId },
+      ...parseArchiveSpreadsheetIds(cabang.Arsip_Spreadsheet_IDs).map(({ spreadsheetId }) => ({ spreadsheetId })),
+    ];
+    for (const { spreadsheetId } of spreadsheets) {
 
-    // 2. Fallback: scan tab bulanan
-    for (const month of candidateMonths()) {
-      const rows = await listMonthlyRows(spreadsheetId, 'Incidents', month);
-      const incident = rows.find((r) => asStr(r['id']) === incidentId);
-      if (incident) {
-        return { spreadsheetId, branchId: cabang.Cabang_ID, tabMonth: month, incident, rowNumber: null };
+      // 1. Via IncidentIndex
+      try {
+        const hits = await filterRows(
+          spreadsheetId,
+          'IncidentIndex',
+          (r) => asStr(r['incident_id']) === incidentId
+        );
+        const idx = hits[0];
+        if (idx) {
+          const tabMonth = asStr(idx['tab_month']) || tabMonthOfDate();
+          const rows = await listMonthlyRows(spreadsheetId, 'Incidents', tabMonth);
+          const found = rows.find((r) => asStr(r['id']) === incidentId);
+          if (found) {
+            return { spreadsheetId, branchId: cabang.Cabang_ID, tabMonth, incident: found, rowNumber: null };
+          }
+        }
+      } catch {
+        // sheet index belum ada lanjut ke fallback
+      }
+
+      // 2. Fallback: scan semua periode pada spreadsheet aktif/arsip
+      for (const month of await incidentPeriods(spreadsheetId)) {
+        const rows = await listMonthlyRows(spreadsheetId, 'Incidents', month);
+        const incident = rows.find((r) => asStr(r['id']) === incidentId);
+        if (incident) {
+          return { spreadsheetId, branchId: cabang.Cabang_ID, tabMonth: month, incident, rowNumber: null };
+        }
       }
     }
   }
@@ -105,14 +113,22 @@ export async function incidentRowNumber(
   incidentId: string
 ): Promise<number | null> {
   const { listRowsWithNumber } = await import('./store');
-  const { monthlySheet } = await import('./google/branch-schema');
-  try {
-    const rows = await listRowsWithNumber(spreadsheetId, monthlySheet('Incidents', tabMonth));
-    const hit = rows.find((r) => asStr(r.data['id']) === incidentId);
-    return hit ? hit.rowNumber : null;
-  } catch {
-    return null;
+  for (const sheet of await incidentSheetCandidates(spreadsheetId, tabMonth)) {
+    try {
+      const rows = await listRowsWithNumber(spreadsheetId, sheet);
+      const hit = rows.find((r) => asStr(r.data['id']) === incidentId);
+      if (hit) return hit.rowNumber;
+    } catch {
+      // Periode belum dibuat.
+    }
   }
+  return null;
+}
+
+async function incidentSheetCandidates(spreadsheetId: string, tabMonth: string): Promise<string[]> {
+  const primary = await getPeriodSheet(spreadsheetId, 'Incidents', tabMonth);
+  const legacy = `Incidents_${tabMonth}`;
+  return primary === legacy ? [primary] : [primary, legacy];
 }
 
 /** Perbarui kolom terpilih pada baris incident + sinkronkan IncidentIndex. */
@@ -123,10 +139,18 @@ export async function updateIncidentRow(
   updates: Record<string, unknown>
 ): Promise<boolean> {
   const { listRowsWithNumber, updateRow } = await import('./store');
-  const { monthlySheet } = await import('./google/branch-schema');
   const rowNumber = await incidentRowNumber(spreadsheetId, tabMonth, incidentId);
   if (!rowNumber) return false;
-  await updateRow(spreadsheetId, monthlySheet('Incidents', tabMonth), rowNumber, updates);
+  let sheet = await getPeriodSheet(spreadsheetId, 'Incidents', tabMonth);
+  for (const candidate of await incidentSheetCandidates(spreadsheetId, tabMonth)) {
+    try {
+      const rows = await listRowsWithNumber(spreadsheetId, candidate);
+      if (rows.some((row) => asStr(row.data['id']) === incidentId)) { sheet = candidate; break; }
+    } catch {
+      // lanjut ke candidate berikutnya
+    }
+  }
+  await updateRow(spreadsheetId, sheet, rowNumber, updates);
   if (updates['status'] !== undefined) {
     try {
       const numbered = await listRowsWithNumber(spreadsheetId, 'IncidentIndex');
@@ -173,8 +197,8 @@ export async function categoryNameMap(ctx: AuthContext): Promise<Map<string, str
 /** Daftar kategori aktif lintas cabang (dedup berdasarkan nama). */
 export async function listActiveCategoriesAcrossBranches(
   ctx: AuthContext
-): Promise<{ id: string; name: string; sortOrder: number }[]> {
-  const seen = new Map<string, { id: string; name: string; sortOrder: number }>();
+): Promise<{ id: string; name: string; sortOrder: number; points: number }[]> {
+  const seen = new Map<string, { id: string; name: string; sortOrder: number; points: number }>();
   const cabangs = await getCabangList();
   for (const cabang of cabangs) {
     if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;
@@ -188,6 +212,7 @@ export async function listActiveCategoriesAcrossBranches(
           id: asStr(r['id']),
           name,
           sortOrder: asNum(r['sort_order']) ?? 0,
+          points: Math.trunc(asNum(r['points']) ?? 0),
         });
       }
     } catch {

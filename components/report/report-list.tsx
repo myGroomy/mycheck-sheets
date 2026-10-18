@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, ArrowRight, Download, FileText, Link2, Loader2, RefreshCw, XCircle } from 'lucide-react';
+import { AlertCircle, ArrowRight, FileText, Link2, Loader2, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -51,11 +51,15 @@ export function ReportList({ role = 'petugas' }: ReportListProps) {
   const [branchId, setBranchId] = useState('');
   const [date, setDate] = useState('');
   const [pjName, setPjName] = useState('');
+  const [draftBranchId, setDraftBranchId] = useState('');
+  const [draftDate, setDraftDate] = useState('');
+  const [draftPjName, setDraftPjName] = useState('');
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [newShareLinks, setNewShareLinks] = useState<Record<string, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const loadReports = useCallback(async () => {
     setLoading(true);
@@ -133,13 +137,22 @@ export function ReportList({ role = 'petugas' }: ReportListProps) {
     return (
       <div className="space-y-4">
         {/* Filter */}
-        <div className="grid gap-3 sm:grid-cols-4">
+        <div className="flex items-center justify-between gap-3 sm:hidden">
+          <div className="inline-flex items-center gap-2 text-sm font-semibold text-ink">
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+            Filter laporan
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setFiltersOpen((open) => !open)} aria-expanded={filtersOpen}>
+            {filtersOpen ? 'Sembunyikan' : 'Tampilkan'}
+          </Button>
+        </div>
+        <div className={`${filtersOpen ? 'grid' : 'hidden'} gap-3 sm:grid sm:grid-cols-4`}>
           <div className="space-y-1">
             <Label htmlFor="filter-branch">Cabang</Label>
             <select
               id="filter-branch"
-              value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
+              value={draftBranchId}
+              onChange={(e) => setDraftBranchId(e.target.value)}
               className="h-10 w-full rounded-md border border-border bg-surface px-3 text-sm"
             >
               <option value="">Semua cabang</option>
@@ -156,8 +169,8 @@ export function ReportList({ role = 'petugas' }: ReportListProps) {
             <Input
               id="filter-date"
               type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
+              value={draftDate}
+              onChange={(e) => setDraftDate(e.target.value)}
             />
           </div>
 
@@ -167,18 +180,31 @@ export function ReportList({ role = 'petugas' }: ReportListProps) {
               id="filter-pj"
               type="text"
               placeholder="Cari Penanggung Jawab"
-              value={pjName}
-              onChange={(e) => setPjName(e.target.value)}
+              value={draftPjName}
+              onChange={(e) => setDraftPjName(e.target.value)}
             />
           </div>
 
           <div className="flex items-end gap-2">
+            <Button
+              onClick={() => {
+                setBranchId(draftBranchId);
+                setDate(draftDate);
+                setPjName(draftPjName);
+              }}
+              className="w-full"
+            >
+              Terapkan filter
+            </Button>
             <Button
               variant="outline"
               onClick={() => {
                 setBranchId('');
                 setDate('');
                 setPjName('');
+                setDraftBranchId('');
+                setDraftDate('');
+                setDraftPjName('');
               }}
               className="w-full"
             >
@@ -328,7 +354,6 @@ export function ReportList({ role = 'petugas' }: ReportListProps) {
           <FileText className="mx-auto h-8 w-8 text-ink-muted" />
           <h2 className="mt-3 font-semibold">Belum ada laporan shift</h2>
           <p className="mt-1 text-sm text-ink-muted">Laporan akan tersedia setelah Penanggung Jawab menutup shift.</p>
-          <Button asChild variant="outline" className="mt-4"><Link href="/">Kembali ke beranda</Link></Button>
         </div>
       ) : (
         <div className="space-y-3">

@@ -1,10 +1,12 @@
 # Struktur Data MyCheck
 
-MyCheck memakai Google Sheets API, bukan SQL database. Tidak ada ORM,
-migrasi SQL, transaksi, foreign key, unique index, atau row lock. Nama sheet
-dan header cabang yang digunakan source didefinisikan pada
-`lib/google/branch-schema.ts`; Registry dibaca/ditulis melalui helper di
-`lib/google/registry.ts` dan `lib/google/registry-admin.ts`.
+Dokumen kanonik schema berada di `PLAN/DATABASE_SCHEMA.md`. Halaman ini adalah
+ringkasan untuk dokumentasi aplikasi; ERD di `PLAN/ERD.md` dan
+`PLAN/ERD-CHEN.md` hanya turunan visual.
+
+MyCheck memakai Google Sheets API, bukan SQL database. Tidak ada ORM, migrasi
+SQL, transaksi, foreign key, unique index, atau row lock. Nama sheet dan
+header runtime dipusatkan di `lib/schema/registry.ts`.
 
 File spreadsheet template atau spreadsheet live mungkin berbeda dari schema
 yang ada di source. Cocokkan header aktual sebelum menjalankan setup atau

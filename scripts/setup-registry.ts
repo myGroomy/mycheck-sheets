@@ -10,9 +10,10 @@ if (!REGISTRY_ID) {
 }
 
 const SHEETS: Record<string, string[]> = {
-  Daftar_Cabang: ['Cabang_ID', 'Nama_Cabang', 'Kode', 'Timezone', 'Spreadsheet_ID', 'Folder_Drive_ID', 'Aktif'],
+  Daftar_Cabang: ['Cabang_ID', 'Nama_Cabang', 'Kode', 'Timezone', 'Spreadsheet_ID', 'Folder_Drive_ID', 'Aktif', 'Alamat', 'Arsip_Spreadsheet_IDs', 'Branch_Folder_ID', 'Evidence_Folder_ID'],
   Settings_Global: ['Key', 'Value'],
   Users: ['User_ID', 'Username', 'PIN', 'Nama', 'Role', 'Cabang_ID', 'Aktif', 'Must_Change_Pin', 'Created_At'],
+  Share_Tokens: ['id', 'report_id', 'branch_id', 'token', 'created_by', 'created_at', 'expires_at', 'revoked_at', 'access_count', 'last_accessed_at', 'share_note', 'visibility'],
   Template_Referensi: ['Template_Spreadsheet_ID'],
 };
 
@@ -40,6 +41,26 @@ async function main() {
       requestBody: { values: [headers] },
     });
     console.log('= headers set:', title);
+  }
+
+  const users = await sheets.spreadsheets.values.get({
+    spreadsheetId: REGISTRY_ID,
+    range: 'Users!A:I',
+  });
+  const userRows = users.data.values ?? [];
+  if (userRows.length <= 1) {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: REGISTRY_ID,
+      range: 'Users',
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: [['TSDG8967', 'admin', '123456', 'admin', 'admin', '', 'TRUE', 'YES', new Date().toISOString()]],
+      },
+    });
+    console.log('+ bootstrap admin seeded');
+  } else {
+    console.log('= bootstrap admin skipped; Users already has data');
   }
 
   // Hapus sheet default "Sheet1" jika ada dan bukan bagian dari SHEETS

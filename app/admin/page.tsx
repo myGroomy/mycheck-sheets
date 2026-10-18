@@ -20,18 +20,18 @@ export default async function AdminIndex() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Cabang aktif" value={stats.branches} helper="Total cabang" />
-        <MetricCard label="Shift berjalan" value={stats.activeShifts} helper="Dalam proses" />
-        <MetricCard label="Incident terbuka" value={stats.openIncidents} helper="Perlu tindak lanjut" />
-        <MetricCard label="Laporan hari ini" value={stats.reportsToday} helper="Generate otomatis" />
+        <MetricCard href="/admin/cabang" label="Cabang aktif" value={stats.branches} helper="Kelola cabang" />
+        <MetricCard href="/admin/shift" label="Shift berjalan" value={stats.activeShifts} helper="Lihat operasi" />
+        <MetricCard href="/admin/incident" label="Incident terbuka" value={stats.openIncidents} helper="Tindak lanjuti" />
+        <MetricCard href="/admin/laporan" label="Laporan hari ini" value={stats.reportsToday} helper="Buka laporan" />
       </div>
 
-      <section className="rounded-xl border border-border bg-surface p-4" aria-labelledby="setup-guide-title">
+        <section className="rounded-xl border border-border bg-surface p-4" aria-labelledby="setup-guide-title">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="setup-guide-title" className="flex items-center gap-2 text-base font-semibold">
               <BookOpen className="h-4 w-4" aria-hidden="true" />
-              Urutan persiapan operasional
+              Konfigurasi operasional
             </h2>
             <p className="mt-1 text-sm text-ink-muted">
               Gunakan langkah ini saat menyiapkan cabang atau template baru. Editor tetap terpisah; perubahan berlaku untuk shift yang dibuka berikutnya.
@@ -67,6 +67,11 @@ export default async function AdminIndex() {
         </p>
       </section>
 
+      <section aria-labelledby="monitoring-title" className="space-y-4">
+        <div>
+          <h2 id="monitoring-title" className="text-lg font-semibold">Monitoring operasional</h2>
+          <p className="mt-1 text-sm text-ink-muted">Pantau shift aktif dan hal yang membutuhkan tindak lanjut.</p>
+        </div>
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <section className="rounded-xl border border-border bg-surface p-4">
           <div className="mb-4 flex items-center justify-between">
@@ -129,18 +134,19 @@ export default async function AdminIndex() {
           </div>
         </section>
       </div>
+      </section>
     </div>
   );
 }
 
-function MetricCard({ label, value, helper }: { label: string; value: number; helper: string }) {
+function MetricCard({ href, label, value, helper }: { href: string; label: string; value: number; helper: string }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 text-center">
+    <Link href={href} className="block rounded-xl border border-border bg-surface p-4 text-center transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink">
       <p className="text-xs font-semibold uppercase leading-tight tracking-[0.14em] text-ink-muted sm:text-xs">
         {label}
       </p>
       <div className="mt-2 text-2xl font-bold sm:mt-3 sm:text-3xl">{value}</div>
       <p className="mt-1 text-xs text-ink-muted sm:text-xs">{helper}</p>
-    </div>
+    </Link>
   );
 }

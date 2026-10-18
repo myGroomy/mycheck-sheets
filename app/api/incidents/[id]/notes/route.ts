@@ -4,8 +4,7 @@ import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
-import { insertRow } from '../../../../../lib/store';
-import { monthlySheet } from '../../../../../lib/google/branch-schema';
+import { getPeriodSheet, insertRow } from '../../../../../lib/store';
 import { ensureIncidentTabs, findIncidentAcrossBranches, incidentTabMonth } from '../../../../../lib/incidents';
 
 export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -27,7 +26,7 @@ withAuth(async (_req, ctx, _session) => {
   await ensureIncidentTabs(located.spreadsheetId, tabMonth);
   const rowId = ulid();
   const now = new Date().toISOString();
-  await insertRow(located.spreadsheetId, monthlySheet('IncidentNotes', tabMonth), {
+  await insertRow(located.spreadsheetId, await getPeriodSheet(located.spreadsheetId, 'IncidentNotes', tabMonth), {
     id: rowId, incident_id: incidentId, author_id: ctx.user.id,
     author_role: ctx.user.role, note, created_at: now,
   });

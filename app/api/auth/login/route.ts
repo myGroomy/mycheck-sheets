@@ -31,7 +31,7 @@ export async function POST(_req: NextRequest) {
     );
 
     const isAktif = (v: unknown) =>
-      v === true || v === 'true' || v === 'TRUE' || v === 'True' || v === '1' || v === 1;
+      v === true || v === 'true' || v === 'TRUE' || v === 'True' || v === 'yes' || v === 'YES' || v === 'Yes' || v === 'ya' || v === 'YA' || v === '1' || v === 1;
 
     if (!user) {
       return NextResponse.json(
@@ -63,16 +63,22 @@ export async function POST(_req: NextRequest) {
     }
 
     const role = String(user['Role'] ?? 'petugas').toLowerCase() === 'admin' ? 'admin' : 'petugas';
+    const requiresSetup = ['true', 'TRUE', '1', 'yes', 'YES', 'ya', 'YA'].includes(
+      String(user['Must_Change_Pin'] ?? '').trim()
+    );
 
     const token = createSessionToken({
       username: String(user['Username']),
       nama: String(user['Nama'] ?? ''),
       role,
       cabangId: String(user['Cabang_ID'] ?? ''),
+      userId: String(user['User_ID'] ?? ''),
+      requiresSetup,
     });
 
     const response = NextResponse.json({
       user: { username: user['Username'], nama: user['Nama'], role, cabangId: user['Cabang_ID'] },
+      requiresSetup,
     });
     response.headers.set('Set-Cookie', setSessionCookieHeader(token));
     return response;

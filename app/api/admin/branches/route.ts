@@ -30,7 +30,7 @@ withAuth(async (_req, ctx, _session) => {
       code: b.Kode || b.Cabang_ID,
       timezone: b.Timezone || 'Asia/Jakarta',
       spreadsheetId: b.Spreadsheet_ID,
-      folderDriveId: b.Folder_Drive_ID,
+      folderDriveId: b.Folder_Drive_ID || b.Branch_Folder_ID || '',
       branchFolderId: b.Branch_Folder_ID || null,
       evidenceFolderId: b.Evidence_Folder_ID || null,
       isActive: b.Aktif,
@@ -138,6 +138,7 @@ withAuth(async (_req, ctx, _session) => {
   // 5. Update Registry: Spreadsheet_ID, Branch_Folder_ID, Evidence_Folder_ID, Aktif = true
   await updateCabangStructure(code, {
     spreadsheetId: structure.spreadsheetId,
+    folderDriveId: structure.branchFolderId,
     branchFolderId: structure.branchFolderId,
     evidenceFolderId: structure.evidenceFolderId,
     aktif: true,

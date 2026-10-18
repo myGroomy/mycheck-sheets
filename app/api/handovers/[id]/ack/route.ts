@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { ulid } from 'ulid';
 import { requireBranchAccess, withAuth } from '../../../../../lib/api-auth';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
-import { ensureMonthlySheet, insertRow, listMonthlyRows } from '../../../../../lib/store';
+import { ensureMonthlySheet, insertRow, listMonthlyRows, listPeriodKeys } from '../../../../../lib/store';
 import { asStr } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
 
@@ -14,13 +14,7 @@ withAuth(async (_req, ctx, _session) => {
   const handoverId = new URL(_req.url).pathname.split('/').slice(-2)[0];
   let body: { shift_instance_id?: string } = {};
   try { body = (await _req.json()) as { shift_instance_id?: string }; } catch { /* kosong */ }
-  // Cari handover di semua cabang yang bisa diakses (3 bulan terakhir)
-  const months: string[] = [];
-  for (let back = 0; back < 3; back++) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - back);
-    months.push(d.toISOString().slice(0, 7));
-  }
+  // Cari handover di semua periode yang tersedia.
   let found: { spreadsheetId: string; branchId: string; tabMonth: string; handover: Record<string, unknown> } | null = null;
   const { getCabangList } = await import('../../../../../lib/google/registry');
   const { resolveCabang } = await import('../../../../../lib/google/registry');
@@ -28,7 +22,7 @@ withAuth(async (_req, ctx, _session) => {
     if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;
     let spreadsheetId = '';
     try { spreadsheetId = (await resolveCabang(cabang.Cabang_ID)).spreadsheetId; } catch { continue; }
-    for (const month of months) {
+    for (const month of await listPeriodKeys(spreadsheetId, 'Handovers')) {
       const rows = await listMonthlyRows(spreadsheetId, 'Handovers', month);
       const h = rows.find((r) => asStr(r['id']) === handoverId);
       if (h) { found = { spreadsheetId, branchId: cabang.Cabang_ID, tabMonth: month, handover: h }; break; }
