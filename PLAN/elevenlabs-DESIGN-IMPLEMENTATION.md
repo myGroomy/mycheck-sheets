@@ -6,7 +6,6 @@ Tanggal: 2026-10-18
 ## Acuan
 
 - `PLAN/elevenlabs-DESIGN.md`
-
 - `PLAN/refaktor-data.md`
 - `PLAN/UI-UX-AUDIT.md`
 - `PLAN/add-draftshift.md`
@@ -326,148 +325,148 @@ score_percent = final_score / available * 100
 
    bekerja di cabang berbeda.
 
-   Nilai user tersimpan menggunakan User\_ID global sehingga tetap terakumulasi ketika
+    Nilai user tersimpan menggunakan User\_ID global sehingga tetap terakumulasi ketika
 
-   user berpindah-pindah cabang.
+    user berpindah-pindah cabang.
    ## Perubahan Arsitektur
    ### 1. Shift dan atribusi PJ
 
-   Tambahkan sheet cabang ShiftPjAssignments:
+    Tambahkan sheet cabang ShiftPjAssignments:
 
-   id
+    id
 
-   shift\_instance\_id
+    shift\_instance\_id
 
-   user\_id
+    user\_id
 
-   started\_at
+    started\_at
 
-   ended\_at
+    ended\_at
 
-   is\_current
+    is\_current
 
-   source
+    source
 
-   created\_at
+    created\_at
 
-   Alur:
+    Alur:
    - Saat shift dibuka, buat assignment PJ pertama.
    - Saat admin mengganti PJ, tutup assignment lama dengan ended\_at.
    - Buat assignment baru untuk PJ berikutnya.
    - Saat shift ditutup, hitung proporsi waktu setiap PJ.
    - Nilai kepemimpinan shift dibagi berdasarkan durasi masing-masing PJ.
 
-   Contoh:
+    Contoh:
 
-   PJ A memimpin 4 jam dari total 8 jam = 50% nilai PJ
+    PJ A memimpin 4 jam dari total 8 jam = 50% nilai PJ
 
-   PJ B memimpin 4 jam dari total 8 jam = 50% nilai PJ
+    PJ B memimpin 4 jam dari total 8 jam = 50% nilai PJ
 
-   Untuk shift lama tanpa histori pergantian PJ, gunakan pj\_user\_id sebagai pemilik
+    Untuk shift lama tanpa histori pergantian PJ, gunakan pj\_user\_id sebagai pemilik
 
-   penuh dengan rasio 1.0.
+    penuh dengan rasio 1.0.
    ### 2. Nilai cabang
 
-   Nilai cabang dihitung dari semua shift selesai pada cabang tersebut.
+    Nilai cabang dihitung dari semua shift selesai pada cabang tersebut.
 
-   Per shift:
+    Per shift:
 
-   branch\_earned = checklist\_earned - incident\_penalty
+    branch\_earned = checklist\_earned - incident\_penalty
 
-   branch\_available = total\_checklist\_weight
+    branch\_available = total\_checklist\_weight
 
-   branch\_score = max(0, branch\_earned) / branch\_available \* 100
+    branch\_score = max(0, branch\_earned) / branch\_available \* 100
 
-   Dashboard menampilkan dua agregasi:
+    Dashboard menampilkan dua agregasi:
    - Weighted aggregate: total earned seluruh shift dibagi total available.
    - Rata-rata shift: rata-rata persentase setiap shift.
 
-   Nilai cabang tetap melekat pada branch\_id, sehingga tidak terpengaruh user yang
+    Nilai cabang tetap melekat pada branch\_id, sehingga tidak terpengaruh user yang
 
-   bertugas.
+    bertugas.
    ### 3. Nilai user sebagai PJ
 
-   Nilai PJ user berasal dari skor final shift yang ia pimpin.
+    Nilai PJ user berasal dari skor final shift yang ia pimpin.
 
-   user\_pj\_earned = shift\_final\_score × pj\_time\_ratio
+    user\_pj\_earned = shift\_final\_score × pj\_time\_ratio
 
-   user\_pj\_available = shift\_available × pj\_time\_ratio
+    user\_pj\_available = shift\_available × pj\_time\_ratio
 
-   user\_pj\_score = user\_pj\_earned / user\_pj\_available × 100
+    user\_pj\_score = user\_pj\_earned / user\_pj\_available × 100
 
-   Jika terdapat pergantian PJ, setiap user hanya menerima bagian sesuai durasi
+    Jika terdapat pergantian PJ, setiap user hanya menerima bagian sesuai durasi
 
-   kepemimpinannya.
+    kepemimpinannya.
    ### 4. Nilai kontribusi aksi user
 
-   Setiap checklist yang berhasil diselesaikan memiliki completed\_by.
+    Setiap checklist yang berhasil diselesaikan memiliki completed\_by.
 
-   Nilai kontribusi user dihitung lintas cabang:
+    Nilai kontribusi user dihitung lintas cabang:
 
-   action\_earned = total bobot checklist yang dimenangkan user
+    action\_earned = total bobot checklist yang dimenangkan user
 
-   action\_available = total bobot checklist pada shift terkait
+    action\_available = total bobot checklist pada shift terkait
 
-   action\_score = action\_earned / action\_available × 100
+    action\_score = action\_earned / action\_available × 100
 
-   Setiap checklist hanya dapat dimenangkan satu user berdasarkan mekanisme
+    Setiap checklist hanya dapat dimenangkan satu user berdasarkan mekanisme
 
-   concurrency yang sudah ada.
+    concurrency yang sudah ada.
 
-   Data sumber:
+    Data sumber:
    - Entries.completed\_by
    - Entries.state
    - SnapshotPoint.points
    - Participants.user\_id
    ### 5. Penalti incident user
 
-   Karena keputusan produk memilih penalti kepada pelapor:
+    Karena keputusan produk memilih penalti kepada pelapor:
    - Penalti cabang masuk ke skor cabang.
    - Penalti PJ masuk ke skor kepemimpinan berdasarkan rasio PJ.
    - Penalti user masuk ke user yang tercatat pada Incidents.reported\_by.
    - Incident di luar shift tidak mengurangi skor shift.
    - Penalti disimpan sebagai snapshot dan tidak berubah ketika kategori incident
 
-   diedit.
+    diedit.
    ## Sheet Score Ledger
 
-   Tambahkan sheet terpusat pada Registry, misalnya ScoreLedger.
+    Tambahkan sheet terpusat pada Registry, misalnya ScoreLedger.
 
-   Header:
+    Header:
 
-   id
+    id
 
-   scope\_type
+    scope\_type
 
-   subject\_id
+    subject\_id
 
-   branch\_id
+    branch\_id
 
-   shift\_instance\_id
+    shift\_instance\_id
 
-   report\_id
+    report\_id
 
-   metric\_type
+    metric\_type
 
-   score\_version
+    score\_version
 
-   points\_available
+    points\_available
 
-   points\_earned
+    points\_earned
 
-   incident\_penalty
+    incident\_penalty
 
-   final\_points
+    final\_points
 
-   score\_percent
+    score\_percent
 
-   attribution\_ratio
+    attribution\_ratio
 
-   calculated\_at
+    calculated\_at
 
-   created\_at
+    created\_at
 
-   Nilai:
+    Nilai:
    - scope\_type: branch atau user
    - metric\_type: branch, pj, action, incident
    - subject\_id:
@@ -476,35 +475,35 @@ score_percent = final_score / available * 100
    - attribution\_ratio: rasio waktu PJ atau 1 untuk branch/action
    - report\_id: sumber immutable per shift
 
-   Penulisan ledger harus idempoten menggunakan kombinasi:
+    Penulisan ledger harus idempoten menggunakan kombinasi:
 
-   report\_id + scope\_type + subject\_id + metric\_type + score\_version
+    report\_id + scope\_type + subject\_id + metric\_type + score\_version
 
-   Jika proses close diulang, sistem tidak boleh menggandakan nilai.
+    Jika proses close diulang, sistem tidak boleh menggandakan nilai.
    ## Skor Total User
 
-   Dashboard user menampilkan tiga nilai:
+    Dashboard user menampilkan tiga nilai:
 4. Skor PJ
 5. Skor kontribusi aksi
 6. Skor total
 
    Formula default:
 
-   user\_total\_score =
+    user\_total\_score =
 
-   (user\_pj\_score × 50%) +
+    (user\_pj\_score × 50%) +
 
-   (user\_action\_score × 50%)
+    (user\_action\_score × 50%)
 
-   Jika user belum pernah menjadi PJ atau belum pernah menyelesaikan checklist:
+    Jika user belum pernah menjadi PJ atau belum pernah menyelesaikan checklist:
    - Metrik tersebut ditampilkan sebagai Belum tersedia.
    - Skor total hanya dihitung dari metrik yang sudah memiliki data.
    - Jumlah shift PJ, jumlah shift kontribusi, dan jumlah cabang tetap ditampilkan
 
-   sebagai konteks.
+    sebagai konteks.
    ## Perubahan API
 
-   Tambahkan atau perluas endpoint:
+    Tambahkan atau perluas endpoint:
    - GET /api/admin/scores/branches
    - GET /api/admin/scores/users
    - GET /api/admin/scores/users/\[id\]
@@ -513,25 +512,25 @@ score_percent = final_score / available * 100
    - Endpoint close shift untuk menghasilkan ledger secara idempoten.
    - Endpoint pergantian PJ untuk mencatat ShiftPjAssignments.
 
-   Filter dashboard:
+    Filter dashboard:
 
-   branchId
+    branchId
 
-   userId
+    userId
 
-   dateFrom
+    dateFrom
 
-   dateTo
+    dateTo
 
-   shiftDefinitionId
+    shiftDefinitionId
 
-   metricType
+    metricType
 
-   Semua endpoint wajib memvalidasi akses cabang server-side.
+    Semua endpoint wajib memvalidasi akses cabang server-side.
    ## Perubahan UI Admin
    ### Dashboard nilai cabang
 
-   Tampilkan:
+    Tampilkan:
    - weighted score
    - rata-rata score shift
    - jumlah shift selesai
@@ -541,7 +540,7 @@ score_percent = final_score / available * 100
    - cabang dengan skor terendah
    ### Dashboard nilai user
 
-   Tampilkan:
+    Tampilkan:
    - skor PJ
    - skor kontribusi aksi
    - skor total
@@ -553,17 +552,17 @@ score_percent = final_score / available * 100
    - detail kontribusi lintas cabang
    ### Detail user
 
-   Tampilkan histori:
+    Tampilkan histori:
 
-   Tanggal | Cabang | Shift | Peran | Score | Penalti | Ratio PJ
+    Tanggal | Cabang | Shift | Peran | Score | Penalti | Ratio PJ
 
-   Peran dapat berupa:
+    Peran dapat berupa:
    - PJ
    - Participant
    - Pelapor incident
    ### Detail report
 
-   Tambahkan breakdown:
+    Tambahkan breakdown:
    - skor cabang
    - skor PJ
    - kontribusi setiap user
@@ -572,7 +571,7 @@ score_percent = final_score / available * 100
    - score version
    ## Perubahan Schema
 
-   Update:
+    Update:
    - lib/schema/registry.ts
    - PLAN/DATABASE\_[SCHEMA.md](http://SCHEMA.md)
    - PLAN/[ERD.md](http://ERD.md)
@@ -580,7 +579,7 @@ score_percent = final_score / available * 100
    - snapshot type dan builder
    - report summary schema
 
-   Tambahan utama:
+    Tambahan utama:
    - ChecklistPoints.points
    - IncidentCategories.penalty\_min\_severity
    - Incidents.points\_snapshot
@@ -588,7 +587,7 @@ score_percent = final_score / available * 100
    - ShiftPjAssignments
    - ScoreLedger pada Registry
 
-   Schema baru harus additive dan tetap mendukung:
+    Schema baru harus additive dan tetap mendukung:
    - template flat
    - cabang monthly
    - cabang yearly
@@ -630,7 +629,7 @@ score_percent = final_score / available * 100
    ## Acceptance Criteria
    - User yang berpindah cabang tetap memiliki satu histori nilai berdasarkan
 
-   User\_ID.
+    User\_ID.
    - Nilai cabang tidak berpindah ketika PJ atau participant berganti.
    - Pergantian PJ membagi nilai secara proporsional terhadap durasi.
    - Nilai kontribusi menggunakan user yang tercatat pada completed\_by.
@@ -759,3 +758,19 @@ Jika salah satu dimensi belum tersedia, tampilkan `Belum tersedia`, bukan nilai 
 - Jangan mengubah histori `Entries`; review disimpan sebagai record/version baru.
 - Migrasi wajib dry-run, backup, dan audit.
 - Uji satu user, banyak user, konflik item, review valid/partial/invalid, perubahan live, finalisasi, koreksi ter-audit, lintas cabang, dan idempotensi ledger.
+
+
+
+---
+
+TAMBAHAN 
+
+- Tambahkan animasi loading atau bar ketika button yang butuh waktu untuk proses misal adain loading line atau ada persentase atau apapun 
+- Buat seluruh petugas bisa ahrable link dan open laporan, dalam laporan itu lengkap ada checklist, handover, dan incident di shift itu
+- kemudian untuk cetak pdf atau simpan pdfnya aku ingin kamu optimize lagi, aku ingin berupa kerta hasil laporan dengan informasiyang jelas bukan hanya snapshoots atas page itu. 
+- kemudian aku ingin warna dari setiap section/categories bisa memiliki warna yang berbeda sesuai dengan apa yang builder setupkan
+- kemudian untuk items yang di checklist orang ain kamu harus pertegas lagi badgenya lebih jelas terutama namnya di buat badge berwarna 
+- kemudian untuk proses sinkronisasi harus ada notifikasi, misal "buka tutup toko : dilakukan oleh xxx" "tau "xxx mengisis item a" untuk itu buatan alert notifikasi yang mana arahnya dari atas. 
+- fungsikan fitur di pengaturan : seperti terlihat di gambar ada banyak yangtidak berfungsi   
+![](orca-paste-1792398646013-350b0f80-547e-4e9e-ba2d-917b68f03552.png)
+- audit lagi mana components yang redundant yang harusnya cukup satu kali di tampilkan. 

@@ -10,6 +10,7 @@ import { voidDuplicateShiftInstances } from '../../../../lib/concurrency';
 import { filterRows, insertRow, asStr } from '../../../../lib/store';
 import { resolveCabang } from '../../../../lib/google/registry';
 import { cleanupClosedShiftDrafts } from '../../../../lib/draft-shift';
+import { isShiftBufferEnabled, removeBufferedShiftState } from '../../../../lib/shift-buffer';
 
 interface OpenShiftBody {
   shiftDefinitionId?: string;
@@ -116,6 +117,9 @@ withAuth(async (_req, ctx, _session) => {
     let cleanedDraftShiftIds: string[] = [];
     try {
       cleanedDraftShiftIds = await cleanupClosedShiftDrafts(spreadsheetId, String(existing[0].id), shiftDate);
+      if (isShiftBufferEnabled()) {
+        await Promise.all(cleanedDraftShiftIds.map((id) => removeBufferedShiftState(branchId, id)));
+      }
     } catch {
       // Cleanup draft bukan alasan untuk menggagalkan join shift yang valid.
     }
@@ -164,6 +168,9 @@ withAuth(async (_req, ctx, _session) => {
   let cleanedDraftShiftIds: string[] = [];
   try {
     cleanedDraftShiftIds = await cleanupClosedShiftDrafts(spreadsheetId, instanceId, shiftDate);
+    if (isShiftBufferEnabled()) {
+      await Promise.all(cleanedDraftShiftIds.map((id) => removeBufferedShiftState(branchId, id)));
+    }
   } catch {
     // Cleanup draft bersifat best effort dan idempotent.
   }

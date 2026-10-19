@@ -7,6 +7,7 @@ import { filterRows, listMonthlyRows } from '../../../../../lib/store';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
 import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import { listAllUsers } from '../../../../../lib/google/registry-admin';
+import { isShiftBufferEnabled, readExistingBufferedShiftState } from '../../../../../lib/shift-buffer';
 
 interface ProgressEntry {
   point_ref: string;
@@ -67,9 +68,14 @@ withAuth(async (_req, ctx, _session) => {
   // Writes invalidate the shared sheet cache, so the normal cached read is
   // fresh immediately after this app writes. Short-lived caching prevents the
   // 20-second polling loop on every device from exhausting Sheets read quota.
-  const entryRows = (await listMonthlyRows(spreadsheetId, 'Entries', tabMonth)).filter(
-    (r) => String(r['shift_instance_id']) === shiftInstanceId
-  );
+  const bufferedState = isShiftBufferEnabled()
+    ? await readExistingBufferedShiftState(branchId, shiftInstanceId)
+    : null;
+  const entryRows = bufferedState
+    ? Object.values(bufferedState.entries)
+    : (await listMonthlyRows(spreadsheetId, 'Entries', tabMonth)).filter(
+      (r) => String(r['shift_instance_id']) === shiftInstanceId
+    );
   const entryByRef = new Map<string, Record<string, unknown>>(
     entryRows.map((e) => [String(e['point_ref']), e])
   );
@@ -122,8 +128,9 @@ withAuth(async (_req, ctx, _session) => {
   const done = allPoints.filter((p) => p.state === 'selesai').length;
   const skipped = allPoints.filter((p) => p.state === 'skip').length;
 
-  const participantRows = (
-    await filterRows(spreadsheetId, 'Participants', (r) =>
+  const participantRows = (bufferedState
+    ? Object.values(bufferedState.participants)
+    : await filterRows(spreadsheetId, 'Participants', (r) =>
       String(r['shift_instance_id']) === shiftInstanceId
     )
   ).sort((a, b) => String(a['first_action_at'] ?? '').localeCompare(String(b['first_action_at'] ?? '')));

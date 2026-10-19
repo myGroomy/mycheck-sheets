@@ -146,13 +146,18 @@ export function ShiftChecklistClient({
   }, [data, shiftId, userId]);
 
   const saveDraftToCloud = useCallback(async (draft: ShiftDraftPayload) => {
+    setSyncState('saving');
     try {
       const response = await fetch(`/api/shifts/${shiftId}/draft`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'fetch' },
         body: JSON.stringify({ draft }),
       });
       if (!response.ok) throw new Error('Draft cloud gagal disimpan');
-    } catch { /* localStorage tetap menjadi fallback */ }
+      setSyncState('saved');
+    } catch {
+      setSyncState('error');
+      // localStorage tetap menjadi fallback.
+    }
   }, [shiftId]);
 
   const discardDraft = useCallback(async () => {
@@ -265,7 +270,14 @@ export function ShiftChecklistClient({
       if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = window.setTimeout(() => {
         refreshTimerRef.current = null;
-        void loadProgress();
+        void fetch(`/api/shifts/${shiftId}/sync`, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'fetch' },
+        }).then((response) => {
+          setSyncState(response.ok ? 'saved' : 'error');
+        }).catch(() => {
+          setSyncState('error');
+        }).finally(() => { void loadProgress(); });
       }, 300);
     };
     const interval = window.setInterval(refresh, 20_000);

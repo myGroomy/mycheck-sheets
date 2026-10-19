@@ -6,6 +6,12 @@ import type { ShiftDraftPayload } from '../../../../../lib/draft-types';
 import { resolveInstance } from '../../../../../lib/instance-resolver';
 import { asStr, findRowFresh, insertRow, updateRow } from '../../../../../lib/store';
 import { deleteSheetRows } from '../../../../../lib/google/registry';
+import {
+  isShiftBufferEnabled,
+  readBufferedDraft,
+  removeBufferedDraft,
+  writeBufferedDraft,
+} from '../../../../../lib/shift-buffer';
 
 const MAX_DRAFT_BYTES = 250_000;
 
@@ -36,6 +42,14 @@ export const GET = withAuth(async (req, ctx) => {
   const accessError = requireBranchAccess(ctx, resolved.branchId);
   if (accessError) return accessError;
   if (String(resolved.instance.status) !== 'berjalan') return NextResponse.json({ draft: null });
+  if (isShiftBufferEnabled()) {
+    try {
+      const draft = await readBufferedDraft(resolved.branchId, shiftInstanceId, ctx.user.id);
+      return NextResponse.json({ draft });
+    } catch {
+      // Redis outage falls back to the Sheets backup for continuity.
+    }
+  }
   await ensureDraftSheet(resolved.spreadsheetId);
   const row = await findRowFresh(resolved.spreadsheetId, DRAFT_SHEET, 'id', shiftDraftId(shiftInstanceId, ctx.user.id));
   if (!row) return NextResponse.json({ draft: null });
@@ -60,9 +74,23 @@ export const PUT = withAuth(async (req, ctx) => {
   if (!payload) return NextResponse.json({ error: 'Payload draft tidak valid' }, { status: 400 });
   if (JSON.stringify(payload).length > MAX_DRAFT_BYTES) return NextResponse.json({ error: 'Draft terlalu besar' }, { status: 413 });
 
-  await ensureDraftSheet(resolved.spreadsheetId);
   const now = getServerTime().toISOString();
   const id = shiftDraftId(shiftInstanceId, ctx.user.id);
+  if (isShiftBufferEnabled()) {
+    try {
+      const existing = await readBufferedDraft(resolved.branchId, shiftInstanceId, ctx.user.id);
+      await writeBufferedDraft(resolved.branchId, shiftInstanceId, ctx.user.id, payload, {
+        id,
+        createdAt: existing?.createdAt ?? now,
+        serverUpdatedAt: now,
+      });
+      return NextResponse.json({ status: 'tersimpan_redis', updated_at: now });
+    } catch {
+      // Continue with the existing Sheets backup below.
+    }
+  }
+
+  await ensureDraftSheet(resolved.spreadsheetId);
   const existing = await findRowFresh(resolved.spreadsheetId, DRAFT_SHEET, 'id', id);
   const row = {
     id, shift_instance_id: shiftInstanceId, user_id: ctx.user.id,
@@ -80,6 +108,14 @@ export const DELETE = withAuth(async (req, ctx) => {
   if (!resolved) return NextResponse.json({ error: 'Shift tidak ditemukan' }, { status: 404 });
   const accessError = requireBranchAccess(ctx, resolved.branchId);
   if (accessError) return accessError;
+  if (isShiftBufferEnabled()) {
+    try {
+      await removeBufferedDraft(resolved.branchId, shiftInstanceId, ctx.user.id);
+      return NextResponse.json({ status: 'dihapus' });
+    } catch {
+      // Continue with the existing Sheets cleanup below.
+    }
+  }
   await ensureDraftSheet(resolved.spreadsheetId);
   const row = await findRowFresh(resolved.spreadsheetId, DRAFT_SHEET, 'id', shiftDraftId(shiftInstanceId, ctx.user.id));
   if (row) {

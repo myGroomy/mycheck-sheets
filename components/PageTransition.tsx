@@ -108,6 +108,7 @@ export function PageTransition({ children }: PageTransitionProps) {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={pathname}
+        suppressHydrationWarning
         initial="initial"
         animate="enter"
         exit="exit"

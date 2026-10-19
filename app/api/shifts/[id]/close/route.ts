@@ -16,6 +16,7 @@ import { resolveInstance } from '../../../../../lib/instance-resolver';
 import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import type { Snapshot } from '../../../../../lib/db/snapshot';
 import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
+import { flushBufferedShift, isShiftBufferEnabled, removeBufferedShiftState } from '../../../../../lib/shift-buffer';
 
 interface CloseBody {
   pin?: string;
@@ -52,6 +53,14 @@ withAuth(async (_req, ctx, _session) => {
 
   if (String(instance['status']) !== 'berjalan') {
     return NextResponse.json({ error: 'Shift tidak sedang berjalan' }, { status: 409 });
+  }
+
+  if (isShiftBufferEnabled()) {
+    try {
+      await flushBufferedShift(branchId, shiftInstanceId, spreadsheetId, tabMonth);
+    } catch {
+      return NextResponse.json({ error: 'Data checklist belum berhasil disinkronkan. Coba tutup shift lagi.', code: 'SHIFT_SYNC_FAILED' }, { status: 503 });
+    }
   }
 
   // Verifikasi PIN plaintext dari sheet Users (Registry)
@@ -282,6 +291,10 @@ withAuth(async (_req, ctx, _session) => {
       handoverValues,
     },
   });
+
+  if (isShiftBufferEnabled()) {
+    await removeBufferedShiftState(branchId, shiftInstanceId).catch(() => undefined);
+  }
 
   // Ambil report yang baru dibuat untuk popup
   const reportRow = (await filterRows(

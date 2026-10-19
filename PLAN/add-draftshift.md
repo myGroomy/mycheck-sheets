@@ -226,3 +226,187 @@ npm run build
 - Data yang sudah masuk `Entries` tidak pernah dianggap draft.
 - Foto draft menyimpan metadata ID, bukan binary file.
 - Menutup modal tanpa memilih aksi mempertahankan draft.
+
+## Fase Redis Upstash untuk Mengurangi Rate Limit
+
+### Tujuan
+
+Google Sheets tetap menjadi database final dan sumber audit, tetapi tidak lagi
+menjadi penyimpanan aktif untuk setiap perubahan draft atau setiap aksi
+checklist. State sementara shift disimpan di Redis Upstash, kemudian dikirim ke
+Sheets secara batch.
+
+Upstash REST dipilih karena dapat digunakan melalui HTTP tanpa menambahkan
+client Redis native. URL dan token hanya boleh dibaca dari environment server:
+
+```env
+UPSTASH_REDIS_REST_URL=<nilai dari environment deployment>
+UPSTASH_REDIS_REST_TOKEN=<token-rahasia-baru>
+```
+
+Token tidak boleh dimasukkan ke repository, template, dokumentasi, browser,
+atau log. Token yang pernah terekspos wajib di-revoke dan diganti.
+
+### Ruang Lingkup Buffer
+
+Redis menyimpan dua jenis data sementara:
+
+- Draft input yang belum dikirim sebagai entry.
+- Event aksi checklist aktif: `selesai`, `batal`, `skip`, dan `ubah_nilai`.
+
+Aksi checklist memakai `client_action_id` sebagai idempotency key. Event yang
+sama tidak boleh menghasilkan duplikasi pada `Entries` atau `EntryLogs`.
+
+Upload foto tetap dilakukan melalui endpoint foto yang ada. Redis hanya
+menyimpan referensi `photo_id`, bukan binary foto.
+
+### Key dan Interface Penyimpanan
+
+Tambahkan adapter server-side `ShiftBufferStore` dengan operasi berikut:
+
+```ts
+type ShiftBufferStore = {
+  readState(shiftId: string): Promise<ShiftBufferState | null>;
+  upsertDraft(shiftId: string, userId: string, draft: ShiftDraftPayload): Promise<void>;
+  appendAction(shiftId: string, action: BufferedEntryAction): Promise<void>;
+  flush(shiftId: string): Promise<FlushResult>;
+  deleteAfterClose(shiftId: string): Promise<void>;
+};
+```
+
+Gunakan namespace berversi dan scope lengkap agar data antar cabang/user tidak
+tercampur:
+
+```text
+mycheck:v1:shift:{branchId}:{shiftId}:state
+mycheck:v1:shift:{branchId}:{shiftId}:actions
+mycheck:v1:shift:{branchId}:{shiftId}:draft:{userId}
+mycheck:v1:shift:{branchId}:{shiftId}:lock
+```
+
+Gunakan TTL untuk state aktif dan retention pendek setelah shift ditutup,
+misalnya beberapa hari untuk recovery. TTL harus diperpanjang hanya ketika ada
+aktivitas shift yang valid.
+
+### Alur Sinkronisasi
+
+1. Perubahan input disimpan ke `localStorage`, lalu di-upsert ke Redis dengan
+   debounce.
+2. Aksi checklist divalidasi server-side terhadap snapshot shift, lalu dicatat
+   sebagai event Redis dengan `client_action_id`.
+3. Client menjalankan checkpoint flush setiap 15–30 detik ketika halaman aktif.
+4. Server mengambil event yang belum tersinkron dalam satu batch, memvalidasi
+   ulang status shift dan aturan konflik, lalu menulis perubahan ke Sheets.
+5. Setelah seluruh batch berhasil, event diberi status tersinkron atau dihapus
+   sesuai retention policy.
+6. Saat `close shift`, input baru dihentikan, seluruh event di-drain, draft
+   diselesaikan, lalu validasi item wajib, handover, report, dan status shift
+   diproses seperti biasa.
+7. Redis dihapus setelah penutupan dan flush berhasil. Jika flush gagal, shift
+   tidak boleh dilaporkan sebagai tersimpan final.
+
+Flush harus memakai lock singkat per `shiftId` agar checkpoint dari MyCheck,
+Stokis, atau aplikasi lain tidak berjalan bersamaan. Semua aplikasi yang
+menulis shift yang sama wajib menggunakan Redis bersama dan kontrak event yang
+sama; Redis terpisah per aplikasi tidak mengurangi konflik maupun rate limit
+Sheets.
+
+### Perubahan Endpoint
+
+Endpoint draft yang sudah ada tetap dipertahankan:
+
+```text
+GET    /api/shifts/[id]/draft
+PUT    /api/shifts/[id]/draft
+DELETE /api/shifts/[id]/draft
+```
+
+Perubahan perilaku:
+
+- `GET` membaca Redis terlebih dahulu, lalu memakai Sheets sebagai fallback
+  kompatibilitas saat migrasi.
+- `PUT` menulis Redis; backup langsung ke sheet `Drafts` hanya dilakukan pada
+  mode fallback atau checkpoint kompatibilitas.
+- `DELETE` menghapus draft Redis dan membersihkan foto draft sesuai aturan
+  existing.
+
+Tambahkan endpoint internal:
+
+```text
+POST /api/shifts/[id]/sync
+```
+
+Endpoint ini hanya dapat dipanggil oleh service/client terautentikasi,
+memvalidasi akses cabang, mengambil lock, menjalankan flush batch, dan
+mengembalikan jumlah event berhasil, tertunda, serta gagal.
+
+Tambahkan status sinkronisasi pada response progress:
+
+```text
+tersimpan_lokal
+tersimpan_redis
+tersinkron_sheets
+gagal_sinkron
+```
+
+### Fallback dan Recovery
+
+- Jika Redis timeout atau tidak tersedia, localStorage tetap menjadi fallback
+  UI dan event dapat dikirim melalui jalur Sheets lama sementara.
+- Sistem tidak boleh mengembalikan status sukses jika event belum tersimpan di
+  Redis atau Sheets.
+- Event gagal flush tetap berada di Redis untuk retry dengan backoff.
+- Retry tidak boleh membuat duplicate `EntryLogs` karena `client_action_id`.
+- Jika Redis restart, state dapat dipulihkan dari event yang masih memiliki
+  retention atau dari Sheets pada checkpoint berikutnya.
+- Jika proses close terputus, shift tetap `berjalan` sampai flush dan update
+  `ShiftInstances` berhasil secara lengkap.
+
+### Perubahan Skema dan Kompatibilitas
+
+Sheet `Drafts` tetap dipertahankan untuk cabang lama, fallback, audit migrasi,
+dan proses pemulihan. Tidak ada penghapusan header atau data spreadsheet pada
+fase ini.
+
+Migrasi dilakukan bertahap melalui feature flag:
+
+1. Mode legacy: draft dan entry langsung ke Sheets.
+2. Mode hybrid: draft ke Redis, Sheets sebagai fallback.
+3. Mode buffered: draft dan event checklist ke Redis, flush berkala.
+4. Mode final: close shift wajib melakukan drain Redis sebelum status ditutup.
+
+Setiap migrasi atau cleanup wajib menyediakan dry-run, backup/log hasil, dan
+rollback flag sesuai aturan database MyCheck.
+
+### Pengujian Redis dan Rate Limit
+
+Tambahkan fake Redis/Upstash adapter untuk menguji:
+
+- Draft tersimpan dan terbaca lintas request/server instance.
+- Draft tetap terisolasi antar user, shift, dan cabang.
+- Event dengan `client_action_id` sama hanya diproses sekali.
+- Dua user dapat mengerjakan item berbeda pada shift yang sama.
+- Lock mencegah dua flush bersamaan.
+- Flush batch menulis hasil yang sama dengan jalur Sheets langsung.
+- Flush gagal dapat diulang tanpa duplikasi.
+- Close shift menunggu seluruh event sebelum menutup shift.
+- Redis tidak tersedia dan fallback legacy tetap bekerja.
+- TTL menghapus state setelah retention berakhir.
+- Restart Redis tidak membuat event sukses palsu.
+
+Uji beban membandingkan jalur lama dan buffered dengan tiga aplikasi aktif.
+Ukur jumlah `spreadsheets.get`, `values.get`, batch write, latency checkpoint,
+jumlah retry, dan respons 429. Target fase ini adalah menghilangkan operasi
+Sheets per-keystroke dan mengurangi operasi per-aksi menjadi batch checkpoint,
+bukan menjadikan Redis sebagai database final.
+
+### Asumsi Tambahan
+
+- Upstash Redis yang sama tersedia untuk semua aplikasi yang berbagi shift.
+- Credential Redis hanya tersedia di server dan deployment secret.
+- Flush checkpoint menggunakan interval 15–30 detik; interval final dapat
+  dikonfigurasi melalui environment.
+- Google Sheets tetap authoritative untuk laporan, audit, dan arsip.
+- Postgres belum diperlukan karena kebutuhan saat ini adalah state sementara;
+  Postgres baru dipertimbangkan jika histori event permanen atau analitik
+  jangka panjang diperlukan.

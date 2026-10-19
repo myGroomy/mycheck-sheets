@@ -17,6 +17,15 @@ import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import { entryId as deterministicEntryId } from '../../../../../lib/ids';
 import { isCanonicalEntry, resetDuplicateEntryRows } from '../../../../../lib/concurrency';
 import { listAllUsers } from '../../../../../lib/google/registry-admin';
+import {
+  isShiftBufferEnabled,
+  readExistingBufferedShiftState,
+  readBufferedShiftState,
+  type BufferedEntry,
+  type BufferedShiftState,
+  withShiftBufferLock,
+  writeBufferedShiftState,
+} from '../../../../../lib/shift-buffer';
 
 type EntryAction = 'selesai' | 'batal' | 'skip' | 'ubah_nilai';
 
@@ -36,6 +45,9 @@ interface Validation {
 
 const MAX_TEXT_LENGTH = 2000;
 const CHOICE_INPUT_TYPES = new Set(['pilihan_ganda', 'kotak_centang', 'dropdown']);
+
+type ResolvedShift = NonNullable<Awaited<ReturnType<typeof resolveInstance>>>;
+type EntryContext = { user: { id: string; name: string } };
 
 function validateValue(
   inputType: string,
@@ -123,6 +135,144 @@ function validateValue(
   return { error: `Tipe input tidak dikenal: ${inputType}` };
 }
 
+async function bufferEntryAction(
+  body: EntryBody,
+  ctx: EntryContext,
+  resolved: ResolvedShift,
+  shiftInstanceId: string,
+): Promise<NextResponse> {
+  const { instance, spreadsheetId, branchId, branchTimezone, tabMonth } = resolved;
+  if (String(instance['status']) !== 'berjalan') {
+    return NextResponse.json({ error: 'Shift sudah ditutup. Checklist tidak dapat diubah.', code: 'SHIFT_CLOSED' }, { status: 409 });
+  }
+
+  const snapshot = readTemplateSnapshot(instance) ?? ({} as Snapshot);
+  if (!snapshot.shift) return NextResponse.json({ error: 'Snapshot template tidak valid' }, { status: 500 });
+  const point = (snapshot.categories ?? []).flatMap((category) => category.points).find((item) => item.point_ref === body.point_ref);
+  if (!point) return NextResponse.json({ error: 'Item checklist tidak ada pada shift ini' }, { status: 404 });
+  if (body.action === 'skip' && (body.skip_reason ?? '').trim().length < 3) {
+    return NextResponse.json({ error: 'Alasan skip wajib diisi (minimal 3 karakter)' }, { status: 400 });
+  }
+
+  let value: string | null = null;
+  let outOfRange = false;
+  const inputTypes = Array.isArray(point.input_types) && point.input_types.length ? point.input_types : [point.input_type];
+  if (body.action === 'selesai' || body.action === 'ubah_nilai') {
+    if (inputTypes.length > 1) {
+      let rawValues: unknown;
+      try { rawValues = typeof body.value === 'string' ? JSON.parse(body.value) : body.value; } catch {
+        return NextResponse.json({ error: 'Nilai kombinasi tidak valid.' }, { status: 400 });
+      }
+      if (!rawValues || typeof rawValues !== 'object' || Array.isArray(rawValues)) {
+        return NextResponse.json({ error: 'Nilai kombinasi tidak valid.' }, { status: 400 });
+      }
+      const values = rawValues as Record<string, unknown>;
+      if (Object.keys(values).length !== inputTypes.length || inputTypes.some((type) => !(type in values))) {
+        return NextResponse.json({ error: 'Semua komponen input wajib diisi.' }, { status: 400 });
+      }
+      const normalized: Record<string, unknown> = {};
+      for (const type of inputTypes) {
+        const raw = values[type];
+        if (type === 'foto') {
+          if (!Array.isArray(raw) || raw.length < 1 || raw.length > 5 || raw.some((id) => typeof id !== 'string')) {
+            return NextResponse.json({ error: 'Komponen foto wajib berisi 1 sampai 5 foto.' }, { status: 400 });
+          }
+          normalized[type] = raw;
+          continue;
+        }
+        const checked = validateValue(type, type === 'kotak_centang' && Array.isArray(raw) ? JSON.stringify(raw) : raw as EntryBody['value'], point.number_min, point.number_max, point.options);
+        if ('error' in checked) return NextResponse.json({ error: checked.error }, { status: 400 });
+        normalized[type] = type === 'kotak_centang' ? JSON.parse(checked.value ?? '[]') : checked.value;
+        outOfRange ||= checked.outOfRange;
+      }
+      value = JSON.stringify(normalized);
+    } else {
+      const checked = validateValue(point.input_type, body.value, point.number_min, point.number_max, point.options);
+      if ('error' in checked) return NextResponse.json({ error: checked.error }, { status: 400 });
+      value = checked.value;
+      outOfRange = checked.outOfRange;
+    }
+  }
+
+  try {
+    return await withShiftBufferLock(branchId, shiftInstanceId, async () => {
+      let state = await readExistingBufferedShiftState(branchId, shiftInstanceId);
+      if (!state) {
+        const [entryRows, participantRows] = await Promise.all([
+          listMonthlyRows(spreadsheetId, 'Entries', tabMonth),
+          filterRows(spreadsheetId, 'Participants', (row) => String(row['shift_instance_id']) === shiftInstanceId),
+        ]);
+        const baseline: Omit<BufferedShiftState, 'actions' | 'initializedAt'> = {
+          entries: Object.fromEntries(entryRows.filter((row) => String(row['shift_instance_id']) === shiftInstanceId).map((row) => [String(row['point_ref']), row])),
+          participants: Object.fromEntries(participantRows.map((row) => [String(row['user_id']), row])),
+        };
+        state = await readBufferedShiftState(branchId, shiftInstanceId, baseline);
+      }
+      const duplicate = state.actions.find((item) => item.clientActionId === body.client_action_id);
+      if (duplicate) {
+        return NextResponse.json({ status: 'duplikat', state: duplicate.state, entry_id: duplicate.entryId, value: duplicate.value });
+      }
+
+      const existing = state.entries[body.point_ref ?? ''];
+      const prevState = (existing?.state as string) ?? 'belum';
+      const isOwnCorrection = body.action === 'ubah_nilai' && existing?.completed_by === ctx.user.id;
+      if (!isOwnCorrection && body.action !== 'batal' && existing && prevState !== 'belum') {
+        return NextResponse.json({ error: `Sudah diselesaikan oleh ${existing.completed_by_name ?? existing.completed_by ?? 'petugas lain'}`, code: 'BR12_CONFLICT', winner_user_id: existing.completed_by, state: prevState }, { status: 409 });
+      }
+
+      const now = getServerTime();
+      const newState = body.action === 'skip' ? 'skip' : body.action === 'batal' ? 'belum' : 'selesai';
+      const timing = newState === 'selesai'
+        ? computeTiming(now, branchTimezone, point.target_time, point.tolerance_minutes, snapshot.settings?.tolerance_default_minutes ?? 15)
+        : { timingLabel: null, timingDeltaMinutes: null };
+      const entryId = String(existing?.id ?? deterministicEntryId(shiftInstanceId, body.point_ref ?? ''));
+      const entry = {
+        id: entryId,
+        shift_instance_id: shiftInstanceId,
+        point_ref: body.point_ref,
+        state: newState,
+        value: newState === 'belum' ? '' : value,
+        out_of_range: newState === 'belum' ? false : outOfRange,
+        completed_by: newState === 'belum' ? '' : ctx.user.id,
+        completed_by_name: newState === 'belum' ? '' : ctx.user.name,
+        completed_at: newState === 'belum' ? '' : now.toISOString(),
+        timing_label: timing.timingLabel ?? '',
+        timing_delta_minutes: timing.timingDeltaMinutes ?? '',
+        skip_reason: newState === 'skip' ? (body.skip_reason ?? '').trim() : '',
+        updated_at: now.toISOString(),
+      };
+      state.entries[body.point_ref ?? ''] = entry;
+      const previousCounted = existing?.completed_by === ctx.user.id;
+      const nextCounted = entry.completed_by === ctx.user.id;
+      const participant = state.participants[ctx.user.id] ?? {
+        id: ulid(), shift_instance_id: shiftInstanceId, user_id: ctx.user.id,
+        name: ctx.user.name, first_action_type: body.action === 'skip' ? 'skip' : point.input_type === 'centang' ? 'centang' : 'isi',
+        first_action_at: now.toISOString(), created_at: now.toISOString(),
+      };
+      participant.name = ctx.user.name;
+      participant.items_done = Object.values(state.entries).filter((item) => item.completed_by === ctx.user.id && item.state === 'selesai').length;
+      state.participants[ctx.user.id] = participant;
+      const buffered: BufferedEntry = {
+        entryId, pointRef: body.point_ref ?? '', action: body.action ?? 'batal', value,
+        skipReason: (body.skip_reason ?? '').trim(), outOfRange, state: newState,
+        userId: ctx.user.id, userName: ctx.user.name, clientActionId: body.client_action_id ?? '',
+        clientAt: body.client_at ?? '', at: now.toISOString(), completedAt: newState === 'belum' ? null : now.toISOString(),
+        timingLabel: timing.timingLabel, timingDeltaMinutes: timing.timingDeltaMinutes,
+      };
+      state.actions.push(buffered);
+      await writeBufferedShiftState(branchId, shiftInstanceId, state);
+      return NextResponse.json({
+        status: 'tersimpan_redis',
+        entry: { entryId, state: newState, value: newState === 'belum' ? null : value, outOfRange: newState === 'belum' ? false : outOfRange, skipReason: buffered.skipReason || null, timingLabel: timing.timingLabel, timingDeltaMinutes: timing.timingDeltaMinutes, completedBy: nextCounted ? ctx.user.id : null, completedByName: nextCounted ? ctx.user.name : null, completedAt: buffered.completedAt, itemCountDelta: Number(nextCounted) - Number(previousCounted) },
+        participant,
+      });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'SHIFT_BUFFER_BUSY') return NextResponse.json({ error: 'Shift sedang disinkronkan, coba lagi.', code: 'SHIFT_BUFFER_BUSY' }, { status: 409 });
+    throw new Error('SHIFT_BUFFER_UNAVAILABLE');
+  }
+}
+
 async function getUserName(username: string): Promise<string | null> {
   const user = (await listAllUsers()).find(
     (candidate) => candidate.Username.toLowerCase() === username.toLowerCase()
@@ -169,6 +319,15 @@ withAuth(async (_req, ctx, _session) => {
 
   const branchAccessError = requireBranchAccess(ctx, branchId);
   if (branchAccessError) return branchAccessError;
+
+  if (isShiftBufferEnabled()) {
+    try {
+      return await bufferEntryAction(body, ctx, resolved, shiftInstanceId);
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'SHIFT_BUFFER_UNAVAILABLE') throw error;
+      // Redis outage falls back to the existing Sheets transaction path below.
+    }
+  }
 
   const entriesTab = await ensureMonthlySheet(spreadsheetId, 'Entries', tabMonth);
   const logsTab = await ensureMonthlySheet(spreadsheetId, 'EntryLogs', tabMonth);

@@ -227,6 +227,15 @@ export async function insertRow(spreadsheetId: string, sheet: string, obj: Recor
   await appendRows(spreadsheetId, sheet, [rowFromObject(sheet, obj)]);
 }
 
+export async function insertRows(
+  spreadsheetId: string,
+  sheet: string,
+  objects: Record<string, unknown>[],
+): Promise<void> {
+  if (objects.length === 0) return;
+  await appendRows(spreadsheetId, sheet, objects.map((obj) => rowFromObject(sheet, obj)));
+}
+
 /** Perbarui kolom terpilih pada satu baris satu panggilan API untuk semua kolom. */
 export async function updateRow(spreadsheetId: string, sheet: string, rowNumber: number, updates: Record<string, unknown>): Promise<void> {
   const headers = getHeaders(sheet);
@@ -235,6 +244,21 @@ export async function updateRow(spreadsheetId: string, sheet: string, rowNumber:
     if (colIdx === -1) throw new Error(`Kolom ${key} tidak ada di sheet ${sheet}`);
     return { range: `${sheet}!${columnIndexToLetter(colIdx)}${rowNumber}`, value };
   });
+  await writeCells(spreadsheetId, cells);
+}
+
+export async function updateRows(
+  spreadsheetId: string,
+  sheet: string,
+  rows: { rowNumber: number; updates: Record<string, unknown> }[],
+): Promise<void> {
+  if (rows.length === 0) return;
+  const headers = getHeaders(sheet);
+  const cells = rows.flatMap(({ rowNumber, updates }) => Object.entries(updates).map(([key, value]) => {
+    const colIdx = headers.indexOf(key);
+    if (colIdx === -1) throw new Error(`Kolom ${key} tidak ada di sheet ${sheet}`);
+    return { range: `${sheet}!${columnIndexToLetter(colIdx)}${rowNumber}`, value };
+  }));
   await writeCells(spreadsheetId, cells);
 }
 
