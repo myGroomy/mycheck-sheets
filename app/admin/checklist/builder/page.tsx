@@ -74,6 +74,7 @@ interface CategoryFormValues {
   name: string;
   sortOrder: number;
   isActive: boolean;
+  color: string;
 }
 
 export default function ChecklistBuilderPage() {
@@ -92,6 +93,7 @@ export default function ChecklistBuilderPage() {
     categoryName,
     categorySort,
     categoryActive,
+    categoryColor,
     savingCategory,
     categoryError,
     pointOpen,
@@ -121,6 +123,7 @@ export default function ChecklistBuilderPage() {
   const setCategoryName = (v: string) => dispatch({ type: 'UPDATE_CATEGORY_DRAFT', payload: { categoryName: v } });
   const setCategorySort = (v: number) => dispatch({ type: 'UPDATE_CATEGORY_DRAFT', payload: { categorySort: v } });
   const setCategoryActive = (v: boolean) => dispatch({ type: 'UPDATE_CATEGORY_DRAFT', payload: { categoryActive: v } });
+  const setCategoryColor = (v: string) => dispatch({ type: 'UPDATE_CATEGORY_DRAFT', payload: { categoryColor: v } });
   const setSavingCategory = (v: boolean) => dispatch({ type: 'SET_SAVING', payload: { field: 'category', value: v } });
   const setCategoryError = (v: string | null) => dispatch({ type: 'SET_ERROR', payload: { field: 'category', value: v } });
   const setPointOpen = (v: boolean) => dispatch({ type: 'TOGGLE_POINT_FORM', payload: { open: v, point: v ? editingPoint : null, categoryId: null } });
@@ -150,6 +153,7 @@ export default function ChecklistBuilderPage() {
       categoryName,
       categorySort,
       categoryActive,
+      categoryColor,
       titleDraft,
       instructionDraft,
     }),
@@ -164,6 +168,7 @@ export default function ChecklistBuilderPage() {
         categoryName: draft.value.categoryName ?? '',
         categorySort: draft.value.categorySort ?? 0,
         categoryActive: draft.value.categoryActive ?? true,
+        categoryColor: draft.value.categoryColor ?? '',
       },
     });
     dispatch({
@@ -750,6 +755,7 @@ export default function ChecklistBuilderPage() {
                 name: categoryName.trim(),
                 sortOrder: categorySort,
                 isActive: categoryActive,
+                color: categoryColor,
               });
             }}
             className="space-y-3"
@@ -785,6 +791,38 @@ export default function ChecklistBuilderPage() {
                 />
                 Aktif
               </label>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="cb-category-color">Warna section</Label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="cb-category-color"
+                  type="color"
+                  value={categoryColor || '#9ca3af'}
+                  onChange={(e) => { setCategoryColor(e.target.value); setCategoryError(null); }}
+                  className="h-8 w-10 cursor-pointer rounded border border-border bg-surface p-0.5"
+                  aria-label="Warna section (hex)"
+                />
+                <Input
+                  value={categoryColor}
+                  onChange={(e) => { setCategoryColor(e.target.value); setCategoryError(null); }}
+                  placeholder="#4ade80"
+                  className="w-28 font-mono text-xs"
+                  aria-label="Kode warna hex"
+                />
+                {categoryColor && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCategoryColor('')}
+                    title="Kembali ke warna default (abu-abu)"
+                  >
+                    Default
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-ink-muted">Kosong = default abu-abu. Dipakai pada header section di checklist &amp; laporan.</p>
             </div>
             {categoryError && <p className="text-sm text-danger">{categoryError}</p>}
             <DialogFooter>

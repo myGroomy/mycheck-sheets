@@ -19,6 +19,10 @@ erDiagram
   SHIFT_INSTANCES ||--o{ INCIDENTS : reports
   INCIDENTS ||--o{ INCIDENT_NOTES : annotates
   SHIFT_INSTANCES ||--o{ PHOTOS : owns
+  SHIFT_INSTANCES ||--o{ SHIFT_PJ_ASSIGNMENTS : assigns
+  SHIFT_INSTANCES ||--o{ ENTRY_REVIEWS : reviews
+  REPORTS ||--o{ SCORE_LEDGER : scores
+  ENTRIES ||--o{ ENTRY_REVIEWS : judged_in
 ```
 
 Google Sheets tidak menegakkan relasi, foreign key, transaksi, atau unique

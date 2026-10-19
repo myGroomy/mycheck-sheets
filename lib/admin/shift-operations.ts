@@ -28,6 +28,7 @@ import {
 } from '../store';
 import { resolveCabang } from '../google/registry';
 import { listAllUsers } from '../google/registry-admin';
+import { endActivePjAssignments, recordPjAssignment } from '../pj-assignments';
 import { resolveInstance } from '../instance-resolver';
 import { shiftInstanceId as deterministicShiftInstanceId } from '../ids';
 import { voidDuplicateShiftInstances } from '../concurrency';
@@ -249,6 +250,15 @@ async function changePj(
     pj_user_id: newPjUserId,
     updated_at: now,
   });
+
+  // Fase 18: histori pergantian PJ untuk rasio waktu scoring (best-effort;
+  // engine fallback ke pj_user_id bila catatan tidak lengkap).
+  try {
+    await endActivePjAssignments(spreadsheetId, shiftInstanceId);
+    await recordPjAssignment(spreadsheetId, shiftInstanceId, newPjUserId, 'change_pj');
+  } catch {
+    // fallback terjadi di mesin scoring.
+  }
 
   const names = await listAllUsers();
   const nameOf = (id: string) => {

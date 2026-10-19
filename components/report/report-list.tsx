@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, ArrowRight, FileText, Link2, Loader2, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { AlertCircle, ArrowRight, FileText, Link2, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
-import { PageLoader } from '@/components/ui/QuantumLoader';
+import { PageLoader, QuantumLoaderMini } from '@/components/ui/QuantumLoader';
 import { apiFetch } from '@/lib/admin/api';
 
 interface ReportRow {
@@ -216,7 +216,7 @@ export function ReportList({ role = 'petugas' }: ReportListProps) {
         {/* List */}
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-ink-muted" />
+            <QuantumLoaderMini className="text-ink-muted" />
           </div>
         ) : reports.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-surface p-8 text-center">

@@ -7,6 +7,7 @@ import {
   shiftInstanceCount,
 } from '../../../../../../lib/admin/template-service';
 import { canDeleteConfig } from '../../../../../../lib/admin/lifecycle-policy';
+import { normalizeSectionColor } from '../../../../../../lib/shared/section-color';
 import { asStr, filterRows } from '../../../../../../lib/store';
 
 const toApiCategory = (c: {
@@ -17,11 +18,13 @@ const toApiCategory = (c: {
   created_at: string;
   updated_at: string;
   version: number;
+  color?: string | null;
 }) => ({
   id: c.id,
   name: c.name,
   sortOrder: c.sort_order,
   isActive: c.is_active,
+  ...(c.color !== undefined ? { color: c.color } : {}),
   createdAt: c.created_at,
   updatedAt: c.updated_at,
   version: c.version,
@@ -103,6 +106,7 @@ withAuth(async (_req, ctx, _session) => {
     name,
     sort_order: Number(body['sortOrder'] ?? body['sort_order'] ?? 0) || 0,
     is_active: Boolean(body['isActive'] ?? body['is_active'] ?? true),
+    color: typeof body['color'] === 'string' ? normalizeSectionColor(body['color']) : undefined,
   });
 
   return NextResponse.json(

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Loader2, LockKeyhole } from 'lucide-react';
+import { CheckCircle2, LockKeyhole } from 'lucide-react';
+import { QuantumLoaderMini } from '@/components/ui/QuantumLoader';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -290,8 +291,8 @@ export function ShiftCloseDialog({
                         Lihat laporan
                       </Link>
                     </Button>
-                    {/* Link publik hanya untuk admin; petugas mendapat link
-                        aplikasi. Lihat catatan role di ShareReportButton. */}
+                    {/* Semua pengguna berhak membagikan link publik
+                        (kebijakan Fase 15 revisi). */}
                     <ShareReportButton
                       reportId={reportId}
                       reportNumber={reportNumber ?? ''}
@@ -511,7 +512,7 @@ export function ShiftCloseDialog({
                   </Button>
                 ) : (
                   <Button type="button" onClick={() => void closeShift()} disabled={busy || pin.length !== 6}>
-                    {(busy || Boolean(uploadingField)) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {(busy || Boolean(uploadingField)) && <QuantumLoaderMini className="mr-2 text-current" />}
                     {busy ? 'Menutup shift...' : 'Konfirmasi & tutup'}
                   </Button>
                 )}

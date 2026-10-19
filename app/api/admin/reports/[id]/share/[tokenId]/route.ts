@@ -11,6 +11,7 @@ import {
   listShareTokens,
   rowNumberOfToken,
   updateShareTokenCells,
+  auditShareToken,
 } from '../../../../../../../lib/google/share-tokens';
 
 export const DELETE = // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -63,6 +64,7 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   await updateShareTokenCells(rowNumber, { revoked_at: new Date().toISOString() });
+  await auditShareToken(token.branch_id, ctx.user.id, 'share_revoke', token.id, reportId);
 
   return NextResponse.json({ status: 'dicabut', token_id: token.id });
 });

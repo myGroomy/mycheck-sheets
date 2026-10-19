@@ -28,6 +28,7 @@ withAuth(async (_req, ctx, _session) => {
     for (const c of list) {
       categories.push({
         id: c.id, name: c.name, sortOrder: c.sort_order, isActive: c.is_active,
+        points: c.points, penaltyMinSeverity: c.penalty_min_severity,
         createdAt: c.created_at, branchId: cabang.Cabang_ID,
         branchName: (cabang['Nama_Cabang'] as string) || cabang.Cabang_ID,
       });
@@ -54,12 +55,16 @@ export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-var
 withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
-  let body: { name?: string; sortOrder?: number; sort_order?: number; isActive?: boolean; is_active?: boolean; branchId?: string } = {};
+  let body: { name?: string; sortOrder?: number; sort_order?: number; isActive?: boolean; is_active?: boolean; branchId?: string; points?: number; penaltyMinSeverity?: string } = {};
   try { body = (await _req.json()) as typeof body; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
   const name = (body.name ?? '').trim();
   if (name.length < 2) return NextResponse.json({ error: 'Nama kategori minimal 2 karakter' }, { status: 400 });
+  const points = Number(body.points ?? 0);
+  const threshold = body.penaltyMinSeverity ?? 'none';
+  if (!Number.isInteger(points) || points < 0) return NextResponse.json({ error: 'points harus integer non-negatif' }, { status: 400 });
+  if (!['none', 'rendah', 'sedang', 'tinggi'].includes(threshold)) return NextResponse.json({ error: 'threshold severity tidak valid' }, { status: 400 });
   const branchId = body.branchId ?? ctx.branchIds[0];
   if (!branchId) return NextResponse.json({ error: 'branchId wajib diisi' }, { status: 400 });
   let spreadsheetId = '';
@@ -71,7 +76,7 @@ withAuth(async (_req, ctx, _session) => {
   if (existing[0]) return NextResponse.json({ error: `Kategori incident '${name}' sudah ada.` }, { status: 400 });
   const created = await createIncidentCategory(spreadsheetId, {
     name, sort_order: Number(body.sortOrder ?? body.sort_order) || 0,
-    is_active: body.isActive ?? body.is_active ?? true,
+    is_active: body.isActive ?? body.is_active ?? true, points, penalty_min_severity: threshold,
   });
   await appendAuditLogFor(spreadsheetId, {
     actorId: ctx.user.id, action: 'create_incident_category', objectType: 'incident_category',

@@ -3,7 +3,6 @@ import { ulid } from 'ulid';
 import {
   withAuth,
   requireBranchAccess,
-  requireRole,
   type AuthContext,
 } from '../../../../../../lib/api-auth';
 import { resolveCabang, getCabangList } from '../../../../../../lib/google/registry';
@@ -13,9 +12,15 @@ import {
   insertShareToken,
   isTokenActive,
   listTokensForReport,
+  auditShareToken,
 } from '../../../../../../lib/google/share-tokens';
 
-/** Cari laporan + cabangnya di cabang yang diakses user. */
+/**
+ * Share token laporan.
+ * Fase 15 revisi: SEMUA petugas/admin yang punya akses cabang pada laporan
+ * boleh membuat & melihat token (bagikan ke WhatsApp setelah tutup shift).
+ * Revoke tetap khusus admin (lihat [tokenId]/route.ts).
+ */
 async function locateReport(
   ctx: AuthContext,
   reportId: string
@@ -42,8 +47,6 @@ export const GET = // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 withAuth(async (_req, ctx, _session) => {
   const reportId = new URL(_req.url).pathname.split('/').slice(-2)[0];
-  const roleError = requireRole(ctx, 'admin');
-  if (roleError) return roleError;
 
   const located = await locateReport(ctx, reportId);
   if (!located) return NextResponse.json({ error: 'Laporan tidak ditemukan' }, { status: 404 });
@@ -68,8 +71,6 @@ export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-var
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 withAuth(async (_req, ctx, _session) => {
   const reportId = new URL(_req.url).pathname.split('/').slice(-2)[0];
-  const roleError = requireRole(ctx, 'admin');
-  if (roleError) return roleError;
 
   let body: { expiresHours?: number; note?: string } = {};
   try {
@@ -103,6 +104,11 @@ withAuth(async (_req, ctx, _session) => {
     last_accessed_at: '',
     share_note: body.note ?? '',
     visibility: 'read',
+  });
+
+  await auditShareToken(located.branchId, ctx.user.id, 'share_create', tokenId, reportId, {
+    expires_at: expiresAt.toISOString(),
+    expires_hours: expiresHours,
   });
 
   return NextResponse.json({

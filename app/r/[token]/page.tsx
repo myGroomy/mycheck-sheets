@@ -66,6 +66,7 @@ export default async function PublicReportPage({
           isLocked: d.report.is_locked,
           archivePdfDriveUrl: null,
           archivedPhotoCount: null,
+          summaryStats: d.report.summary_stats,
         },
         entries: d.entries.map((e) => ({
           pointRef: e.pointRef,

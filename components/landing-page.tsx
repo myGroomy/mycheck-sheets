@@ -29,9 +29,14 @@ const checklistPreview = [
 
 export function LandingPage() {
   return (
-    <main className="w-full max-w-full overflow-x-hidden bg-[#f7f6f2] text-[#292524] grayscale">
+    <main className="w-full max-w-full overflow-x-hidden bg-[#fafafa] text-[#171717] grayscale">
       <section className="relative mx-auto max-w-7xl px-5 pb-8 pt-20 sm:px-8 md:px-12 lg:px-24 lg:pt-28">
+        <div className="pointer-events-none absolute left-1/2 top-8 -z-0 h-48 w-48 -translate-x-1/2 rounded-full bg-black/[0.035] blur-3xl" aria-hidden="true" />
         <div className="mx-auto mb-10 max-w-3xl text-center">
+          <div className="relative z-10 mx-auto mb-5 flex items-center justify-center gap-2 text-sm font-semibold tracking-tight">
+            <img src="/icon.svg" alt="" className="h-9 w-9 rounded-xl border border-[#d4d4d4] bg-white p-1.5 shadow-sm" />
+            <span>MyCheck</span>
+          </div>
           <p className="text-sm font-bold uppercase leading-normal text-[#64836c]">Sistem Operasional Shift Multi Cabang</p>
           <h1 className="mt-4 text-[clamp(2.2rem,5vw,3.8rem)] font-semibold leading-[1.12] tracking-[-0.04em]">Shift lebih rapi,<br /><span className="text-[#718b72]">operasional lebih tenang.</span></h1>
           <p className="mx-auto mt-5 max-w-xl text-base font-medium leading-7 text-[#706a63]">Satu alur untuk checklist SOP, serah terima, incident, dan laporan shift. Terisolasi per cabang, tercatat, dan nyaman dipakai dari ponsel.</p>

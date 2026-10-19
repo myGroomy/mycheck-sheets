@@ -1,7 +1,10 @@
 import { AlertTriangle, CheckCircle2, Circle, ExternalLink, FileText, MinusCircle, Users } from 'lucide-react';
 import type { Snapshot } from '@/lib/db/snapshot';
 import { PublicReportActions } from '@/components/report/public-report-actions';
+import { PrintFooter } from '@/components/report/print-footer';
 import { containsPhotoId, formatReportValue } from '@/lib/shared/report-values';
+import { UserBadge } from '@/components/shared/user-badge';
+import { resolvedSectionColor } from '@/lib/shared/section-color';
 
 export interface PublicReportViewData {
   branch: { name: string; code: string } | null;
@@ -19,6 +22,7 @@ export interface PublicReportViewData {
     isLocked: boolean;
     archivePdfDriveUrl: string | null;
     archivedPhotoCount: number | null;
+    summaryStats: Record<string, unknown> | null;
   };
   entries: Array<{
     pointRef: string;
@@ -132,8 +136,10 @@ export function PublicReportView({
       ? (data.handover.values as Record<string, unknown>)
       : {};
 
+  const score = data.report.summaryStats;
+
   return (
-    <main className="mx-auto max-w-5xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 print:max-w-none print:space-y-3 print:p-0">
+    <main className="mx-auto max-w-5xl space-y-5 px-4 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-6 pb-24 md:pb-10 print:max-w-none print:space-y-3 print:p-0 print:pb-[18mm]">
       <style>{'@media print { header.sticky, nav.fixed { display: none !important; } }'}</style>
       <header className="rounded-2xl border border-border bg-surface p-5 shadow-sm print:rounded-none print:border print:bg-white print:p-3 print:shadow-none">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -170,6 +176,9 @@ export function PublicReportView({
         <Metric label="Selesai" value={String(done)} detail="Item dikerjakan" />
         <Metric label="Skip" value={String(skipped)} detail="Dengan alasan tercatat" />
         <Metric label="Incident" value={String(data.incidents.length)} detail={`${data.incidents.filter((incident) => incident.status === 'open').length} masih terbuka`} />
+        {score?.score_available !== undefined && (
+          <Metric label="Skor akhir" value={`${score.score_percent ?? 0}%`} detail={`${score.score_final ?? 0}/${score.score_available ?? 0} · penalti ${score.incident_penalty ?? 0}`} />
+        )}
       </section>
 
       <section className="rounded-2xl border border-border bg-surface p-5 print:break-inside-auto print:rounded-none print:border-0 print:p-0">
@@ -186,7 +195,7 @@ export function PublicReportView({
           </div>
         </div>
         <div className="mt-5 space-y-5">
-          {categories.map((category) => {
+          {categories.map((category, index) => {
             const categoryDone = category.points.filter((point) => {
               const state = entryByRef.get(point.point_ref)?.state;
               return state === 'selesai' || state === 'skip';
@@ -194,7 +203,14 @@ export function PublicReportView({
             return (
               <section key={category.id} className="break-inside-avoid rounded-xl border border-border bg-canvas p-4 sm:p-5 print:rounded-none print:border print:bg-white print:p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold">{category.name}</h3>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full border border-border/40 print:border print:border-border"
+                      style={{ backgroundColor: resolvedSectionColor(category.color, index) }}
+                      aria-hidden="true"
+                    />
+                    <h3 className="truncate font-semibold">{category.name}</h3>
+                  </div>
                   <span className="text-xs text-ink-muted">{categoryDone}/{category.points.length} selesai/skip</span>
                 </div>
                 <div className="mt-3 divide-y divide-border">
@@ -219,7 +235,7 @@ export function PublicReportView({
                           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
                             {entry?.value && <span className="whitespace-pre-wrap break-words">Nilai: {point.input_types && point.input_types.length > 1 ? formatReportValue(parseValue(entry.value)) : displayEntryValue(point.input_type, entry.value)}</span>}
                             {entry?.skipReason && <span>Alasan: {entry.skipReason}</span>}
-                            {entry?.completedByName && <span>Oleh: {entry.completedByName}</span>}
+                            {entry?.completedByName && <UserBadge name={entry.completedByName} />}
                             {entry?.completedAt && <span>{new Date(entry.completedAt).toLocaleString('id-ID')}</span>}
                             {entry?.timingLabel && <span>{TIMING_LABELS[entry.timingLabel] ?? entry.timingLabel}</span>}
                           </div>
@@ -360,6 +376,7 @@ export function PublicReportView({
           </a>
         </section>
       )}
+      <PrintFooter label={`${data.branch?.code ?? 'Cabang'} · ${data.report.reportNumber}`} />
     </main>
   );
 }

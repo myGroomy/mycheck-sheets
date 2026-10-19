@@ -6,7 +6,7 @@
 
 import { randomBytes } from 'crypto';
 import { readSheetData, sheetToObjects, writeCells, appendRows } from './sheets';
-import { getRegistrySpreadsheetId } from './registry';
+import { getRegistrySpreadsheetId, resolveCabang } from './registry';
 import { columnIndexToLetter } from './sheets';
 import { asNum, asStr } from '../store';
 
@@ -120,4 +120,33 @@ export function isTokenActive(t: ShareTokenRow, now = new Date()): boolean {
   if (t.revoked_at) return false;
   if (!t.expires_at) return true;
   return new Date(t.expires_at).getTime() > now.getTime();
+}
+
+/**
+ * Audit siklus hidup token sharing (Fase 15) — best-effort.
+ * Catatan tidak pernah memuat token mentah; cukup tokenId.
+ */
+export async function auditShareToken(
+  branchId: string,
+  actorId: string | null,
+  action: 'share_create' | 'share_access' | 'share_revoke' | 'share_expired',
+  tokenId: string,
+  reportId: string,
+  after?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const { appendAuditLogFor } = await import('../db/audit');
+    const { spreadsheetId } = await resolveCabang(branchId);
+    await appendAuditLogFor(spreadsheetId, {
+      actorId,
+      action,
+      objectType: 'share_token',
+      objectId: tokenId,
+      branchId,
+      reason: reportId,
+      after: after ?? null,
+    });
+  } catch {
+    // Audit tidak boleh menggagalkan aksi utama.
+  }
 }

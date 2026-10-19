@@ -1,0 +1,36 @@
+---
+title: Operasional Cabang & Pengguna
+description: Mengelola cabang, akun, akses petugas, dan spreadsheet operasional.
+---
+
+# Operasional Cabang dan Pengguna
+
+## Cabang
+
+Menu **Cabang** mengatur cabang yang dipakai petugas: spreadsheet data dan
+folder Drive evidence masing-masing. Konfigurasi dari satu cabang bisa disalin
+ke cabang lain agar tidak membangun dari nol.
+
+- Cabang lama tidak dihapus, hanya diarsipkan — data histori dan atribusi petugas harus tetap tersedia.
+- Konfigurasi baru hanya berlaku untuk shift yang dibuka setelahnya.
+
+## Akun dan akses
+
+Menu **Akun** mengelola user: role, cabang akses, reset PIN, dan force logout.
+
+- **Role admin** bekerja lintas cabang sesuai kebijakan aplikasi.
+- **Role petugas** hanya bekerja di cabang yang ditugaskan.
+- Perubahan role dan cabang dilakukan di aplikasi **Akun** — bukan mengedit
+  cookie, localStorage, atau baris spreadsheet manual.
+- PIN user disimpan sebagai teks pada sheet `Users` — **jangan menulis PIN ke
+  audit log, tiket support, atau sharing apa pun**.
+
+## Reset PIN dan force logout
+
+- **Reset PIN** dipakai bila user lupa PIN. PIN baru diberikan ke user, ia
+  menggantinya sendiri setelah masuk.
+- **Force logout** dipakai bila akun dicurigai bermasalah (misal PIN tersebar).
+  Catatan: force logout menghapus cookie browser pemanggil; token sesi lama di
+  perangkat lain yang masih aktif tidak dicabut otomatis.
+- Batasi akses edit spreadsheet Registry hanya untuk service account supaya
+  identitas tidak bisa diubah tanpa jejak.

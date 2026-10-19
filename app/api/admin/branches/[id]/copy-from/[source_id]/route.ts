@@ -4,6 +4,34 @@ import { resolveCabang } from '../../../../../../../lib/google/registry';
 import { insertRow } from '../../../../../../../lib/store';
 import { asNum, asStr } from '../../../../../../../lib/store';
 import { ulid } from 'ulid';
+import { appendAuditLogFor } from '../../../../../../../lib/db/audit';
+
+export const GET = withAuth(async (req, ctx) => {
+  const roleErr = requireRole(ctx, 'admin');
+  if (roleErr) return roleErr;
+  const pathParts = new URL(req.url).pathname.split('/');
+  const sourceBranchId = pathParts[pathParts.length - 1];
+  const targetBranchId = pathParts[pathParts.length - 3];
+  if (targetBranchId === sourceBranchId) return NextResponse.json({ error: 'Sumber dan tujuan harus berbeda.' }, { status: 400 });
+  if (!ctx.branchIds.includes(targetBranchId) || !ctx.branchIds.includes(sourceBranchId)) {
+    return NextResponse.json({ error: 'Akses ditolak untuk salah satu cabang.' }, { status: 403 });
+  }
+  const [source, target] = await Promise.all([
+    resolveCabang(sourceBranchId),
+    resolveCabang(targetBranchId),
+  ]);
+  const { filterRows } = await import('../../../../../../../lib/store');
+  const sheets = ['ShiftDefinitions', 'SopCategories', 'ChecklistPoints', 'HandoverFields', 'IncidentCategories'];
+  const [sourceCounts, targetCounts] = await Promise.all(
+    [source.spreadsheetId, target.spreadsheetId].map(async (spreadsheetId) => {
+      const entries = await Promise.all(sheets.map(async (sheet) => [sheet, (await filterRows(spreadsheetId, sheet, () => true).catch(() => [])).length] as const));
+      return Object.fromEntries(entries);
+    })
+  );
+  return NextResponse.json({
+    preview: { sourceBranchId, targetBranchId, sourceCounts, targetCounts, replace: false, safeToApply: (targetCounts.ShiftDefinitions ?? 0) === 0 },
+  });
+});
 
 /**
  * Salin template (shift definitions + kategori + points + handover fields)
@@ -12,9 +40,7 @@ import { ulid } from 'ulid';
  * Hanya sheet konfigurasi yang disalin data operasional (shift instance,
  * entries, reports) tidak ikut.
  */
-export const POST = // eslint-disable-next-line @typescript-eslint/no-unused-vars
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-withAuth(async (_req, ctx, _session) => {
+export const POST = withAuth(async (_req, ctx, session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
 
@@ -149,8 +175,25 @@ withAuth(async (_req, ctx, _session) => {
     // sheet kategori belum ada di sumber abaikan
   }
 
+  const backupReference = `empty-target:${targetBranchId}:${now}`;
+  await appendAuditLogFor(targetSpreadsheetId, {
+    actorId: session.username,
+    action: 'copy_branch_template',
+    objectType: 'branch_template',
+    objectId: targetBranchId,
+    branchId: targetBranchId,
+    before: { targetWasEmpty: true, backupReference },
+    after: {
+      sourceBranchId,
+      shiftDefinitions: sourceDefs.length,
+      backupReference,
+    },
+    reason: 'Copy konfigurasi hanya diizinkan ke cabang tanpa definisi shift; histori operasional tidak disentuh.',
+  });
+
   return NextResponse.json({
     message: 'Template cabang berhasil disalin',
+    backupReference,
     copied: {
       shiftDefinitions: sourceDefs.length,
     },

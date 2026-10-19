@@ -1,7 +1,7 @@
 'use client';
 
 // lib/working-branch.tsx
-// Konteks "cabang kerja" untuk admin.
+// Konteks "cabang kerja" untuk semua pengguna multi-cabang.
 //
 // LATAR BELAKANG
 // lib/api-auth.ts memberi admin akses ke SELURUH cabang (branchIds = semua
@@ -37,16 +37,13 @@ function writeCookie(value: string): void {
 }
 
 export interface WorkingBranchContextType {
-  /** Cabang kerja aktif. `null` hanya mungkin bila admin belum punya cabang. */
+  /** Cabang kerja aktif. `null` berarti belum memilih cabang. */
   branchId: string | null;
   setBranchId: (id: string) => void;
   isAdmin: boolean;
   /**
-   * Admin sudah pasti bisa bekerja tapi cabang kerjanya belum tentatif.
-   * Guard defensif untuk form: cegah submit sebelum cabang ada. Dengan
-   * auto-default ke cabang pertama, kondisi ini praktis tidak terjadi —
-   * penolakan 400 di API adalah jaring pengaman terakhir untuk pemanggilan
-   * langsung, bukan hal yang dialami pengguna normal.
+   * Guard defensif untuk form: cegah submit sebelum pengguna multi-cabang
+   * memilih cabang. Pengguna dengan satu cabang otomatis memakai cabang itu.
    */
   requiresSelection: boolean;
 }
@@ -75,20 +72,22 @@ export function WorkingBranchProvider({
     writeCookie(id);
   }, []);
 
-  // Selaraskan dengan daftar cabang yang benar-benar tersedia. Nilai dari
-  // cookie bisa saja sudah tidak berlaku — cabang dinonaktifkan atau dihapus
-  // sejak admin terakhir memilih. Fallback ke cabang pertama yang tersedia
-  // supaya admin baru bisa langsung bekerja tanpa langkah tambahan.
+  // Cookie yang tidak valid tidak boleh diam-diam memilih cabang lain saat
+  // pengguna memiliki lebih dari satu cabang.
   useEffect(() => {
-    if (!isAdmin || branches.length === 0) return;
+    if (branches.length === 0) return;
     if (branchId && branches.some((b) => b.id === branchId)) return;
 
-    const fallback = branches[0].id;
-    setBranchIdState(fallback);
-    writeCookie(fallback);
-  }, [isAdmin, branches, branchId]);
+    if (branches.length === 1) {
+      const onlyBranch = branches[0].id;
+      setBranchIdState(onlyBranch);
+      writeCookie(onlyBranch);
+      return;
+    }
+    setBranchIdState(null);
+  }, [branches, branchId]);
 
-  const requiresSelection = isAdmin && branches.length > 0 && !branchId;
+  const requiresSelection = branches.length > 1 && !branchId;
 
   return (
     <WorkingBranchContext.Provider value={{ branchId, setBranchId, isAdmin, requiresSelection }}>

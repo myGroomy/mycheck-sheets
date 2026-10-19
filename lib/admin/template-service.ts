@@ -20,6 +20,7 @@ import { deleteSheetRows } from '../google/registry';
 import { getSheetsClient } from '../google/client';
 import { asBool, asNum, asStr } from '../store';
 import { normalizeInputTypes } from '../shared';
+import { normalizeSectionColor } from '../shared/section-color';
 
 export interface ShiftDefinition {
   id: string;
@@ -43,6 +44,8 @@ export interface SopCategory {
   created_at: string;
   updated_at: string;
   version: number;
+  /** Hex warna section (Fase 16); kosong = default grayscale. */
+  color?: string | null;
 }
 
 export interface ChecklistPoint {
@@ -61,6 +64,7 @@ export interface ChecklistPoint {
   number_max: number | null;
   sort_order: number;
   is_active: boolean;
+  points: number;
   created_at: string;
   updated_at: string;
   version: number;
@@ -276,13 +280,20 @@ export async function listSopCategories(
       created_at: asStr(r['created_at']),
       updated_at: asStr(r['updated_at']),
       version: asNum(r['version']) ?? 1,
+      color: normalizeSectionColor(r['color']),
     }))
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 export async function createSopCategory(
   spreadsheetId: string,
-  input: { shift_definition_id: string; name: string; sort_order?: number; is_active?: boolean }
+  input: {
+    shift_definition_id: string;
+    name: string;
+    sort_order?: number;
+    is_active?: boolean;
+    color?: string | null;
+  }
 ): Promise<SopCategory> {
   const row = {
     id: ulid(),
@@ -290,6 +301,7 @@ export async function createSopCategory(
     name: input.name,
     sort_order: input.sort_order ?? 0,
     is_active: input.is_active ?? true,
+    color: normalizeSectionColor(input.color),
     created_at: nowIso(),
     updated_at: nowIso(),
     version: 1,
@@ -371,6 +383,7 @@ export async function listChecklistPoints(
       number_max: asNum(r['number_max']),
       sort_order: asNum(r['sort_order']) ?? 0,
       is_active: asBool(r['is_active']),
+      points: Math.max(0, asNum(r['points']) ?? 1),
       created_at: asStr(r['created_at']),
       updated_at: asStr(r['updated_at']),
       version: asNum(r['version']) ?? 1,
@@ -471,6 +484,7 @@ export async function duplicateChecklistPoint(
     is_required: asBool(source['is_required']),
     target_time: asStr(source['target_time']) || null,
     tolerance_minutes: asNum(source['tolerance_minutes']),
+    points: Math.max(0, asNum(source['points']) ?? 1),
     active_days: asStr(source['active_days']) || null,
     number_min: asNum(source['number_min']),
     number_max: asNum(source['number_max']),
@@ -484,6 +498,8 @@ export interface IncidentCategory {
   name: string;
   sort_order: number;
   is_active: boolean;
+  points: number;
+  penalty_min_severity: string;
   created_at: string;
   updated_at: string;
 }
@@ -494,6 +510,8 @@ function toIncidentCategory(r: Record<string, unknown>): IncidentCategory {
     name: asStr(r['name']),
     sort_order: asNum(r['sort_order']) ?? 0,
     is_active: asBool(r['is_active']),
+    points: Math.max(0, asNum(r['points']) ?? 0),
+    penalty_min_severity: asStr(r['penalty_min_severity']) || 'none',
     created_at: asStr(r['created_at']),
     updated_at: asStr(r['updated_at']),
   };
@@ -524,13 +542,15 @@ export async function getIncidentCategory(
 
 export async function createIncidentCategory(
   spreadsheetId: string,
-  input: { name: string; sort_order?: number; is_active?: boolean }
+  input: { name: string; sort_order?: number; is_active?: boolean; points?: number; penalty_min_severity?: string }
 ): Promise<IncidentCategory> {
   const row = {
     id: ulid(),
     name: input.name,
     sort_order: input.sort_order ?? 0,
     is_active: input.is_active ?? true,
+    points: Math.max(0, Math.trunc(input.points ?? 0)),
+    penalty_min_severity: input.penalty_min_severity ?? 'none',
     created_at: nowIso(),
     updated_at: nowIso(),
   };

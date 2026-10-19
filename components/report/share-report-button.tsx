@@ -4,29 +4,18 @@
 // Tombol Bagikan laporan, mengikuti pola app stokis: Web Share API dengan
 // fallback ke clipboard.
 //
-// PERBEDAAN PENTING DARI STOKIS — LINK BERGANTUNG ROLE
-// Di MyCheck "share" berarti dua hal yang berbeda, jadi URL-nya ikut role:
-//
-//   admin   -> link PUBLIK  /r/<token>
-//             Token dibuat lewat POST /api/admin/reports/[id]/share, yang
-//             MEbutuh role admin. Halaman /r/[token] tidak butuh login, jadi
-//             link ini bisa dikirim ke siapa saja (stok opname/keluarga).
-//
-//   petugas -> link APLIKASI /report/<id>
-//             Endpoint share di atas menolak petugas (403). Daripada
-//             menampilkan tombol yang selalu gagal, petugas mendapat link
-//             yang butuh login — berguna untuk kirim ke rekan satu cabang
-//             yang memang punya akun.
-//
-// Alasan tidak murni teknikal: membuat token publik berarti data shift bisa
-// dibuka publik. Itu keputusan admin, bukan petugas, sehingga tidak
-// otomatis diberikan ke petugas.
+// POLICY (Fase 15 revisi) — SEMUA PENGGUNA DAPAT LINK PUBLIK
+// Setiap petugas/admin yang berhak atas laporan bisa membagikannya ke
+// WhatsApp setelah shift selesai, jadi tombol selalu membuat token publik
+// lewat POST /api/admin/reports/[id]/share. Endpoint menegakkan akses cabang
+// (bukan role), dan halaman /r/[token] tidak butuh login sehingga link bisa
+// dikirim ke siapa saja. Revoke token tetap khusus admin.
 
 import { useState } from 'react';
-import { Check, Loader2, Share2 } from 'lucide-react';
+import { Check, Share2 } from 'lucide-react';
+import { QuantumLoaderMini } from '@/components/ui/QuantumLoader';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/admin/api';
-import { useAuth } from '@/lib/AuthContext';
 
 export interface ShareReportButtonProps {
   reportId: string;
@@ -39,11 +28,6 @@ export interface ShareReportButtonProps {
   expiresHours?: number;
 }
 
-/** Susun teks share yang enak dibaca di WhatsApp. */
-function buildShareText(reportNumber: string): string {
-  return `Laporan shift ${reportNumber}. Buka di aplikasi MyCheck:`;
-}
-
 export function ShareReportButton({
   reportId,
   reportNumber,
@@ -52,7 +36,6 @@ export function ShareReportButton({
   className,
   expiresHours = 720,
 }: ShareReportButtonProps) {
-  const { isAdmin } = useAuth();
   const [state, setState] = useState<'idle' | 'busy' | 'copied' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -63,23 +46,14 @@ export function ShareReportButton({
     try {
       const origin = window.location.origin;
 
-      let url: string;
-      let text: string;
-
-      if (isAdmin) {
-        // Buat (atau reuse) token publik dulu.
-        const res = await apiFetch<{ token: string }>(
-          `/api/admin/reports/${encodeURIComponent(reportId)}/share`,
-          { method: 'POST', json: { expiresHours } }
-        );
-        if (!res?.token) throw new Error('Server tidak mengembalikan token share');
-        url = `${origin}/r/${encodeURIComponent(res.token)}`;
-        text = `Laporan shift ${reportNumber} sudah selesai. Lihat di:`;
-      } else {
-        // Petugas: link aplikasi, butuh login.
-        url = `${origin}/report/${encodeURIComponent(reportId)}`;
-        text = buildShareText(reportNumber);
-      }
+      // Semua role: buat token publik lalu bagikan link /r/<token>.
+      const res = await apiFetch<{ token: string }>(
+        `/api/admin/reports/${encodeURIComponent(reportId)}/share`,
+        { method: 'POST', json: { expiresHours } }
+      );
+      if (!res?.token) throw new Error('Server tidak mengembalikan token share');
+      const url = `${origin}/r/${encodeURIComponent(res.token)}`;
+      const text = `Laporan shift ${reportNumber} sudah selesai. Lihat di:`;
 
       const shareData = { title: `Laporan ${reportNumber}`, text, url };
 
@@ -119,7 +93,7 @@ export function ShareReportButton({
     }
   };
 
-  const label = state === 'copied' ? 'Tersalin' : isAdmin ? 'Bagikan' : 'Salin tautan';
+  const label = state === 'copied' ? 'Tersalin' : 'Bagikan';
 
   return (
     <div className={className}>
@@ -129,16 +103,12 @@ export function ShareReportButton({
         size={size}
         onClick={handleShare}
         disabled={state === 'busy'}
-        title={
-          isAdmin
-            ? 'Buat link publik laporan lalu bagikan (WhatsApp, dll.)'
-            : 'Salin tautan laporan di aplikasi (dibuka oleh rekan yang punya akun)'
-        }
+        title="Buat link publik laporan lalu bagikan (WhatsApp, dll.)"
         aria-label={label}
       >
         {state === 'busy' ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            <QuantumLoaderMini className="text-current" />
             <span>Menyiapkan…</span>
           </>
         ) : state === 'copied' ? (

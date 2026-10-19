@@ -17,6 +17,9 @@ import { readTemplateSnapshot } from '../../../../../lib/template-snapshot';
 import type { Snapshot } from '../../../../../lib/db/snapshot';
 import { readSheetData, sheetToObjects } from '../../../../../lib/google/sheets';
 import { flushBufferedShift, isShiftBufferEnabled, removeBufferedShiftState } from '../../../../../lib/shift-buffer';
+import { calculateScore } from '../../../../../lib/scoring';
+import { calculateAndRecordShiftScoring, isScoringEnabled } from '../../../../../lib/scoring-engine';
+import { notifyShiftClosed } from '../../../../../lib/notify-events';
 
 interface CloseBody {
   pin?: string;
@@ -83,16 +86,7 @@ withAuth(async (_req, ctx, _session) => {
   }
 
   // Build snapshot from template
-  let snapshot: {
-    categories?: Array<{ points?: Array<{ point_ref: string; is_required?: boolean }> }>;
-    handover_fields?: Array<{
-      id: string;
-      field_type: string;
-      input_types?: string[];
-      options?: string[] | null;
-      is_required?: boolean;
-    }>;
-  };
+  let snapshot: Snapshot;
   // Snapshot bisa gzip+base64 (lihat lib/template-snapshot.ts); JSON.parse buta
   // akan menghasilkan `{}` sehingga requiredPoints kosong dan shift bisa ditutup
   // tanpa memvalidasi item wajib sama sekali.
@@ -246,10 +240,21 @@ withAuth(async (_req, ctx, _session) => {
     .digest('hex');
 
   const reportNumber = `R-${String(instance['shift_date']).replace(/-/g, '')}-${shiftInstanceId.slice(-4)}`;
+  const allEntryRows = await listMonthlyRows(spreadsheetId, 'Entries', tabMonth);
+  const incidentRows = await listMonthlyRows(spreadsheetId, 'Incidents', tabMonth).catch(() => [] as Record<string, unknown>[]);
+  const scoringItems = (snapshot.categories ?? []).flatMap((category) => (category.points ?? []).map((point) => {
+    const entry = allEntryRows.find((row) => String(row['shift_instance_id']) === shiftInstanceId && String(row['point_ref']) === point.point_ref);
+    return { pointRef: point.point_ref, points: point.points ?? 1, state: String(entry?.['state'] ?? 'belum'), outOfRange: String(entry?.['out_of_range']).toLowerCase() === 'true' };
+  }));
+  const scoringIncidents = incidentRows
+    .filter((row) => String(row['shift_instance_id']) === shiftInstanceId)
+    .map((row) => ({ points: Number(row['points_snapshot'] ?? 0), severity: String(row['severity'] ?? ''), penaltyMinSeverity: String(row['penalty_min_severity_snapshot'] ?? 'none') }));
+  const score = calculateScore(scoringItems, scoringIncidents);
   const existingReport = await filterRows(spreadsheetId, 'Reports', (r) => String(r['shift_instance_id']) === shiftInstanceId);
+  const reportId = existingReport[0] ? String(existingReport[0]['id']) : ulid();
   if (!existingReport[0]) {
     await insertRow(spreadsheetId, 'Reports', {
-      id: ulid(),
+      id: reportId,
       shift_instance_id: shiftInstanceId,
       report_number: reportNumber,
       generated_by: ctx.user.id,
@@ -259,6 +264,13 @@ withAuth(async (_req, ctx, _session) => {
         total_required: requiredIds.length,
         done: entryRows.filter((row) => String(row['state']) === 'selesai').length,
         skipped: entryRows.filter((row) => String(row['state']) === 'skip').length,
+        score_version: snapshot.score_version ?? 'weighted-v1',
+        score_available: score.available,
+        score_earned: score.earned,
+        completion_percent: score.completionPercent,
+        incident_penalty: score.incidentPenalty,
+        score_final: score.finalScore,
+        score_percent: score.scorePercent,
       }),
       content_hash: contentHash,
       unlock_count: 0,
@@ -288,12 +300,37 @@ withAuth(async (_req, ctx, _session) => {
       status: 'ditutup',
       closedBy: ctx.user.id,
       reportNumber,
+      score,
       handoverValues,
     },
   });
 
-  if (isShiftBufferEnabled()) {
+  // Fase 18: catat skor ke ScoreLedger saat tutup shift. ID ledger
+  // deterministik + upsert menjadikan retry idempoten dan koreksi review final
+  // memperbarui nilai. Best-effort: kegagalan tidak boleh membatalkan tutup.
+  if (isScoringEnabled()) {
+    try {
+      await calculateAndRecordShiftScoring(spreadsheetId, branchId, shiftInstanceId, reportId, 1);
+    } catch {
+      // skor dapat dihitung ulang saat review final atau close berikutnya.
+    }
+  }  if (isShiftBufferEnabled()) {
     await removeBufferedShiftState(branchId, shiftInstanceId).catch(() => undefined);
+  }
+
+  // Fan-out notifikasi \"Tutup shift\" — best-effort (Fase 14).
+  try {
+    await notifyShiftClosed({
+      spreadsheetId,
+      branchId,
+      shiftInstanceId,
+      actorId: ctx.user.id,
+      actorName: ctx.user.name,
+      shiftName: String(snapshot.shift?.name ?? shiftInstanceId),
+      link: '/report',
+    });
+  } catch {
+    // kegagalan notifikasi tidak boleh menggagalkan tutup shift
   }
 
   // Ambil report yang baru dibuat untuk popup

@@ -1,0 +1,5 @@
+{
+  "title": "Referensi Developer",
+  "defaultOpen": false,
+  "pages": ["index", "arsitektur", "endpoint-api", "konfigurasi", "deployment", "instalasi", "autentikasi", "draft", "changelog"]
+}

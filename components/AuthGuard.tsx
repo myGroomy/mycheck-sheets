@@ -70,7 +70,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const isPublic =
       pathname === '/' ||
       pathname === '/login' ||
-      pathname.startsWith('/docs') ||
       pathname.startsWith('/r/');
 
     // Belum login, bukan route publik → ke /login

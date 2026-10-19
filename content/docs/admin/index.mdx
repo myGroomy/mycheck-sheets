@@ -1,0 +1,48 @@
+---
+title: Panduan Admin
+description: Panduan lengkap admin untuk mengelola operasional MyCheck lintas cabang.
+---
+
+# Panduan Admin
+
+Panduan ini mencakup semua yang admin kelola — mulai akun dan cabang, template
+shift, sampai review laporan dan pengaturan. Fitur petugas ada di bagian bawah
+referensi.
+
+## Alur kerja admin
+
+1. **Setup pertama** — ubah akun admin default (username + PIN) sebelum dipakai.
+2. **Siapkan cabang** — daftar cabang, spreadsheet, dan folder Drive masing-masing.
+3. **Bangun template shift** — definisi shift, kategori SOP, checklist point,
+   dan field handover.
+4. **Pantau operasional** — shift berjalan, incident, dan biologis petugas.
+5. **Nilai laporan** — arsipkan dan beri penilaian laporan shift yang selesai.
+6. **Kelola konfigurasi** — pengaturan aplikasi, arsip data tahunan, audit log.
+
+## Halaman
+
+| Halaman | Isinya |
+| --- | --- |
+| [Operasional Cabang & Pengguna](/docs/admin/operasional) | Cabang, akun, role, reset PIN |
+| [Template Shift & SOP](/docs/admin/shift-checklist) | Definisi shift, kategori, checklist point, handover field |
+| [Review & Penilaian](/docs/admin/review-penilaian) | Laporan, penilaian, berbagi tautan, addendum |
+| [Pengaturan & Arsip](/docs/admin/pengaturan) | Pengaturan aplikasi, arsip tahunan, audit log |
+| [Pemecahan Masalah](/docs/admin/masalah) | Pemeriksaan awal saat sesuatu tidak jalan |
+
+## Fitur petugas
+
+Semua fitur petugas (shift, checklist, incident, handover, laporan) dipakai
+admin juga. Panduan langkahnya ada di [Panduan Petugas](/docs/petugas).
+
+## Urutan setup yang disarankan
+
+1. Ubah username + PIN akun admin bootstrap (flag `Must_Change_Pin` aktif).
+2. Buat atau verifikasi cabang di menu **Cabang**.
+3. Pastikan spreadsheet cabang dan folder Drive cabang/evidence tersedia.
+4. Buat definisi shift pada menu **Shift**.
+5. Tambahkan kategori SOP dan checklist point pada builder.
+6. Tambahkan field handover yang wajib diisi.
+7. Uji dengan membuka satu shift percobaan sebelum dipakai operasional.
+
+Perubahan template hanya berlaku untuk shift yang dibuka *setelah* perubahan —
+shift yang berjalan tetap memakai template saat dibuka.

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Camera, Loader2, Send } from 'lucide-react';
-import { PageLoader } from '@/components/ui/QuantumLoader';
+import { AlertCircle, Camera, Send } from 'lucide-react';
+import { PageLoader, QuantumLoaderMini } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 import { uploadPhotoWithProgress } from '@/lib/upload-photo';
@@ -280,7 +280,7 @@ export function IncidentCreateForm() {
 
         <div className="sticky bottom-2 -mx-1 flex justify-end rounded-xl bg-surface/95 p-1 backdrop-blur">
           <Button type="submit" className="min-h-12 w-full sm:w-auto" disabled={saving || !options.categories.length || !options.branches.length}>
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            {saving ? <QuantumLoaderMini className="mr-2 text-current" /> : <Send className="mr-2 h-4 w-4" />}
             {saving ? 'Mengirim…' : 'Kirim incident'}
           </Button>
         </div>

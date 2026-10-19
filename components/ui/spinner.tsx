@@ -1,21 +1,2 @@
-import * as React from "react";
-
-import { cn } from "@/lib/utils";
-
-export type SpinnerProps = React.HTMLAttributes<HTMLDivElement>;
-
-const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      role="status"
-      aria-label="Memuat"
-      className={cn("size-5 animate-spin rounded-full border-2 border-ink-muted border-t-transparent", className)}
-      {...props}
-    />
-  )
-);
-Spinner.displayName = "Spinner";
-
-export { Spinner };
-
+export { QuantumLoaderMini as Spinner } from '@/components/ui/QuantumLoader';
+export type SpinnerProps = { className?: string };

@@ -197,8 +197,8 @@ export async function categoryNameMap(ctx: AuthContext): Promise<Map<string, str
 /** Daftar kategori aktif lintas cabang (dedup berdasarkan nama). */
 export async function listActiveCategoriesAcrossBranches(
   ctx: AuthContext
-): Promise<{ id: string; name: string; sortOrder: number; points: number }[]> {
-  const seen = new Map<string, { id: string; name: string; sortOrder: number; points: number }>();
+): Promise<{ id: string; name: string; sortOrder: number; points: number; penaltyMinSeverity: string }[]> {
+  const seen = new Map<string, { id: string; name: string; sortOrder: number; points: number; penaltyMinSeverity: string }>();
   const cabangs = await getCabangList();
   for (const cabang of cabangs) {
     if (!ctx.branchIds.includes(cabang.Cabang_ID) || !cabang.Spreadsheet_ID) continue;
@@ -213,6 +213,7 @@ export async function listActiveCategoriesAcrossBranches(
           name,
           sortOrder: asNum(r['sort_order']) ?? 0,
           points: Math.trunc(asNum(r['points']) ?? 0),
+          penaltyMinSeverity: asStr(r['penalty_min_severity']) || 'none',
         });
       }
     } catch {

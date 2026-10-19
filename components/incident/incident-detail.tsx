@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, Image as ImageIcon, Loader2, Send } from 'lucide-react';
-import { PageLoader } from '@/components/ui/QuantumLoader';
+import { AlertCircle, Image as ImageIcon, Send } from 'lucide-react';
+import { PageLoader, QuantumLoaderMini } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
 
@@ -167,7 +167,7 @@ export function IncidentDetail({ incidentId }: { incidentId: string }) {
           </label>
           <div className="flex justify-end">
             <Button type="submit" disabled={saving || !note.trim()}>
-              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {saving ? <QuantumLoaderMini className="mr-2 text-current" /> : <Send className="mr-2 h-4 w-4" />}
               {saving ? 'Menyimpan…' : 'Simpan catatan'}
             </Button>
           </div>

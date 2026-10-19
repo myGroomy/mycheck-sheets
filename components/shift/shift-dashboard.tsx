@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCabang, type ShiftSummary } from '@/lib/CabangContext';
+import { useWorkingBranch } from '@/lib/working-branch';
 import { clearLocalShiftDrafts } from '@/lib/draft-client';
 
 function formatHHmm(value: string | null | undefined) {
@@ -57,19 +58,28 @@ function SkeletonBranchList({ count = 3 }: { count?: number }) {
 export function ShiftDashboardClient({ userId, userName }: { userId: string; userName: string }) {
   const router = useRouter();
   const { branches, shifts, loading, error, refreshBranches, refreshBranchesIfStale } = useCabang();
+  const { branchId, requiresSelection } = useWorkingBranch();
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [shiftToOpen, setShiftToOpen] = useState<ShiftSummary | null>(null);
 
+  const visibleBranches = useMemo(
+    () => (branchId ? branches.filter((branch) => branch.id === branchId) : []),
+    [branchId, branches]
+  );
+  const visibleShifts = useMemo(
+    () => (branchId ? shifts.filter((shift) => shift.branchId === branchId) : []),
+    [branchId, shifts]
+  );
   const groupedByBranch = useMemo(() => {
     const map = new Map<string, ShiftSummary[]>();
-    for (const item of shifts) {
+    for (const item of visibleShifts) {
       const bucket = map.get(item.branchId) ?? [];
       bucket.push(item);
       map.set(item.branchId, bucket);
     }
     return map;
-  }, [shifts]);
+  }, [visibleShifts]);
 
   useEffect(() => {
     if (!loading && !error) void refreshBranchesIfStale();
@@ -202,7 +212,7 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
         <div className="rounded-2xl border border-border bg-surface p-4 text-center">
           <p className="text-xs uppercase tracking-wide text-ink-muted">Shift berjalan</p>
           <p className="mt-2 text-2xl font-bold text-ink">
-            {shifts.filter((item) => item.instance && item.instance.status === 'berjalan').length}
+            {visibleShifts.filter((item) => item.instance && item.instance.status === 'berjalan').length}
           </p>
         </div>
         <div className="col-span-2 rounded-2xl border border-border bg-surface p-4 text-center md:col-span-1">
@@ -242,8 +252,12 @@ export function ShiftDashboardClient({ userId, userName }: { userId: string; use
           <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-ink-muted">
             Tidak ada cabang yang bisa diakses.
           </div>
+        ) : requiresSelection ? (
+          <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-ink-muted">
+            Pilih cabang kerja dari header sebelum melihat daftar shift.
+          </div>
         ) : (
-          branches.map((branch) => {
+          visibleBranches.map((branch) => {
             const items = groupedByBranch.get(branch.id) ?? [];
             return (
               <div key={branch.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">

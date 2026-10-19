@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Path publik yang tidak memerlukan autentikasi
+// Docs (Panduan) user-only: hanya terlihat setelah login, jadi tidak ada
+// whitelist `/docs` di sini. `/api/search` (pencarian fumadocs) ikut
+// terproteksi karena mengembalikan isi docs.
+
 const PUBLIC_PATHS = [
   '/login',
   '/api/auth/login',
   '/api/health',
-  '/api/search',
   '/api/public',
   '/r',
   '/_next',
@@ -31,8 +34,6 @@ export function proxy(req: NextRequest) {
 
   const isPublic =
     pathname === '/' ||
-    pathname === '/docs' ||
-    pathname.startsWith('/docs/') ||
     PUBLIC_ASSETS.includes(pathname) ||
     PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 

@@ -27,6 +27,7 @@ export interface ChecklistBuilderState {
   categoryName: string;
   categorySort: number;
   categoryActive: boolean;
+  categoryColor: string;
   pointTitle: string;
   pointInstruction: string;
 
@@ -69,6 +70,7 @@ export const INITIAL_CHECKLIST_BUILDER_STATE: ChecklistBuilderState = {
   categoryName: '',
   categorySort: 0,
   categoryActive: true,
+  categoryColor: '',
   pointTitle: '',
   pointInstruction: '',
   editingTitle: false,
@@ -97,7 +99,7 @@ export type ChecklistBuilderAction =
   | { type: 'CANCEL_EDIT_CATEGORY' }
   | { type: 'START_EDIT_POINT'; payload: ChecklistPoint }
   | { type: 'CANCEL_EDIT_POINT' }
-  | { type: 'UPDATE_CATEGORY_DRAFT'; payload: Partial<Pick<ChecklistBuilderState, 'categoryName' | 'categorySort' | 'categoryActive'>> }
+  | { type: 'UPDATE_CATEGORY_DRAFT'; payload: Partial<Pick<ChecklistBuilderState, 'categoryName' | 'categorySort' | 'categoryActive' | 'categoryColor'>> }
   | { type: 'UPDATE_INLINE_DRAFT'; payload: Partial<Pick<ChecklistBuilderState, 'titleDraft' | 'instructionDraft'>> }
   | { type: 'START_INLINE_EDIT_TITLE'; payload: string }
   | { type: 'START_INLINE_EDIT_INSTRUCTION'; payload: string }
@@ -132,6 +134,7 @@ export function checklistBuilderReducer(
         categoryName: action.payload.name,
         categorySort: action.payload.sortOrder ?? 0,
         categoryActive: action.payload.isActive,
+        categoryColor: action.payload.color ?? '',
         categoryError: null,
       };
     case 'CANCEL_EDIT_CATEGORY':
@@ -184,6 +187,7 @@ export function checklistBuilderReducer(
           categoryName: category.name,
           categorySort: category.sortOrder ?? 0,
           categoryActive: category.isActive,
+          categoryColor: category.color ?? '',
           categoryError: null,
         };
       }

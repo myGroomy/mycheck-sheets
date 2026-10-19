@@ -14,7 +14,7 @@ withAuth(async (_req, ctx, _session) => {
   const roleErr = requireRole(ctx, 'admin');
   if (roleErr) return roleErr;
   const id = new URL(_req.url).pathname.split('/').pop() ?? '';
-  let body: { name?: string; sortOrder?: number; sort_order?: number; isActive?: boolean; is_active?: boolean } = {};
+  let body: { name?: string; sortOrder?: number; sort_order?: number; isActive?: boolean; is_active?: boolean; points?: number; penaltyMinSeverity?: string } = {};
   try { body = (await _req.json()) as typeof body; } catch {
     return NextResponse.json({ error: 'Body harus berupa JSON' }, { status: 400 });
   }
@@ -32,6 +32,15 @@ withAuth(async (_req, ctx, _session) => {
   }
   if (body.sortOrder ?? body.sort_order) updates['sort_order'] = Number(body.sortOrder ?? body.sort_order) || 0;
   if (body.isActive !== undefined || body.is_active !== undefined) updates['is_active'] = Boolean(body.isActive ?? body.is_active);
+  if (body.points !== undefined) {
+    const points = Number(body.points);
+    if (!Number.isInteger(points) || points < 0) return NextResponse.json({ error: 'points harus integer non-negatif' }, { status: 400 });
+    updates['points'] = points;
+  }
+  if (body.penaltyMinSeverity !== undefined) {
+    if (!['none', 'rendah', 'sedang', 'tinggi'].includes(body.penaltyMinSeverity)) return NextResponse.json({ error: 'threshold severity tidak valid' }, { status: 400 });
+    updates['penalty_min_severity'] = body.penaltyMinSeverity;
+  }
   if (Object.keys(updates).length === 0) return NextResponse.json({ message: 'Tidak ada perubahan' });
   await updateIncidentCategory(loc.spreadsheetId, id, updates);
   await appendAuditLogFor(loc.spreadsheetId, {

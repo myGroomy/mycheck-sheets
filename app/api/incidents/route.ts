@@ -95,7 +95,7 @@ withAuth(async (_req, ctx, _session) => {
   }
   incidents.sort((a, b) => String(b['reportedAt'] ?? '').localeCompare(String(a['reportedAt'] ?? '')));
   const response = NextResponse.json({
-    categories: categories.map((c) => ({ id: c.id, name: c.name, sortOrder: c.sortOrder, points: c.points })),
+    categories: categories.map((c) => ({ id: c.id, name: c.name, sortOrder: c.sortOrder, points: c.points, penaltyMinSeverity: c.penaltyMinSeverity })),
     branches: branchRows, incidents: incidents.slice(0, 100),
   });
   response.headers.set('Cache-Control', 'no-store');
@@ -190,6 +190,7 @@ withAuth(async (_req, ctx, _session) => {
       outside_shift: outsideShift, link_source: shiftInstanceId ? 'otomatis' : 'none',
       linked_by: '', linked_at: '', source_entry_id: '', severity: body.severity ?? '',
       points_snapshot: categoryPoints,
+      penalty_min_severity_snapshot: categories.find((category) => category.id === categoryId)?.penaltyMinSeverity ?? 'none',
       status_changed_by: '', status_changed_at: '', is_test: false,
       created_at: reportedAt, updated_at: reportedAt, version: 1,
     });

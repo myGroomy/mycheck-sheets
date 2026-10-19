@@ -36,6 +36,7 @@ interface ProgressCategory {
   id: string;
   name: string;
   sort_order: number;
+  color: string | null;
   points: ProgressEntry[];
 }
 
@@ -90,6 +91,7 @@ withAuth(async (_req, ctx, _session) => {
     id: cat.id,
     name: cat.name,
     sort_order: cat.sort_order,
+    color: cat.color ?? null,
     points: cat.points
       .filter((p) => isPointActiveOn(p.active_days, dayKey))
       .sort((a, b) => a.sort_order - b.sort_order)

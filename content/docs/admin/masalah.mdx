@@ -1,12 +1,13 @@
 ---
-title: Pemecahan Masalah
-description: Pemeriksaan awal untuk masalah penggunaan dan deployment.
+title: Pemecahan Masalah Admin
+description: Pemeriksaan awal untuk masalah konfigurasi, akses, dan data.
 ---
 
 # Pemecahan Masalah
 
 Gunakan tabel ini untuk pemeriksaan awal. Jangan menyalin PIN atau secret ke
-laporan masalah.
+laporan masalah. Masalah harian petugas ada di [Pemecahan Masalah
+Petugas](/docs/petugas/masalah).
 
 | Gejala | Pemeriksaan |
 | --- | --- |
@@ -14,10 +15,12 @@ laporan masalah.
 | Sesi berakhir atau permintaan kembali ke login | Login kembali. Pastikan cookie diizinkan dan waktu perangkat tidak menyimpang jauh. |
 | Data cabang tidak terlihat | Pastikan cabang aktif, memiliki spreadsheet yang benar, dan service account mendapat akses. |
 | Gagal membuka atau bergabung shift | Periksa koneksi, akses cabang, dan apakah shift yang sama sudah dibuka. |
-| Checklist atau handover gagal disimpan | Periksa jaringan lalu muat ulang status sebelum mengulangi aksi. Hindari pengiriman berulang tanpa memastikan hasil. |
+| Checklist atau handover gagal disimpan (petugas) | Periksa jaringan lalu instruksi user untuk muat ulang status sebelum mengulangi aksi. Hindari pengiriman berulang tanpa memastikan hasil. |
 | Foto tidak tampil | Periksa akses Drive, `GOOGLE_DRIVE_FOLDER_ID`, status unggah, dan respons route foto. |
+| Perubahan template tidak terlihat | Perubahan template hanya berlaku untuk shift yang dibuka setelahnya — shift berjalan tetap memakai template saat dibuka. |
 | Gagal deploy atau server error | Periksa log deployment tanpa membagikan nilai environment; verifikasi environment wajib dan hasil build. |
 | Admin tidak dapat mengubah pengaturan | Pastikan sesi memakai akun admin dan aksi sensitif memenuhi konfirmasi yang diminta. |
+| Checklist tidak muncul di shift baru | Bila template baru dibuat setelah shift berjalan, shift lama tidak berubah — hanya shift baru yang memakai template terbaru. |
 
 ## Informasi untuk laporan masalah
 
@@ -27,4 +30,5 @@ Jangan sertakan PIN, cookie, token sesi, private key, ID sensitif, atau isi
 `.env`.
 
 Untuk masalah data, jangan mengedit atau menghapus baris secara manual sebelum
-memastikan dampaknya pada aplikasi dan audit log.
+memeriksa dampaknya pada aplikasi dan audit log. Penindakan data selalu lewat
+aplikasi supaya ada jejak di audit log.

@@ -22,6 +22,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { useCabang } from '@/lib/CabangContext';
 import { useWorkingBranch } from '@/lib/working-branch';
+import { NotificationBell } from '@/components/shared/notification-bell';
 import {
   getMobileCoreItems,
   getMobileMoreGroups,
@@ -34,7 +35,7 @@ import { LogOut, X, MoreHorizontal, Building2, ChevronDown, HelpCircle } from 'l
 import { useTour } from '@/lib/TourContext';
 
 /**
- * Selector "cabang kerja" untuk admin.
+ * Selector "cabang kerja" untuk pengguna multi-cabang.
  *
  * Admin punya akses ke seluruh cabang, jadi tanpa selector ini tidak ada yang
  * menyatakan cabang mana yang sedang ia kerjakan. Ini bukan simplemente
@@ -42,13 +43,12 @@ import { useTour } from '@/lib/TourContext';
  * akan menolak permintaan admin yang tidak menyebut cabang, jadi select ini
  * adalah cara melewati penolakan tersebut.
  *
- * Hanya dirender untuk admin (petugas memakai cabang penugasannya sendiri).
  */
 function WorkingBranchPicker({ variant }: { variant: 'sidebar' | 'drawer' }) {
   const { branches, loading } = useCabang();
-  const { branchId, setBranchId, isAdmin } = useWorkingBranch();
+  const { branchId, setBranchId } = useWorkingBranch();
   const selectId = useId();
-  if (!isAdmin) return null;
+  if (branches.length < 2 && branchId) return null;
 
   return (
     <div className={variant === 'drawer' ? 'px-1 pb-3' : ''}>
@@ -80,7 +80,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
   const pathname = usePathname();
   const { user, logout, loading, transition } = useAuth();
   const { branches } = useCabang();
-  const { branchId, setBranchId, isAdmin } = useWorkingBranch();
+  const { branchId, setBranchId } = useWorkingBranch();
   const { openTour } = useTour();
   // Saat SSR, `user` belum ada → pakai initialRole. Setelah hydration, pakai
   // data asli dari AuthContext.
@@ -161,7 +161,7 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
               <span className="hidden sm:inline">MyCheck</span>
             </Link>
             <div className="flex items-center gap-1.5">
-              {isAdmin && branches.length > 0 && (
+              {branches.length > 1 && (
                 <div ref={branchRef} className="relative" data-onboard="cabang">
                   <button
                     type="button"
@@ -195,16 +195,19 @@ export function NavbarClient({ initialRole }: { initialRole: UserRole }) {
                   )}
                 </div>
               )}
-              <button
-                type="button"
-                onClick={openTour}
-                className="flex min-h-10 items-center gap-1.5 rounded-md px-2.5 text-ink-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Buka tutorial"
-                title="Buka tutorial"
-              >
-                <HelpCircle className="h-4 w-4" aria-hidden="true" />
-                <span className="hidden text-xs font-semibold sm:inline">Tutorial</span>
-              </button>
+              {user && <NotificationBell />}
+              {user && (
+                <button
+                  type="button"
+                  onClick={openTour}
+                  className="flex min-h-10 items-center gap-1.5 rounded-md px-2.5 text-ink-muted transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label="Buka tutorial"
+                  title="Buka tutorial"
+                >
+                  <HelpCircle className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden text-xs font-semibold sm:inline">Tutorial</span>
+                </button>
+              )}
               <div className="md:hidden">{userBlock}</div>
             </div>
           </div>

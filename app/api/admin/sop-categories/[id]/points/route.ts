@@ -25,6 +25,7 @@ const toApiPoint = (p: {
   number_max: number | null;
   sort_order: number;
   is_active: boolean;
+  points: number;
   created_at: string;
   updated_at: string;
   version: number;
@@ -42,6 +43,7 @@ const toApiPoint = (p: {
   numberMin: p.number_min,
   numberMax: p.number_max,
   sortOrder: p.sort_order,
+  points: p.points,
   isActive: p.is_active,
   createdAt: p.created_at,
   updatedAt: p.updated_at,
@@ -108,6 +110,8 @@ withAuth(async (_req, ctx, _session) => {
   if (!title) {
     return NextResponse.json({ error: 'title wajib diisi' }, { status: 400 });
   }
+  const points = Number(body['points'] ?? 1);
+  if (!Number.isInteger(points) || points < 0) return NextResponse.json({ error: 'points harus integer non-negatif' }, { status: 400 });
 
   const inputTypeParsed = inputTypeSchema.safeParse(body['inputType'] ?? body['input_type']);
   if (!inputTypeParsed.success) {
@@ -168,6 +172,7 @@ withAuth(async (_req, ctx, _session) => {
         : null,
     sort_order: Number(body['sortOrder'] ?? body['sort_order'] ?? 0) || 0,
     is_active: Boolean(body['isActive'] ?? body['is_active'] ?? true),
+    points,
   });
 
   return NextResponse.json(

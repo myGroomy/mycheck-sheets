@@ -15,6 +15,7 @@ interface ReportResponse {
     is_locked: boolean;
     archive_pdf_drive_url: string | null;
     archived_photo_count: number | null;
+    summary_stats: Record<string, unknown> | null;
   };
   shift: {
     branch_id: string;
@@ -94,6 +95,7 @@ export function ReportDetail({ reportId }: { reportId: string }) {
             isLocked: result.report.is_locked,
             archivePdfDriveUrl: result.report.archive_pdf_drive_url,
             archivedPhotoCount: result.report.archived_photo_count,
+            summaryStats: result.report.summary_stats,
           },
           entries: result.entries.map((entry) => ({
             ...entry,

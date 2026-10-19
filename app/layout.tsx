@@ -10,6 +10,7 @@ import { WorkingBranchProvider } from '@/lib/working-branch';
 import { AuthGuard } from '@/components/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { PageTransition } from '@/components/PageTransition';
+import { ActionProgress } from '@/components/ui/action-progress';
 import { AuthTransitionOverlay } from '@/components/AuthTransitionOverlay';
 import { GlobalBackButton } from '@/components/GlobalBackButton';
 import { TourProvider } from '@/lib/TourContext';
@@ -112,6 +113,7 @@ export default async function RootLayout({
                 <AuthGuard>
                   <TourProvider>
                     <AppShell initialRole={initialRole}>
+                      <ActionProgress />
                       <PageTransition>
                         <GlobalBackButton />
                         {children}

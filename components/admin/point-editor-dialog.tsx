@@ -28,6 +28,7 @@ export interface PointFormValues {
   numberMax: number | null;
   sortOrder: number;
   isActive: boolean;
+  points: number;
 }
 
 interface PointEditorDialogProps {
@@ -81,6 +82,7 @@ const EMPTY: PointFormValues = {
   numberMax: null,
   sortOrder: 0,
   isActive: true,
+  points: 1,
 };
 
 const toNumber = (raw: string): number | null => (raw.trim() === '' ? null : Number(raw));
@@ -116,6 +118,7 @@ export function PointEditorDialog({
       numberMax: point.numberMax,
       sortOrder: point.sortOrder,
       isActive: point.isActive,
+      points: point.points ?? 1,
     });
   }, [open, point]);
 
@@ -235,6 +238,20 @@ export function PointEditorDialog({
                 }
               />
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="point-points">Bobot nilai</Label>
+            <Input
+              id="point-points"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={values.points}
+              onChange={(e) => set('points', Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+            />
+            <p className="text-xs text-ink-muted">0 = informasi saja; 1 = bobot normal.</p>
           </div>
 
           <div className="space-y-1">

@@ -1,0 +1,5 @@
+{
+  "title": "Panduan Petugas",
+  "defaultOpen": true,
+  "pages": ["index", "shift", "checklist", "handover", "incident", "laporan", "masalah"]
+}

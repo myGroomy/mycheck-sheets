@@ -16,6 +16,10 @@ flowchart LR
   Instance --> Incident[Incidents / Notes]
   Instance --> Photo[Photos -> Google Drive]
   Instance --> Audit[AuditLog]
+  Instance --> PjLog[ShiftPjAssignments]
+  Instance --> Reviews[EntryReviews]
+  Report --> Ledger[ScoreLedger]
+  Checklist --> Reviews
 ```
 
 Detail header dan aturan periode mengikuti `PLAN/DATABASE_SCHEMA.md`.

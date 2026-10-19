@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch } from '@/lib/admin/api';
+import { SETTINGS_CATALOG } from '@/lib/admin/settings-catalog';
 import { usePwaInstall } from '@/lib/pwa-install';
 import { Download, CheckCircle2, Smartphone } from 'lucide-react';
 
@@ -77,7 +78,7 @@ const GROUPS: { title: string; fields: FieldDef[] }[] = [
       { key: 'pin_max_attempts', label: 'Maks percobaan PIN salah' },
       { key: 'pin_lock_minutes', label: 'Durasi kunci akun (menit)' },
       { key: 'pin_block_weak', label: 'Blokir PIN lemah' },
-      { key: 'session_days', label: 'Masa berlaku sesi (hari)' },
+      { key: 'session_hours', label: 'Masa berlaku sesi (jam)' },
       { key: 'share_token_days', label: 'Masa berlaku tautan publik (hari)' },
     ],
   },
@@ -267,6 +268,26 @@ export default function PengaturanPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {g.fields.map((f) => {
+                // Fase 17: key yang tidak ada di SETTINGS_CATALOG memang belum
+                // didukung backend — tampilkan field disabled, jangan hilang.
+                const unsupported = !settings[f.key] && !SETTINGS_CATALOG.some((c) => c.key === f.key);
+                if (unsupported) {
+                  return (
+                    <div key={f.key} className="space-y-1">
+                      <Label htmlFor={`set-${f.key}`} className="text-ink-muted">{f.label}</Label>
+                      <Input
+                        id={`set-${f.key}`}
+                        value=""
+                        disabled
+                        placeholder="Belum didukung backend"
+                        aria-describedby={`set-${f.key}-hint`}
+                      />
+                      <p id={`set-${f.key}-hint`} className="text-xs text-ink-muted">
+                        Belum didukung backend{f.hint ? ` — ${f.hint}` : ''}
+                      </p>
+                    </div>
+                  );
+                }
                 const s = settings[f.key];
                 if (!s) return null;
                 return (

@@ -91,6 +91,8 @@ export interface SopCategory {
   sortOrder: number | null;
   isActive: boolean;
   hasShiftHistory?: boolean;
+  /** Hex warna section (Fase 16); '' / null = default grayscale. */
+  color?: string | null;
 }
 
 export type InputType =
@@ -121,6 +123,7 @@ export interface ChecklistPoint {
   numberMax: number | null;
   sortOrder: number;
   isActive: boolean;
+  points: number;
   canDelete?: boolean;
 }
 

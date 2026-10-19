@@ -11,6 +11,8 @@ import { filterRows, insertRow, asStr } from '../../../../lib/store';
 import { resolveCabang } from '../../../../lib/google/registry';
 import { cleanupClosedShiftDrafts } from '../../../../lib/draft-shift';
 import { isShiftBufferEnabled, removeBufferedShiftState } from '../../../../lib/shift-buffer';
+import { notifyShiftOpened } from '../../../../lib/notify-events';
+import { recordPjAssignment } from '../../../../lib/pj-assignments';
 
 interface OpenShiftBody {
   shiftDefinitionId?: string;
@@ -184,6 +186,14 @@ withAuth(async (_req, ctx, _session) => {
     created_at: now.toISOString(),
   });
 
+  // Fase 18: histori PJ untuk rasio waktu scoring (best-effort; engine punya
+  // fallback ke pj_user_id bila catatan ini hilang).
+  try {
+    await recordPjAssignment(spreadsheetId, instanceId, ctx.user.id, 'open');
+  } catch {
+    // rasio PJ fallback otomatis ke kolom pj_user_id.
+  }
+
   await appendAuditLogFor(spreadsheetId, {
     actorId: ctx.user.id,
     action: 'open_shift',
@@ -199,6 +209,20 @@ withAuth(async (_req, ctx, _session) => {
       totalItems: snapshot.categories.reduce((sum, c) => sum + c.points.length, 0),
     },
   });
+
+  // Fan-out notifikasi \"Buka shift\" — best-effort (Fase 14).
+  try {
+    await notifyShiftOpened({
+      spreadsheetId,
+      branchId,
+      shiftInstanceId: instanceId,
+      actorId: ctx.user.id,
+      actorName: ctx.user.name,
+      shiftName: String(definition['name']),
+    });
+  } catch {
+    // kegagalan notifikasi tidak boleh menggagalkan buka shift
+  }
 
   return NextResponse.json({
     status: 'dibuka',

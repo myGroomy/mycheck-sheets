@@ -3,6 +3,7 @@ import { requireRole, withAuth } from '../../../../../lib/api-auth';
 import { appendAuditLogFor } from '../../../../../lib/db/audit';
 import { decidePermanentDelete } from '../../../../../lib/admin/lifecycle-policy';
 import { locateSopCategory } from '../../../../../lib/admin/resolve-config';
+import { normalizeSectionColor } from '../../../../../lib/shared/section-color';
 import {
   deleteSopCategory,
   listChecklistPoints,
@@ -85,6 +86,10 @@ withAuth(async (_req, ctx, _session) => {
   }
   if ((body['isActive'] ?? body['is_active']) !== undefined) {
     updates['is_active'] = Boolean(body['isActive'] ?? body['is_active']);
+  }
+  // Fase 16: warna section — '' berarti reset ke default grayscale.
+  if (body['color'] !== undefined) {
+    updates['color'] = normalizeSectionColor(body['color']);
   }
 
   if (Object.keys(updates).length === 0) {

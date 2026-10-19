@@ -18,14 +18,20 @@ interface IncidentCategory {
   isActive: boolean;
   createdAt: string;
   canDelete: boolean;
+  points: number;
+  penaltyMinSeverity: 'none' | 'rendah' | 'sedang' | 'tinggi';
 }
 
 export default function KategoriIncidentPage() {
   const [categories, setCategories] = useState<IncidentCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState('');
+  const [newPoints, setNewPoints] = useState(0);
+  const [newThreshold, setNewThreshold] = useState<IncidentCategory['penaltyMinSeverity']>('none');
   const [adding, setAdding] = useState(false);
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [pointEdits, setPointEdits] = useState<Record<string, number>>({});
+  const [thresholdEdits, setThresholdEdits] = useState<Record<string, IncidentCategory['penaltyMinSeverity']>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [archiveQuery, setArchiveQuery] = useState('');
@@ -38,6 +44,8 @@ export default function KategoriIncidentPage() {
       );
       setCategories(data.categories);
       setEdits({});
+      setPointEdits({});
+      setThresholdEdits({});
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal memuat kategori');
     } finally {
@@ -60,10 +68,12 @@ export default function KategoriIncidentPage() {
     try {
       await apiFetch('/api/admin/incident-categories', {
         method: 'POST',
-        json: { name: newName.trim() },
+        json: { name: newName.trim(), points: newPoints, penaltyMinSeverity: newThreshold },
       });
       toast.success('Kategori ditambahkan');
       setNewName('');
+      setNewPoints(0);
+      setNewThreshold('none');
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Gagal menambah kategori');
@@ -82,7 +92,7 @@ export default function KategoriIncidentPage() {
     try {
       await apiFetch(`/api/admin/incident-categories/${c.id}`, {
         method: 'PUT',
-        json: { name },
+        json: { name, points: pointEdits[c.id] ?? c.points, penaltyMinSeverity: thresholdEdits[c.id] ?? c.penaltyMinSeverity },
       });
       toast.success('Kategori diperbarui');
       await load();
@@ -127,6 +137,10 @@ export default function KategoriIncidentPage() {
           className="max-w-xs flex-1"
           aria-label="Nama kategori baru"
         />
+        <Input type="number" min={0} step={1} value={newPoints} onChange={(e) => setNewPoints(Math.max(0, Math.trunc(Number(e.target.value) || 0)))} className="w-24" aria-label="Poin penalti baru" />
+        <select value={newThreshold} onChange={(e) => setNewThreshold(e.target.value as IncidentCategory['penaltyMinSeverity'])} className="min-h-10 rounded-md border border-border bg-canvas px-2 text-sm" aria-label="Threshold severity baru">
+          <option value="none">Tidak pernah</option><option value="rendah">Rendah+</option><option value="sedang">Sedang+</option><option value="tinggi">Tinggi</option>
+        </select>
         <Button type="submit" disabled={adding}>
           <Plus className="h-4 w-4" />
           {adding ? 'Menambah...' : 'Tambah'}
@@ -157,7 +171,9 @@ export default function KategoriIncidentPage() {
         {!loading &&
           visibleCategories.map((c) => {
             const value = edits[c.id] ?? c.name;
-            const dirty = value !== c.name;
+            const points = pointEdits[c.id] ?? c.points;
+            const threshold = thresholdEdits[c.id] ?? c.penaltyMinSeverity;
+            const dirty = value !== c.name || points !== c.points || threshold !== c.penaltyMinSeverity;
             return (
               <div
                 key={c.id}
@@ -169,6 +185,10 @@ export default function KategoriIncidentPage() {
                   className="max-w-xs flex-1"
                   aria-label={`Nama kategori ${c.name}`}
                 />
+                <Input type="number" min={0} step={1} value={points} onChange={(e) => setPointEdits({ ...pointEdits, [c.id]: Math.max(0, Math.trunc(Number(e.target.value) || 0)) })} className="w-20" aria-label={`Poin penalti ${c.name}`} />
+                <select value={threshold} onChange={(e) => setThresholdEdits({ ...thresholdEdits, [c.id]: e.target.value as IncidentCategory['penaltyMinSeverity'] })} className="min-h-10 rounded-md border border-border bg-canvas px-2 text-xs" aria-label={`Threshold severity ${c.name}`}>
+                  <option value="none">Tidak pernah</option><option value="rendah">Rendah+</option><option value="sedang">Sedang+</option><option value="tinggi">Tinggi</option>
+                </select>
                 <Badge variant={c.isActive ? 'default' : 'secondary'}>
                   {c.isActive ? 'Aktif' : 'Nonaktif'}
                 </Badge>

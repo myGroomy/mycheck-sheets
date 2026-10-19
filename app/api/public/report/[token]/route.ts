@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findTokenByValue, isTokenActive, rowNumberOfToken, updateShareTokenCells } from '../../../../../lib/google/share-tokens';
+import { findTokenByValue, isTokenActive, rowNumberOfToken, updateShareTokenCells, auditShareToken } from '../../../../../lib/google/share-tokens';
 import { buildPublicReportDetail } from '../../../../../lib/report-detail';
 
 /**
@@ -24,6 +24,15 @@ export async function GET(
     );
   }
   if (!isTokenActive(share)) {
+    // Fase 15: kedaluwarsa teraudit (cabang token sudah diketahui).
+    await auditShareToken(
+      share.branch_id,
+      null,
+      'share_expired',
+      share.id,
+      share.report_id,
+      { expires_at: share.expires_at }
+    );
     return NextResponse.json({ error: 'Token laporan telah kedaluwarsa.' }, { status: 410 });
   }
 
@@ -49,6 +58,7 @@ export async function GET(
       last_accessed_at: new Date().toISOString(),
     });
   }
+  await auditShareToken(share.branch_id, null, 'share_access', share.id, share.report_id);
 
   return NextResponse.json({
     valid: true,

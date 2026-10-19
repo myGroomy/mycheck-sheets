@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ulid } from 'ulid';
-import { AlertCircle, Clock3, UserRound } from 'lucide-react';
+import { AlertCircle, Clock3 } from 'lucide-react';
 import { PageLoader } from '@/components/ui/QuantumLoader';
 import { SkeletonTransition } from '@/components/ui/skeleton-transition';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { ShiftCloseDialog } from '@/components/shift/shift-close-dialog';
 import { PreviousHandoverCard } from '@/components/shift/previous-handover-card';
 import { DraftRestoreDialog } from '@/components/shift/draft-restore-dialog';
 import { useCabang } from '@/lib/CabangContext';
+import { UserBadge } from '@/components/shared/user-badge';
+import { resolvedSectionColor } from '@/lib/shared/section-color';
 import type { ShiftDraftPayload, ShiftDraftPoint } from '@/lib/draft-types';
 import { clearLocalShiftDraft, readLocalShiftDraft, writeLocalShiftDraft } from '@/lib/draft-client';
 
@@ -55,6 +57,7 @@ interface ProgressCategory {
   id: string;
   name: string;
   sort_order: number;
+  color: string | null;
   points: ProgressPoint[];
 }
 
@@ -570,10 +573,17 @@ export function ShiftChecklistClient({
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_0.9fr]">
         <section className="space-y-4">
-          {data.categories.map((category) => (
+          {data.categories.map((category, index) => (
             <div key={category.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-ink">{category.name}</h2>
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full border border-border/40 print:border print:border-border"
+                    style={{ backgroundColor: resolvedSectionColor(category.color, index) }}
+                    aria-hidden="true"
+                  />
+                  <h2 className="truncate text-lg font-bold text-ink">{category.name}</h2>
+                </div>
                 <span className="text-xs uppercase tracking-wide text-ink-muted">{category.points.length} item</span>
               </div>
               <div className="space-y-3">
@@ -599,10 +609,7 @@ export function ShiftChecklistClient({
                         {point.state === 'selesai' ? 'Selesai' : point.state === 'skip' ? 'Skip' : 'Belum'}
                       </span>
                       {point.completed_by_name && (
-                        <span className="inline-flex items-center gap-1">
-                          <UserRound className="h-3.5 w-3.5" />
-                          {point.completed_by_name}
-                        </span>
+                        <UserBadge name={point.completed_by_name} />
                       )}
                     </div>
 

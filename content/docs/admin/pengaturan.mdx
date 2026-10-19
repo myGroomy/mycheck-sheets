@@ -1,0 +1,37 @@
+---
+title: Pengaturan & Arsip
+description: Pengaturan aplikasi, arsip data tahunan, dan audit log.
+---
+
+# Pengaturan dan Arsip
+
+## Pengaturan
+
+Menu **Pengaturan** admin mengatur konfigurasi aplikasi (misal durasi sesi).
+Perubahan berlaku untuk sesi baru; kontrol yang belum didukung backend akan
+tampil nonaktif.
+
+## Arsip data tahunan
+
+Arsip dipakai untuk memisahkan data operasional tahun lalu tanpa menghapus
+data aktif. Akses dari **Pengaturan → Arsip**, dan **hanya admin**.
+
+1. Pilih cabang dan tahun.
+2. Jalankan **Preview** — tinjau jumlah sheet dan baris yang akan dibuat.
+3. Jalankan **Arsipkan Sekarang** setelah angka masuk akal.
+
+Hasilnya adalah spreadsheet salinan bertahun; ID-nya tercatat di Registry dan
+muncul sebagai data mode **Arsip** yang bisa dipulihkan. Data kerja aktif
+tidak dihilangkan.
+
+Spreadsheet lama masih memakai mode `monthly` atau `yearly` — aksi arsip tetap
+aman, tetapi tetap lakukan preview dulu.
+
+## Audit log
+
+Menu **Audit Log** mencatat aktivitas penting: login, perubahan konfigurasi,
+penghapusan (yang lolos pemeriksaan), arsip, pencabutan tautan berbagi, dll.
+
+Gunakan audit log untuk menelusuri "siapa melakukan apa" — bukan mengubah data
+langsung di spreadsheet. Jangan menulis secret (PIN, token, private key) ke
+audit log maupun ke laporan masalah.

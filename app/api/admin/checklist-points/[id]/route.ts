@@ -31,6 +31,7 @@ const toApiPoint = (p: {
   number_max: number | null;
   sort_order: number;
   is_active: boolean;
+  points: number;
   created_at: string;
   updated_at: string;
   version: number;
@@ -48,6 +49,7 @@ const toApiPoint = (p: {
   numberMin: p.number_min,
   numberMax: p.number_max,
   sortOrder: p.sort_order,
+  points: p.points,
   isActive: p.is_active,
   createdAt: p.created_at,
   updatedAt: p.updated_at,
@@ -194,6 +196,11 @@ withAuth(async (_req, ctx, _session) => {
   }
   if ((body['isActive'] ?? body['is_active']) !== undefined) {
     updates['is_active'] = Boolean(body['isActive'] ?? body['is_active']);
+  }
+  if (body['points'] !== undefined) {
+    const points = Number(body['points']);
+    if (!Number.isInteger(points) || points < 0) return NextResponse.json({ error: 'points harus integer non-negatif' }, { status: 400 });
+    updates['points'] = points;
   }
 
   // number_min harus <= number_max

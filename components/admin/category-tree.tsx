@@ -116,7 +116,16 @@ export function CategoryTree({
                 onClick={() => onSelectCategory(cat.id)}
                 className="min-w-[120px] flex-1 text-left"
               >
-                <span className="block truncate text-sm font-medium">{cat.name}</span>
+                <span className="flex items-center gap-1.5">
+                  {cat.color && (
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full border border-border/40"
+                      style={{ backgroundColor: cat.color }}
+                      aria-hidden
+                    />
+                  )}
+                  <span className="truncate text-sm font-medium">{cat.name}</span>
+                </span>
                 <span className="block text-sm text-ink-muted">
                   {cat.points.filter((p) => p.isActive).length} pertanyaan aktif
                 </span>

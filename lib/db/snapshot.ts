@@ -2,6 +2,7 @@
 // Build template snapshot versi Google Sheets, sesuai Template_cabang_mycheck.
 import { createHash } from 'crypto';
 import { asBool, asNum, asStr, filterRows, listRows } from '../store';
+import { normalizeSectionColor } from '../shared/section-color';
 
 interface SnapshotPoint {
   point_ref: string;
@@ -17,20 +18,25 @@ interface SnapshotPoint {
   number_min: number | null;
   number_max: number | null;
   sort_order: number;
+  points?: number;
 }
 
 export interface SnapshotCategory {
   id: string;
   name: string;
   sort_order: number;
+  /** Warna section (hex) dari SopCategories — nullable bila belum diatur. */
+  color?: string | null;
   points: SnapshotPoint[];
 }
 
 export interface Snapshot {
   v: number;
+  score_version?: string;
   shift: { id: string; name: string; start_time: string; end_time: string; crosses_midnight: boolean };
   settings: { tolerance_default_minutes: number; timezone: string };
   categories: SnapshotCategory[];
+  incident_categories?: { id: string; name: string; points: number; penalty_min_severity: string; is_active: boolean }[];
   handover_fields: { id: string; label: string; field_type: string; input_types?: string[]; options: string[] | null; is_required: boolean; sort_order: number }[];
 }
 
@@ -67,9 +73,12 @@ export async function buildTemplateSnapshot(
   const handoverFieldsResult = (await filterRows(spreadsheetId, 'HandoverFields', (r) =>
     asStr(r['shift_definition_id']) === shiftDefinitionId && asBool(r['is_active'])
   )).sort((a, b) => (asNum(a['sort_order']) ?? 0) - (asNum(b['sort_order']) ?? 0));
+  const incidentCategories = (await filterRows(spreadsheetId, 'IncidentCategories', (r) => asBool(r['is_active'])))
+    .sort((a, b) => (asNum(a['sort_order']) ?? 0) - (asNum(b['sort_order']) ?? 0));
 
   const snapshot: Snapshot = {
-    v: 1,
+    v: 2,
+    score_version: 'weighted-v1',
     shift: {
       id: asStr(shiftDef['id']),
       name: asStr(shiftDef['name']),
@@ -82,6 +91,7 @@ export async function buildTemplateSnapshot(
       id: asStr(cat['id']),
       name: asStr(cat['name']),
       sort_order: asNum(cat['sort_order']) ?? 0,
+      color: normalizeSectionColor(asStr(cat['color'])),
       points: points
         .filter((p) => asStr(p['sop_category_id']) === asStr(cat['id']))
         .map((p) => ({
@@ -112,7 +122,15 @@ export async function buildTemplateSnapshot(
           number_min: asNum(p['number_min']),
           number_max: asNum(p['number_max']),
           sort_order: asNum(p['sort_order']) ?? 0,
+          points: Math.max(0, asNum(p['points']) ?? 1),
         })),
+    })),
+    incident_categories: incidentCategories.map((category) => ({
+      id: asStr(category['id']),
+      name: asStr(category['name']),
+      points: Math.max(0, asNum(category['points']) ?? 0),
+      penalty_min_severity: asStr(category['penalty_min_severity']) || 'none',
+      is_active: asBool(category['is_active']),
     })),
     handover_fields: handoverFieldsResult.map((f) => ({
       id: asStr(f['id']),
